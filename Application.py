@@ -1,11 +1,13 @@
 import sys
 sys.dont_write_bytecode = True
 
+# Add Printer_Control_App/core to path so printrun can be imported
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Printer_Control_App', 'core'))
+
 from PyQt5.QtWidgets import QApplication, QTabWidget, QWidget, QVBoxLayout
-import sys
 import serial
 import time
-import os
 import cv2
 import threading
 import re
