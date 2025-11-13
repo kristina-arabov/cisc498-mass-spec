@@ -1,0 +1,36 @@
+Install steps.
+
+1. download python 3.9.1 from https://www.python.org/downloads/release/python-391/
+
+2. when installer opens clock the checkbox saying add python 3.9 to path
+
+3. Click install now
+
+5. If you are on windows open command prompt (Terminal for mac)
+
+6. copy the file path to requirements.txt
+
+
+7. type in: pip install -r (path to requirements) 
+            - can righyt click on file and get path
+
+8. if needed do python -m pip install --upgrade pip setuptools wheel
+
+
+8. If needed type pip install --upgrade pip
+
+8. hit enter
+
+
+
+
+removed
+
+pyobjc-core==10.2
+pyobjc-framework-cocoa==10.2
+
+[gc_startx_sel, gc_starty_sel, gc_startz_sel, gc_setx_sel, gc_sety_sel, gc_resx_sel, gc_resy_sel, dim_x_sb, dim_y_sb,gc_st_sel, gc_pause_sel, gc_zspeedup_sel, gc_speedxy_sel, gc_zspeed_sel, gc_step_sel] 
+
+ sample_spot_mode, resolution_mode, dimension_mode,  conductance_mode, constant_z_mode,
+
+gc_currentall_btn, gc_currentx_btn, gc_currenty_btn, gc_currentz_btn,  gc_currentlz_btn
