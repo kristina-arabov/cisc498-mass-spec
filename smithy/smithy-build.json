@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "sources": ["model"],
+  "projections": {
+    "docs": {
+      "plugins": {
+        "docgen": {
+          "service": "msrobot.app#AppService",
+          "format": "sphinx-markdown"
+        }
+      }
+    }
+  }
+}

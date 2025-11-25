@@ -1,0 +1,675 @@
+@startuml
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam packageStyle rectangle
+hide empty methods
+hide empty fields
+
+title MS-Robot-Domain-Model
+
+package "msrobot.app" {
+}
+
+package "msrobot.core.common" {
+  class SuccessResponse {
+    +success : Boolean
+    -message : String
+  }
+
+  class ErrorInfo {
+    +code : String
+    +message : String
+    +recoverable : Boolean
+    -details : String
+  }
+
+  class Duration {
+    +milliseconds : Long
+  }
+
+}
+
+package "msrobot.core.geometry" {
+  class Resolution2D {
+    +x : Float
+    +y : Float
+  }
+
+  class Range {
+    +lower : Float
+    +upper : Float
+  }
+
+  class Position3D {
+    +x : Float
+    +y : Float
+    +z : Float
+  }
+
+  class Quaternion {
+    +w : Float
+    +x : Float
+    +y : Float
+    +z : Float
+  }
+
+  class BoundingBox {
+    +minX : Float
+    +maxX : Float
+    +minY : Float
+    +maxY : Float
+  }
+
+  class Resolution {
+    +width : Integer
+    +height : Integer
+  }
+
+  class Position2D {
+    +x : Float
+    +y : Float
+  }
+
+  class Pose {
+    +position : Position3D
+    +orientation : Quaternion
+  }
+
+  class Vector3D {
+    +x : Float
+    +y : Float
+    +z : Float
+  }
+
+}
+
+package "msrobot.domain.calibration" {
+  class CalibrationValidation {
+    +isValid : Boolean
+    +testPoints : List<ValidationPoint>
+    +meanErrorMm : Float
+    +maxErrorMm : Float
+    +validatedAt : Timestamp
+  }
+
+  class Calibration {
+    +id : CalibrationId
+    +name : String
+    +createdAt : Timestamp
+    +cameraInfo : CameraInfo
+    +intrinsics : CameraIntrinsics
+    +extrinsics : HandEyeCalibration
+    +validation : CalibrationValidation
+    +filePath : FilePath
+  }
+
+  class CameraInfo {
+    +cameraType : String
+    +deviceIndex : Integer
+    +resolution : Resolution
+    +fps : Integer
+    -serialNumber : String
+    -firmwareVersion : String
+  }
+
+  class HandEyeCalibration {
+    +transformMatrix : List<List<Float>>
+    +rotation : Quaternion
+    +translation : Vector3D
+    +method : HandEyeMethod
+    +probeOffset : Vector3D
+    +reprojectionError : Float
+    +positionError : Float
+  }
+
+  enum HandEyeMethod {
+    TSAI_LENZ
+    PARK_MARTIN
+    DANIILIDIS
+    APRILTAG
+    MANUAL
+  }
+
+  class CalibrationSummary {
+    +id : CalibrationId
+    +name : String
+    +createdAt : Timestamp
+    +isValid : Boolean
+    +meanErrorMm : Float
+    +filePath : FilePath
+  }
+
+  class CameraIntrinsics {
+    +cameraMatrix : List<List<Float>>
+    +distortionCoeffs : List<Float>
+    +calibrationType : CalibrationType
+    +imageSize : Resolution
+    +rmsError : Float
+    +checkerboardCols : Integer
+    +checkerboardRows : Integer
+    +squareSizeMm : Float
+  }
+
+  class ValidationPoint {
+    +pixelX : Integer
+    +pixelY : Integer
+    +expectedPosition : Position3D
+    +actualPosition : Position3D
+    +errorMm : Float
+  }
+
+  enum CalibrationType {
+    STANDARD
+    FISHEYE
+    RATIONAL
+  }
+
+}
+
+package "msrobot.domain.device" {
+  class ConductanceMeterInfo {
+    +port : String
+    +baudRate : Integer
+    +timeoutMs : Integer
+  }
+
+  class CameraState {
+    +isStreaming : Boolean
+    +isRecording : Boolean
+    -currentFps : Float
+    -lastFrameAt : Timestamp
+  }
+
+  enum ConnectionStatus {
+    DISCONNECTED
+    CONNECTING
+    CONNECTED
+    ERROR
+  }
+
+  class PrinterInfo {
+    +port : String
+    +baudRate : Integer
+    +timeoutMs : Integer
+    -model : String
+    -firmwareVersion : String
+  }
+
+  class CameraDeviceInfo {
+    +deviceIndex : Integer
+    +resolution : Resolution
+    +fps : Integer
+    -name : String
+  }
+
+  class PrinterState {
+    +pose : Pose
+    +isHomed : Boolean
+    +isMoving : Boolean
+    -temperatureNozzle : Float
+    -temperatureBed : Float
+    +lastUpdate : Timestamp
+  }
+
+  class ConductanceMeterState {
+    +currentValue : Integer
+    +lastReadingAt : Timestamp
+    -readingsPerSecond : Float
+  }
+
+  enum DeviceType {
+    PRINTER
+    CAMERA
+    CONDUCTANCE
+  }
+
+  class DevicesStatus {
+    +printer : DeviceConnection
+    +camera : DeviceConnection
+    +conductance : DeviceConnection
+    -printerState : PrinterState
+    -cameraState : CameraState
+    -conductanceState : ConductanceMeterState
+  }
+
+  class DeviceConnection {
+    +deviceType : DeviceType
+    +connectionId : String
+    +status : ConnectionStatus
+    -lastError : String
+    -connectedAt : Timestamp
+  }
+
+}
+
+package "msrobot.domain.export" {
+  enum ExportFormat {
+    CSV
+    TXT
+    XLSX
+  }
+
+  class ExportConfig {
+    +format : ExportFormat
+    +outputPath : FilePath
+    +includeHeader : Boolean
+    +includeMetadata : Boolean
+    +includeZHeightsGrid : Boolean
+    +decimalPrecision : Integer
+  }
+
+  class ExportProgress {
+    +samplesProcessed : Integer
+    +totalSamples : Integer
+    +progressPercent : Float
+    +currentPhase : String
+  }
+
+  class ExportResult {
+    +success : Boolean
+    +outputPath : FilePath
+    +samplesExported : Integer
+    +fileSizeBytes : Long
+    +exportDurationMs : Integer
+    -errorMessage : String
+  }
+
+}
+
+package "msrobot.domain.gcode" {
+  class PositionResponse {
+    +x : Float
+    +y : Float
+    +z : Float
+    -e : Float
+    -countX : Integer
+    -countY : Integer
+    -countZ : Integer
+  }
+
+  class GCodeResult {
+    +command : GCodeCommand
+    +success : Boolean
+    -response : String
+    -errorMessage : String
+    -executionMs : Integer
+  }
+
+  enum GCodeType {
+    RAPID_MOVE
+    LINEAR_MOVE
+    DWELL
+    HOME
+    SET_ABSOLUTE
+    SET_RELATIVE
+    SET_POSITION
+    REPORT_POSITION
+    REPORT_TEMPERATURE
+    WAIT_FOR_MOVES
+    SET_MAX_FEEDRATE
+    UNKNOWN
+  }
+
+  class TemperatureResponse {
+    +nozzle : Float
+    +nozzleTarget : Float
+    +bed : Float
+    +bedTarget : Float
+  }
+
+  class GCodeCommand {
+    +type : GCodeType
+    +rawCommand : String
+    -x : Float
+    -y : Float
+    -z : Float
+    -feedRate : Float
+    -dwellMs : Integer
+    -timestamp : String
+  }
+
+}
+
+package "msrobot.domain.path" {
+  class PathPreview {
+    +totalPoints : Integer
+    +totalDistanceMm : Float
+    +estimatedDuration : Duration
+    +previewPoints : List<PathPoint>
+  }
+
+  class PathPoint {
+    +index : Integer
+    +x : Float
+    +y : Float
+    -z : Float
+  }
+
+  enum PathPattern {
+    ZIGZAG
+    RASTER
+    SPIRAL
+  }
+
+  class PathGenerationRequest {
+    +roi : ROI
+    +config : PathConfig
+    +dwellTime : Duration
+    +pauseTime : Duration
+  }
+
+  class SamplingPath {
+    +points : List<PathPoint>
+    +config : PathConfig
+    +roi : ROI
+    +totalPoints : Integer
+    +totalDistanceMm : Float
+    +estimatedDuration : Duration
+  }
+
+  class PathConfig {
+    +resolution : Resolution2D
+    +pattern : PathPattern
+    +mode : SamplingMode
+  }
+
+}
+
+package "msrobot.domain.recording" {
+  class RecordingSummary {
+    +id : RecordingId
+    +name : String
+    +status : RecordingStatus
+    +samplesCompleted : Integer
+    +totalSamples : Integer
+    +msrbtFile : FilePath
+  }
+
+  enum RecordingStatus {
+    CREATED
+    CONFIGURING
+    PATH_GENERATED
+    READY
+    RUNNING
+    PAUSED
+    COMPLETING
+    COMPLETED
+    ABORTED
+    ERROR
+  }
+
+  enum ReferenceWhen {
+    START
+    END
+    START_AND_END
+  }
+
+  class Recording {
+    +id : RecordingId
+    +sessionId : SessionId
+    +name : String
+    +createdAt : Timestamp
+    -startedAt : Timestamp
+    -pausedAt : Timestamp
+    -completedAt : Timestamp
+    +config : RecordingConfig
+    -roi : ROI
+    -path : SamplingPath
+    +status : RecordingStatus
+    +currentSampleIndex : Integer
+    +totalSamples : Integer
+    +msrbtFile : FilePath
+    -tempGcodeFile : FilePath
+    +statistics : RecordingStatistics
+  }
+
+  class RecordingStatistics {
+    +samplesCompleted : Integer
+    +samplesSkipped : Integer
+    +samplesError : Integer
+    +elapsedTime : Duration
+    +estimatedRemaining : Duration
+    +averageSampleTime : Duration
+    -averageConductance : Float
+    -minZ : Float
+    -maxZ : Float
+  }
+
+  class MotionConfig {
+    +xySpeed : Float
+    +zProbeSpeed : Float
+    +zRetractSpeed : Float
+    +xyAcceleration : Float
+    +zAcceleration : Float
+  }
+
+  class RecordingConfig {
+    +resolution : Resolution2D
+    +dwellTime : Duration
+    +pauseTime : Duration
+    +mode : SamplingMode
+    -constantZ : Float
+    -conductanceThreshold : Range
+    -probeStep : Float
+    +motion : MotionConfig
+    -reference : ReferenceConfig
+  }
+
+  enum SamplingMode {
+    CONSTANT_Z
+    CONDUCTANCE
+  }
+
+  class ReferenceConfig {
+    +position : Position3D
+    +when : ReferenceWhen
+    +dwellTime : Duration
+    +sampleTime : Duration
+  }
+
+}
+
+package "msrobot.domain.roi" {
+  class ROIWithSource {
+    +roi : ROI
+    +sourceMethod : ROISourceMethod
+    -transformSessionId : String
+    -originalPixelVertices : List<Position2D>
+  }
+
+  enum ROISourceMethod {
+    USER_DRAWN
+    AUTO_DETECTED
+    LOADED
+    PROGRAMMATIC
+  }
+
+  class ROI {
+    +vertices : List<Position2D>
+    +coordinateSystem : CoordinateSystem
+    +boundingBox : BoundingBox
+    -area : Float
+  }
+
+  enum CoordinateSystem {
+    PIXEL
+    STAGE_MM
+  }
+
+}
+
+package "msrobot.domain.sample" {
+  class Sample {
+    +index : Integer
+    +timestamp : Timestamp
+    +elapsed : Duration
+    +pose : Pose
+    +targetPosition : Position3D
+    +contact : ContactInfo
+    -conductance : ConductanceReading
+    +gcodeCommands : List<GCodeCommand>
+    +status : SampleStatus
+    -errorMessage : String
+  }
+
+  class ContactInfo {
+    +contactDetected : Boolean
+    +contactTimestamp : Timestamp
+    +approachStartZ : Float
+    +contactZ : Float
+    +probeSteps : Integer
+    +contactMethod : ContactMethod
+  }
+
+  enum SampleStatus {
+    PENDING
+    IN_PROGRESS
+    SAMPLED
+    SKIPPED
+    ERROR
+  }
+
+  class ConductanceReading {
+    +value : Integer
+    +timestamp : Timestamp
+  }
+
+  class SampleExport {
+    +index : Integer
+    +timestamp : String
+    +elapsedMs : Long
+    +posX : Float
+    +posY : Float
+    +posZ : Float
+    +quatW : Float
+    +quatX : Float
+    +quatY : Float
+    +quatZ : Float
+    +conductance : Integer
+    +status : String
+  }
+
+  enum ContactMethod {
+    CONSTANT_Z
+    CONDUCTANCE
+    FORCE_SENSING
+  }
+
+}
+
+package "msrobot.domain.session" {
+  enum SessionStatus {
+    CREATED
+    CALIBRATION_REQUIRED
+    READY
+    RECORDING
+    CLOSED
+  }
+
+  class SessionSummary {
+    +id : SessionId
+    +fullName : String
+    +createdAt : Timestamp
+    +status : SessionStatus
+    +recordingCount : Integer
+    +path : FilePath
+  }
+
+  class Session {
+    +id : SessionId
+    +name : String
+    +fullName : String
+    +createdAt : Timestamp
+    +modifiedAt : Timestamp
+    +status : SessionStatus
+    -calibrationId : String
+    -calibrationPath : FilePath
+    +recordings : List<String>
+    +outputDirectory : FilePath
+  }
+
+}
+
+
+' Relationships
+Pose --> Position3D : position
+Pose --> Quaternion : orientation
+CalibrationValidation "1" --> "*" ValidationPoint : testPoints
+Calibration --> CameraInfo : cameraInfo
+Calibration --> CameraIntrinsics : intrinsics
+Calibration --> HandEyeCalibration : extrinsics
+Calibration --> CalibrationValidation : validation
+CameraInfo --> Resolution : resolution
+HandEyeCalibration --> Quaternion : rotation
+HandEyeCalibration --> Vector3D : translation
+HandEyeCalibration --> HandEyeMethod : method
+HandEyeCalibration --> Vector3D : probeOffset
+CameraIntrinsics --> CalibrationType : calibrationType
+CameraIntrinsics --> Resolution : imageSize
+ValidationPoint --> Position3D : expectedPosition
+ValidationPoint --> Position3D : actualPosition
+CameraDeviceInfo --> Resolution : resolution
+PrinterState --> Pose : pose
+DevicesStatus --> DeviceConnection : printer
+DevicesStatus --> DeviceConnection : camera
+DevicesStatus --> DeviceConnection : conductance
+DevicesStatus --> PrinterState : printerState
+DevicesStatus --> CameraState : cameraState
+DevicesStatus --> ConductanceMeterState : conductanceState
+DeviceConnection --> DeviceType : deviceType
+DeviceConnection --> ConnectionStatus : status
+ExportConfig --> ExportFormat : format
+GCodeResult --> GCodeCommand : command
+GCodeCommand --> GCodeType : type
+PathPreview --> Duration : estimatedDuration
+PathPreview "1" --> "*" PathPoint : previewPoints
+PathGenerationRequest --> ROI : roi
+PathGenerationRequest --> PathConfig : config
+PathGenerationRequest --> Duration : dwellTime
+PathGenerationRequest --> Duration : pauseTime
+SamplingPath "1" --> "*" PathPoint : points
+SamplingPath --> PathConfig : config
+SamplingPath --> ROI : roi
+SamplingPath --> Duration : estimatedDuration
+PathConfig --> Resolution2D : resolution
+PathConfig --> PathPattern : pattern
+PathConfig --> SamplingMode : mode
+RecordingSummary --> RecordingStatus : status
+Recording --> RecordingConfig : config
+Recording --> ROI : roi
+Recording --> SamplingPath : path
+Recording --> RecordingStatus : status
+Recording --> RecordingStatistics : statistics
+RecordingStatistics --> Duration : elapsedTime
+RecordingStatistics --> Duration : estimatedRemaining
+RecordingStatistics --> Duration : averageSampleTime
+RecordingConfig --> Resolution2D : resolution
+RecordingConfig --> Duration : dwellTime
+RecordingConfig --> Duration : pauseTime
+RecordingConfig --> SamplingMode : mode
+RecordingConfig --> Range : conductanceThreshold
+RecordingConfig --> MotionConfig : motion
+RecordingConfig --> ReferenceConfig : reference
+ReferenceConfig --> Position3D : position
+ReferenceConfig --> ReferenceWhen : when
+ReferenceConfig --> Duration : dwellTime
+ReferenceConfig --> Duration : sampleTime
+ROIWithSource --> ROI : roi
+ROIWithSource --> ROISourceMethod : sourceMethod
+ROIWithSource "1" --> "*" Position2D : originalPixelVertices
+ROI "1" --> "*" Position2D : vertices
+ROI --> CoordinateSystem : coordinateSystem
+ROI --> BoundingBox : boundingBox
+Sample --> Duration : elapsed
+Sample --> Pose : pose
+Sample --> Position3D : targetPosition
+Sample --> ContactInfo : contact
+Sample --> ConductanceReading : conductance
+Sample "1" --> "*" GCodeCommand : gcodeCommands
+Sample --> SampleStatus : status
+ContactInfo --> ContactMethod : contactMethod
+SessionSummary --> SessionStatus : status
+Session --> SessionStatus : status
+
+@enduml
