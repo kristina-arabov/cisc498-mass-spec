@@ -200,6 +200,9 @@ class App(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.header)
         layout.addWidget(self.stack)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
         self.setLayout(layout)
 
         self.stack.setCurrentIndex(0)

@@ -17,35 +17,80 @@ import cv2
 
 from Unwarping_App.components import utils
 
+class DevicesButton(QPushButton):
+    def __init__(self, text, icon_path, parent=None):
+        super().__init__(parent)
+
+        self.setObjectName("headerBlue")
+        self.setFixedWidth(115)
+
+        icon_label = QLabel()
+        icon_label.setPixmap(QPixmap(icon_path).scaled(
+            20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
+        ))
+        icon_label.setStyleSheet("background-color: #132C49;")
+
+        text_label = QLabel(text)
+        text_label.setStyleSheet("""
+            background-color: #132C49;
+            color: white;
+            font-weight: bold;
+        """)
+
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout.addStretch()
+        layout.addWidget(icon_label, alignment=Qt.AlignCenter)
+        layout.addWidget(text_label, alignment=Qt.AlignCenter)
+        layout.addStretch()
+
 class Header(QWidget):
     def __init__(self, stacked_widget):
         super().__init__()
-        self.layout = QHBoxLayout()
+
+        layout = QHBoxLayout()
+
+        container = QWidget(objectName="header")
+        inner_layout = QHBoxLayout(container)
+
         self.stacked = stacked_widget
 
-        self.main_btn = QPushButton("Monitor", objectName="black")
-        self.cam_btn = QPushButton("Camera", objectName="black")
+        self.legacy_btn = QPushButton("Legacy Mode", objectName="headerGrey")
+        self.return_btn = QPushButton("Return", objectName="headerGrey")
+        self.return_btn.hide()
 
-        self.main_btn.clicked.connect(self.showMonitor)
-        self.cam_btn.clicked.connect(self.showUnwarping)
+        credits_btn = QPushButton("Credits", objectName="headerBlue")
+        help_btn = QPushButton("Help", objectName="headerBlue")
+        devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
 
+        self.legacy_btn.clicked.connect(self.showMonitor)
+        self.return_btn.clicked.connect(self.showUnwarping)
 
-        self.line = QFrame()
-        self.line.setGeometry(QRect(60, 110, 751, 20))
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Sunken)
+        inner_layout.addWidget(self.legacy_btn)
+        inner_layout.addWidget(self.return_btn)
+        inner_layout.addStretch()
+        inner_layout.addWidget(credits_btn)
+        inner_layout.addWidget(help_btn)
+        inner_layout.addWidget(devices_btn)
 
-        self.layout.addWidget(self.main_btn, 0, Qt.AlignLeft)
-        self.layout.addWidget(self.cam_btn, 0, Qt.AlignLeft)
-        self.layout.addWidget(self.line, 1, Qt.AlignLeft)
+        layout.addWidget(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        self.setLayout(self.layout)
-    
+        self.setLayout(layout)
+
     def showMonitor(self):
         self.stacked.setCurrentIndex(1)
-    
+        self.legacy_btn.hide()
+        self.return_btn.show()
+
     def showUnwarping(self):
         self.stacked.setCurrentIndex(0)
+        self.legacy_btn.show()
+        self.return_btn.hide()
+
 
 class NavButtons(QWidget):
     def __init__(self, stacked):
