@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QPushButton
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton
+from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
+from PyQt5.QtCore import Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets
@@ -20,34 +21,109 @@ class ProvideTransformation(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
-        # widgets = []
+        layout = QHBoxLayout(self)
 
-        # summary = QLabel("Provide a working transformation that will be applied to any photos taken with the current set-up.")
+        # LEFT COLUMN
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
 
-        # folder_select = FolderSelect()
-        # folder_select.upload.clicked.connect(lambda: processUpload(folder_select, "folder"))
+        feed = CamFeed("Live feed here")
+        unwarp_component = ArrowButton()
+        result = CamFeed("Result here")
 
-        # checking_layout = QVBoxLayout()
+        left_layout.addWidget(feed)
+        left_layout.addWidget(unwarp_component)
+        left_layout.addWidget(result)
 
-        # checkerboard_check = CheckItem("Checkerboard photos")
-        # apriltag_check = CheckItem("AprilTag photos")
-        # json_check = CheckItem("JSON file")
 
-        # checking_layout.addWidget(checkerboard_check)
-        # checking_layout.addWidget(apriltag_check)
-        # checking_layout.addWidget(json_check)
+        # RIGHT COLUMN
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
 
-        # verify_button = QPushButton("Verify transformation", objectName="dark_blue")
-        # verify_button.clicked.connect(lambda: verifyTransformation(folder_select.path.text(), self.json_path))
+        label = QLabel("Provide a Transformation", objectName="page_title")
 
-        # widgets.append(summary)
-        # widgets.append(folder_select)
-        # widgets.append(checking_layout)
-        # widgets.append(verify_button)
+        # Selection box
+        select_box = QWidget(objectName="light_blue_box")
+        select_box_layout = QVBoxLayout(select_box)
 
-        # layout = QVBoxLayout()
-        # layout = addAllWidgets(layout, widgets)
+        folder_path = QLabel("<Path here>", objectName="path_label")
+        folder_select_btn = QPushButton("Select file", objectName="blue")
+        folder_error = QLabel("<Errors will go here>", objectName="light_blue_box")
 
-        # layout.setAlignment(checking_layout, Qt.AlignCenter)
+        select_box_layout.addWidget(folder_path)
+        select_box_layout.addWidget(folder_select_btn, alignment=Qt.AlignCenter)
+        select_box_layout.addWidget(folder_error, alignment=Qt.AlignCenter)
 
-        # self.setLayout(layout)
+
+        # Next button (TODO connect page)
+        next_btn = QPushButton("Next", objectName="blue")
+
+        right_layout.addStretch()
+        right_layout.addWidget(label)
+        right_layout.addWidget(select_box)
+        right_layout.addStretch()
+        right_layout.addWidget(next_btn, alignment=Qt.AlignRight)
+
+        # FULL PAGE
+        layout.addWidget(left)
+        layout.addWidget(right)
+
+
+class CamFeed(QWidget):
+    def __init__(self, text):
+        super().__init__()
+
+        layout = QHBoxLayout()
+
+        # TODO Dynamic sizes
+        self.feed_width = int(1280 * 0.4)
+        self.feed_height = int(720 * 0.4)
+
+        # Text here if needed
+        self.image_label = QLabel(objectName="camera_initial")
+        self.image_label.setFixedSize(self.feed_width, self.feed_height)
+        self.image_label.setText(text)
+
+        self.cam_thread = None
+
+        layout.addWidget(self.image_label, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
+
+class ArrowButton(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        layout = QVBoxLayout(self)
+        self.setFixedHeight(100)
+
+        self.button = QPushButton("Unwarped", objectName="clear")
+        # self.button.setEnabled(False)
+        
+        layout.setContentsMargins(0, 10, 0, 10)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.button)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        pen = QPen(QColor("#132c49"), 2)
+        painter.setPen(pen)
+
+        w = self.width()
+        h = self.height()
+        center_x = w // 2
+
+        painter.drawLine(center_x, 0, center_x, h // 2)
+        painter.drawLine(center_x, h // 2, center_x, h)
+
+        # Arrow point
+        arrow = QPolygon([
+            QPoint(center_x - 6, h - 8),
+            QPoint(center_x + 6, h - 8),
+            QPoint(center_x, h)
+        ])
+
+        painter.setBrush(QColor("#132c49")) 
+        painter.drawPolygon(arrow)
