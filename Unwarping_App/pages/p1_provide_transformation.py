@@ -108,7 +108,7 @@ class ArrowButton(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        pen = QPen(QColor("#132c49"), 2) # CUstom colour here
+        pen = QPen(QColor("#132c49"), 2)
         painter.setPen(pen)
 
         w = self.width()
