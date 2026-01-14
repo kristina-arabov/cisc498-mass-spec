@@ -55,11 +55,11 @@ temp_vars = {
 R_cam2base_overlay = None
 t_cam2base_overlay = None
 
-# Page titles
+# Page titles (will remove?)
 def setPageTitle(nav, index):
     titles = [
         "",
-        "Select Transformation",
+        "",
         "Define Sampling Area",
         "Pre-run Config",
         "Sampling Run in Progress...",
