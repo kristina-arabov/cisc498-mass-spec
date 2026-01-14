@@ -6,11 +6,14 @@ from PyQt5.QtCore import Qt
 
 from Unwarping_App.pages.p0_landing import LandingPage
 from Unwarping_App.pages.p1_provide_transformation import ProvideTransformation
-from Unwarping_App.pages.p2_live_photo import LivePhoto
-from Unwarping_App.pages.p3_location import Location
-from Unwarping_App.pages.p4_create_transformation import CreateTransformation
-from Unwarping_App.pages.p5_checkerboard_detection import CheckerboardDetection
-from Unwarping_App.pages.p6_probe_detection import ProbeDetection
+from Unwarping_App.pages.p2_roi_selection import ROISelection
+from Unwarping_App.pages.p3_prerun_config import PrerunConfig
+from Unwarping_App.pages.p4_sampling_progress import SamplingProgress
+from Unwarping_App.pages.p5_sampling_complete import SamplingComplete
+from Unwarping_App.pages.p6_checkerboard_detection import CheckerboardDetection
+from Unwarping_App.pages.p7_probe_detection import ProbeDetection
+from Unwarping_App.pages.p8_transformation_review import TransformationReview
+
 
 
 import Unwarping_App.components.utils as utils
@@ -73,12 +76,14 @@ class Main(QWidget):
 
         # connect pages for application
         self.page0 = LandingPage()
-        self.page1 = ProvideTransformation(self.json_path)
-        self.page2 = LivePhoto(screen_size, self.camera, self.light_connection, self.json_path)
-        self.page3 = Location(self.printer, self.json_path)
-        self.page4 = CreateTransformation(self.stacked, self.printer, self.transformation_vars)
-        self.page5 = CheckerboardDetection(self.camera, self.light_connection, self.printer, self.transformation_vars)
-        self.page6 = ProbeDetection(self.camera, self.light_connection, self.printer,self.transformation_vars)
+        self.page1 = ProvideTransformation()
+        self.page2 = ROISelection()
+        self.page3 = PrerunConfig()
+        self.page4 = SamplingProgress()
+        self.page5 = SamplingComplete()
+        self.page6 = CheckerboardDetection()
+        self.page7 = ProbeDetection()
+        self.page8 = TransformationReview()
 
         self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
 
@@ -89,6 +94,8 @@ class Main(QWidget):
         self.stacked.addWidget(self.page4)
         self.stacked.addWidget(self.page5)
         self.stacked.addWidget(self.page6)
+        self.stacked.addWidget(self.page7)
+        self.stacked.addWidget(self.page8)
 
         # Update the page title and hide the next/back buttons if necessary
         self.stacked.currentChanged.connect(lambda: utils.setPageTitle(self.nav, self.stacked.currentIndex()))
@@ -125,9 +132,9 @@ class Main(QWidget):
             self.nav.back_button.setEnabled(True)
             self.nav.next_button.setEnabled(True)
         elif selection == "create":
-            self.stacked.setCurrentIndex(4)
+            self.stacked.setCurrentIndex(6)
             self.nav.back_button.setEnabled(True)
-            self.nav.next_button.setEnabled(False)
+            self.nav.next_button.setEnabled(True)
     
     def hide_nav(self, index):
         if index == 0:

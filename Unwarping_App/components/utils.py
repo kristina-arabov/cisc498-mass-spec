@@ -59,13 +59,14 @@ t_cam2base_overlay = None
 def setPageTitle(nav, index):
     titles = [
         "",
-        "Provide transformation",
-        "Camera",
-        "Move probe",
-        "Create new transformation",
-        "Checkerboard detection",
-        "Probe detection",
-        "",
+        "Select Transformation",
+        "Define Sampling Area",
+        "Pre-run Config",
+        "Sampling Run in Progress...",
+        "Sampling Run Finished",
+        "Chessboard Detection",
+        "Probe Detection",
+        "Review Transformation",
         ""
     ]
 

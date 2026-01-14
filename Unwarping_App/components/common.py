@@ -92,6 +92,7 @@ class Header(QWidget):
         self.return_btn.hide()
 
 
+# TO BE UPDATED ANYWAY
 class NavButtons(QWidget):
     def __init__(self, stacked):
         super().__init__()
@@ -115,19 +116,19 @@ class NavButtons(QWidget):
 
         self.back_button.setEnabled(True)
 
-        if (self.stacked.currentIndex() + 1) < (pages - 1):
+        if (self.stacked.currentIndex() + 1) <= (pages - 1):
             self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1)
             self.back_button.setEnabled(True)
         
-        if self.stacked.currentIndex() in [3, 4, 5, 6]:
+        if self.stacked.currentIndex() in [5, 8]:
             self.next_button.setEnabled(False)
 
     def goBack(self):
-        if self.stacked.currentIndex() == 4:
+        if self.stacked.currentIndex() == 6:
             self.stacked.setCurrentIndex(0)
-        elif self.stacked.currentIndex() == 6:
-            self.stacked.setCurrentIndex(4)
-            self.next_button.setEnabled(False)
+        # elif self.stacked.currentIndex() == 6:
+        #     self.stacked.setCurrentIndex(4)
+        #     self.next_button.setEnabled(False)
         elif self.stacked.currentIndex() > 0:
             self.stacked.setCurrentIndex(self.stacked.currentIndex() - 1)
             self.next_button.setEnabled(True) if self.stacked.currentIndex() != 4 else self.next_button.setEnabled(False)
