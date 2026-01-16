@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 
 
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QSize, QParallelAnimationGroup, QPropertyAnimation, QAbstractAnimation
 from PyQt5 import QtSvg
 
@@ -759,3 +759,76 @@ class InputField(QWidget):
             layout.addWidget(self.input2)
 
         self.setLayout(layout)
+
+class CamFeedSmall(QWidget):
+    def __init__(self, text):
+        super().__init__()
+
+        layout = QHBoxLayout()
+
+        # TODO Dynamic sizes
+        self.feed_width = int(1280 * 0.4)
+        self.feed_height = int(720 * 0.4)
+
+        # Text here if needed
+        self.image_label = QLabel(objectName="camera_initial")
+        self.image_label.setFixedSize(self.feed_width, self.feed_height)
+        self.image_label.setText(text)
+
+        self.cam_thread = None
+
+        layout.addWidget(self.image_label, alignment=Qt.AlignCenter)
+
+        self.setLayout(layout)
+
+class ArrowButton(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        layout = QVBoxLayout(self)
+        self.setFixedHeight(100)
+
+        self.button = QPushButton("Unwarped", objectName="clear")
+        # self.button.setEnabled(False)
+        
+        layout.setContentsMargins(0, 10, 0, 10)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.button)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        pen = QPen(QColor("#132c49"), 2)
+        painter.setPen(pen)
+
+        w = self.width()
+        h = self.height()
+        center_x = w // 2
+
+        painter.drawLine(center_x, 0, center_x, h // 2)
+        painter.drawLine(center_x, h // 2, center_x, h)
+
+        # Arrow point
+        arrow = QPolygon([
+            QPoint(center_x - 6, h - 8),
+            QPoint(center_x + 6, h - 8),
+            QPoint(center_x, h)
+        ])
+
+        painter.setBrush(QColor("#132c49")) 
+        painter.drawPolygon(arrow)
+
+class UnwarpComparison(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        feed = CamFeedSmall("Live feed here")
+        unwarp_component = ArrowButton()
+        result = CamFeedSmall("Result here")
+
+        layout.addWidget(feed)
+        layout.addWidget(unwarp_component)
+        layout.addWidget(result)

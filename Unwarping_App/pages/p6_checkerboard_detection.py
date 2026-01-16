@@ -1,9 +1,57 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QLabel, QLineEdit
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
-from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl
+from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
+
+class CheckerboardParamsSection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        label_checkerboardSize = QLabel("Checkerboard size", objectName="larger")
+        label_checkerboardSize.setStyleSheet("font-weight: bold;")
+        
+        ''' ROW 1 '''
+        row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(row_1)
+
+        label_rows = QLabel("Rows: ")
+        input_rows = QLineEdit()
+
+        layout_row_1.addWidget(label_rows)
+        layout_row_1.addWidget(input_rows)
+
+
+        ''' ROW 2 '''
+        row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(row_2)
+
+        label_columns = QLabel("Columns: ")
+        input_columns = QLineEdit()
+
+        layout_row_2.addWidget(label_columns)
+        layout_row_2.addWidget(input_columns)
+
+
+        ''' COMPOSE ALL '''
+        layout_container.addWidget(label_checkerboardSize)
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(row_2)
+
+        layout.addWidget(container)
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit { background-color: white; }
+        """)
+        self.setFixedWidth(375)
+
 
 class CheckerboardDetection(QWidget):
     def __init__(self):
@@ -26,6 +74,36 @@ class CheckerboardDetection(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
+        layout = QHBoxLayout(self)
+
+        component_unwarpComparison = UnwarpComparison()
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_checkerboard = QLabel("Checkerboard Detection", objectName="page_title")
+
+        component_lightControl = LightingDropdown()
+        component_checkerboardParams = CheckerboardParamsSection()
+
+        layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft)
+
+
+        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
+
+
+
+
+
+
+
+
+
+
+''' OLD CODE BELOW '''
     #     widgets = []
     #     layout = QGridLayout()
 
