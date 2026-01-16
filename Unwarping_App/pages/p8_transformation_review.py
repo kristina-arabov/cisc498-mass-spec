@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
 from Unwarping_App.components.utils import processUpload, addAllWidgets, calculateOffset, generateTransformationFolder
-from Unwarping_App.components.common import NewTransformationItem
+from Unwarping_App.components.common import NewTransformationItem, CamFeed, CamFeedSmall
 
 class TransformationReview(QWidget):
     def __init__(self):
@@ -22,6 +22,35 @@ class TransformationReview(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        label_review = QLabel("Review Transformation", objectName="page_title")
+        label_estimate = QLabel("Estimated probe-to-camera offset:")
+        label_offset = QLabel("<OFFSET RESULT HERE>")
+
+        component_unwarpResult = CamFeed("Modify this component for custom sizes?")
+
+        button_save = QPushButton("Save transformation", objectName="headerBlue")
+
+        layout.addStretch()
+        layout.addWidget(label_review, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        layout.addWidget(label_estimate, alignment=Qt.AlignCenter)
+        layout.addWidget(label_offset, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        layout.addWidget(component_unwarpResult, alignment=Qt.AlignCenter)
+        layout.addWidget(button_save, alignment=Qt.AlignCenter)
+        layout.addStretch()
+
+
+
+
+
+
+
+''' OLD CODE BELOW (NOT FOR THIS PAGE) '''
         # app_window = self.window()
         # size = app_window.size()
 
