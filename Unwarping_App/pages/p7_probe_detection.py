@@ -24,7 +24,7 @@ class TagInformationSection(QWidget):
         label_bottomLeft = QLabel("Bottom-left corner")
 
         label_bottomLeftX = QLabel("X: ")
-        input_buttomLeftX = QLineEdit()
+        input_bottomLeftX = QLineEdit()
 
         label_bottomLeftY = QLabel("Y: ")
         input_bottomLeftY = QLineEdit()
@@ -32,7 +32,7 @@ class TagInformationSection(QWidget):
         layout_row_1.addWidget(label_bottomLeft)
         layout_row_1.addStretch()
         layout_row_1.addWidget(label_bottomLeftX)
-        layout_row_1.addWidget(input_buttomLeftX)
+        layout_row_1.addWidget(input_bottomLeftX)
         layout_row_1.addWidget(label_bottomLeftY)
         layout_row_1.addWidget(input_bottomLeftY)
 
@@ -75,7 +75,11 @@ class TagInformationSection(QWidget):
         layout_container.addWidget(row_3)
 
         layout.addWidget(container)
-        self.setStyleSheet("QWidget { background-color: #C8D3F1; }")
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit { background-color: white; }
+        """)
 
 
 
@@ -94,8 +98,8 @@ class TagInstructions(QWidget):
         label_instructions = QLabel("Please move the probe to the highlighted blue corner.")
         line_progressBar = QLabel("<Progress bar will go here>")
 
-        layout_column_1.addWidget(label_instructions)
-        layout_column_1.addWidget(line_progressBar)
+        layout_column_1.addWidget(label_instructions, alignment=Qt.AlignCenter)
+        layout_column_1.addWidget(line_progressBar, alignment=Qt.AlignCenter)
 
 
         ''' COLUMN 2 '''
@@ -166,9 +170,11 @@ class ProbeDetection(QWidget):
         # Tag information
         component_tagInformation = TagInformationSection()
 
+        layout_right.addStretch()
         layout_right.addWidget(label_probeDetection)
         layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
+        layout_right.addStretch()
 
         layout.addWidget(left)
         layout.addWidget(right)
