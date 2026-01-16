@@ -1,9 +1,122 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QGridLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtCore import Qt
 
 from Unwarping_App.components.common import CamFeed, LightingDropdown, ProbeDropdown, PortControl, TagOverlay
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPhoto, getPrinterPosition, setBrightness, updateDropdownIndex
+
+class TagInformationSection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        label_tagInformation = QLabel("Tag Information", objectName="larger")
+        label_tagInformation.setStyleSheet("font-weight: bold;")
+
+        ''' ROW 1 '''
+        row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(row_1)
+
+        label_bottomLeft = QLabel("Bottom-left corner")
+
+        label_bottomLeftX = QLabel("X: ")
+        input_buttomLeftX = QLineEdit()
+
+        label_bottomLeftY = QLabel("Y: ")
+        input_bottomLeftY = QLineEdit()
+
+        layout_row_1.addWidget(label_bottomLeft)
+        layout_row_1.addStretch()
+        layout_row_1.addWidget(label_bottomLeftX)
+        layout_row_1.addWidget(input_buttomLeftX)
+        layout_row_1.addWidget(label_bottomLeftY)
+        layout_row_1.addWidget(input_bottomLeftY)
+
+
+        ''' ROW 2 '''
+        row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(row_2)
+
+        label_topRight = QLabel("Top-right corner")
+
+        label_topRightX = QLabel("X: ")
+        input_topRightX = QLineEdit()
+
+        label_topRightY = QLabel("Y: ")
+        input_topRightY = QLineEdit()
+
+        layout_row_2.addWidget(label_topRight)
+        layout_row_2.addStretch()
+        layout_row_2.addWidget(label_topRightX)
+        layout_row_2.addWidget(input_topRightX)
+        layout_row_2.addWidget(label_topRightY)
+        layout_row_2.addWidget(input_topRightY)
+
+
+        ''' ROW 3 '''
+        row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(row_3)
+
+        label_tagSize = QLabel("Tag size (mm): ")
+        input_tagSize = QLineEdit()
+
+        layout_row_3.addWidget(label_tagSize)
+        layout_row_3.addWidget(input_tagSize)
+
+
+        ''' COMPOSE '''
+        layout_container.addWidget(label_tagInformation)
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(row_2)
+        layout_container.addWidget(row_3)
+
+        layout.addWidget(container)
+        self.setStyleSheet("QWidget { background-color: #C8D3F1; }")
+
+
+
+class TagInstructions(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QHBoxLayout(self)
+
+        component_tagOverlay = TagOverlay()
+
+        ''' COLUMN 1 '''
+        column_1 = QWidget()
+        layout_column_1 = QVBoxLayout(column_1)
+
+        label_instructions = QLabel("Please move the probe to the highlighted blue corner.")
+        line_progressBar = QLabel("<Progress bar will go here>")
+
+        layout_column_1.addWidget(label_instructions)
+        layout_column_1.addWidget(line_progressBar)
+
+
+        ''' COLUMN 2 '''
+        column_2 = QWidget()
+        layout_column_2 = QVBoxLayout(column_2)
+
+        button_nextCorner = QPushButton("Next corner", objectName="headerBlue")
+        button_previousCorner = QPushButton("Previous corner", objectName="clear")
+        button_probeHere = QPushButton("Probe here", objectName="blue")
+
+        layout_column_2.addWidget(button_nextCorner)
+        layout_column_2.addWidget(button_previousCorner)
+        layout_column_2.addWidget(button_probeHere)
+
+
+        ''' COMPOSE '''
+        layout.addWidget(component_tagOverlay)
+        layout.addWidget(column_1)
+        layout.addWidget(column_2)
+
+
 
 class ProbeDetection(QWidget):
     def __init__(self):
@@ -27,6 +140,49 @@ class ProbeDetection(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
+        layout = QHBoxLayout(self)
+
+        ''' LEFT COLUMN '''
+        left = QWidget()
+        layout_left = QVBoxLayout(left)
+
+        component_cameraFeed = CamFeed("")
+        component_tagDiagram = TagInstructions()
+
+        layout_left.addWidget(component_cameraFeed)
+        layout_left.addWidget(component_tagDiagram)
+
+
+        ''' RIGHT COLUMN '''
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_probeDetection = QLabel("Probe Detection", objectName="page_title")
+        # TODO symbol?
+
+        # Lighting control
+        component_lightControl = LightingDropdown()
+
+        # Tag information
+        component_tagInformation = TagInformationSection()
+
+        layout_right.addWidget(label_probeDetection)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
+
+        layout.addWidget(left)
+        layout.addWidget(right)
+
+
+
+
+
+
+
+
+
+
+''' OLD CODE BELOW '''
     #     widgets = []
     #     layout = QGridLayout()
 

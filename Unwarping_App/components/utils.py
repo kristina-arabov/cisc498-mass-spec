@@ -65,7 +65,7 @@ def setPageTitle(nav, index):
         "Sampling Run in Progress...",
         "Sampling Run Finished",
         "Chessboard Detection",
-        "Probe Detection",
+        "",
         "Review Transformation",
         ""
     ]
