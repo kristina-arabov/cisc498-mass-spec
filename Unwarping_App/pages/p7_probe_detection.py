@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox
+from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtCore import Qt
 
@@ -29,12 +29,12 @@ class TagInformationSection(QWidget):
         label_bottomLeftY = QLabel("Y: ")
         input_bottomLeftY = QLineEdit()
 
-        layout_row_1.addWidget(label_bottomLeft)
+        layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
-        layout_row_1.addWidget(label_bottomLeftX)
-        layout_row_1.addWidget(input_bottomLeftX)
-        layout_row_1.addWidget(label_bottomLeftY)
-        layout_row_1.addWidget(input_bottomLeftY)
+        layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(input_bottomLeftX, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(input_bottomLeftY, alignment=Qt.AlignRight)
 
 
         ''' ROW 2 '''
@@ -49,12 +49,12 @@ class TagInformationSection(QWidget):
         label_topRightY = QLabel("Y: ")
         input_topRightY = QLineEdit()
 
-        layout_row_2.addWidget(label_topRight)
+        layout_row_2.addWidget(label_topRight, alignment=Qt.AlignLeft)
         layout_row_2.addStretch()
-        layout_row_2.addWidget(label_topRightX)
-        layout_row_2.addWidget(input_topRightX)
-        layout_row_2.addWidget(label_topRightY)
-        layout_row_2.addWidget(input_topRightY)
+        layout_row_2.addWidget(label_topRightX, alignment=Qt.AlignRight)
+        layout_row_2.addWidget(input_topRightX, alignment=Qt.AlignRight)
+        layout_row_2.addWidget(label_topRightY, alignment=Qt.AlignRight)
+        layout_row_2.addWidget(input_topRightY, alignment=Qt.AlignRight)
 
 
         ''' ROW 3 '''
@@ -64,8 +64,8 @@ class TagInformationSection(QWidget):
         label_tagSize = QLabel("Tag size (mm): ")
         input_tagSize = QLineEdit()
 
-        layout_row_3.addWidget(label_tagSize)
-        layout_row_3.addWidget(input_tagSize)
+        layout_row_3.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_3.addWidget(input_tagSize, alignment=Qt.AlignRight)
 
 
         ''' COMPOSE '''
@@ -80,6 +80,7 @@ class TagInformationSection(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
         """)
+        self.setFixedWidth(375)
 
 
 
@@ -96,7 +97,7 @@ class TagInstructions(QWidget):
         layout_column_1 = QVBoxLayout(column_1)
 
         label_instructions = QLabel("Please move the probe to the highlighted blue corner.")
-        line_progressBar = QLabel("<Progress bar will go here>")
+        line_progressBar = QProgressBar() # TODO
 
         layout_column_1.addWidget(label_instructions, alignment=Qt.AlignCenter)
         layout_column_1.addWidget(line_progressBar, alignment=Qt.AlignCenter)
@@ -171,7 +172,7 @@ class ProbeDetection(QWidget):
         component_tagInformation = TagInformationSection()
 
         layout_right.addStretch()
-        layout_right.addWidget(label_probeDetection)
+        layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
         layout_right.addStretch()
