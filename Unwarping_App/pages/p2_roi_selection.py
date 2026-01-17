@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QLabel, QRadioButton, QButtonGroup
 from PyQt5.QtGui import QPixmap, QImage, QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -7,6 +7,99 @@ import json
 
 from Unwarping_App.components.common import LightingDropdown, PortControl, CamFeed
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, setBrightness, updateDropdownIndex, unwarpPhoto
+
+class ReferencePointSection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QHBoxLayout(container)
+
+        icon_number = QLabel("1")
+        label_title = QLabel("Reference Point selection", objectName="larger")
+        label_title.setStyleSheet("font-weight: bold;")
+
+        button_action = QPushButton("Select", objectName="blue")
+
+        layout_container.addWidget(icon_number, alignment=Qt.AlignLeft)
+        layout_container.addWidget(label_title, alignment=Qt.AlignLeft)
+        layout_container.addStretch()
+        layout_container.addWidget(button_action)
+
+        layout.addWidget(container)
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QPushButton#blue { background-color: #2A54F6; }
+        """)
+
+class DrawROISection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        ''' ROW 1 '''
+        row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(row_1)
+
+        icon_number = QLabel("2")
+        label_selection = QLabel("ROI selection", objectName="larger")
+        label_selection.setStyleSheet("font-weight: bold;")
+
+        button_draw = QRadioButton("Draw")
+        button_rectangle = QRadioButton("Rectangle")
+        
+        mode_group = QButtonGroup()
+        mode_group.addButton(button_draw, 0)
+        mode_group.addButton(button_rectangle, 1)
+
+        button_draw.setChecked(True)
+
+        layout_row_1.addWidget(icon_number, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(label_selection, alignment=Qt.AlignLeft)
+        layout_row_1.addStretch()
+        layout_row_1.addWidget(button_draw)
+        layout_row_1.addWidget(button_rectangle)
+
+        ''' ROW 2 '''
+        row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(row_2)
+
+        # TODO icons?
+        button_pencil = QPushButton("Pencil tool", objectName="blue")
+        button_eraser = QPushButton("Eraser tool", objectName="clear")
+
+        layout_row_2.addWidget(button_pencil)
+        layout_row_2.addWidget(button_eraser)
+
+        ''' ROW 3 '''
+        row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(row_3)
+
+        # TODO slider here too maybe?
+        label_instructions = QLabel("Draw a single enclosed shape to continue")
+
+        layout_row_3.addWidget(label_instructions, alignment=Qt.AlignCenter)
+
+        ''' COMPOSE ALL '''
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(row_2)
+        layout_container.addWidget(row_3)
+
+        layout.addWidget(container)
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QPushButton#blue { background-color: #2A54F6; }
+            QPushButton#clear { background-color: #F0F0F0; }
+        """)
+
 
 class ROISelection(QWidget):
     resultAvailable = pyqtSignal(object)
@@ -31,6 +124,31 @@ class ROISelection(QWidget):
         styling = "Unwarping_App/components/style.css"
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+
+        component_photo = CamFeed("")
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_selectArea = QLabel("Select sampling area", objectName="page_title")
+
+        component_referencePoint = ReferencePointSection()
+        component_ROI = DrawROISection()
+
+        button_next = QPushButton("Next", objectName="blue")
+
+        layout_right.addStretch()
+        layout_right.addWidget(label_selectArea)
+        layout_right.addWidget(component_referencePoint)
+        layout_right.addWidget(component_ROI)
+        layout_right.addStretch()
+        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addStretch()
+
+        layout.addWidget(component_photo)
+        layout.addWidget(right)
 
     #     widgets = []
     #     layout = QGridLayout()
