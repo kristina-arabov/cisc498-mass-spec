@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QPushButton, QSizePolicy
 from PyQt5.QtCore import pyqtSignal, Qt
 
 import Unwarping_App.components.utils as utils
@@ -9,6 +9,8 @@ class LandingPage(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setMaximumSize(1440, 851)
         self.initUI()
     
     def initUI(self):
