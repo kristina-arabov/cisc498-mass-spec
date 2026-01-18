@@ -20,14 +20,15 @@ class LandingPage(QWidget):
         
         widgets = []
         
-        page_title = QLabel("Fisheye Unwarping Application for Sampling", objectName="page_title")
-        text_box = QLabel("Happy unwarping!", objectName="light_blue_box")
+        page_title = QLabel("Welcome!", objectName="title_screen_title")
+        text_box = QLabel("Start a new sampling run using an existing transformation file. \n If you are a first-time user, you need to create a transformation first.", objectName="title_screen_text")
+        text_box.setAlignment(Qt.AlignCenter)
 
         button_row = QVBoxLayout()
-        provide_transformation = QPushButton("Use a working transformation", objectName="blue")
+        provide_transformation = QPushButton("Sample with working transformation", objectName="blue")
         provide_transformation.clicked.connect(self.provideTransformation.emit)
 
-        create_transformation = QPushButton("Create a new transformation", objectName="clear")
+        create_transformation = QPushButton("Create new transformation", objectName="dark_blue")
         create_transformation.clicked.connect(self.createTransformation.emit)
 
         button_row.addWidget(provide_transformation, alignment=Qt.AlignCenter)
