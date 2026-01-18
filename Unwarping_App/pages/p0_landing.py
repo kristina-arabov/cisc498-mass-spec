@@ -26,13 +26,16 @@ class LandingPage(QWidget):
 
         button_row = QVBoxLayout()
         provide_transformation = QPushButton("Sample with working transformation", objectName="blue")
+        provide_transformation.setFixedWidth(400)
         provide_transformation.clicked.connect(self.provideTransformation.emit)
 
         create_transformation = QPushButton("Create new transformation", objectName="dark_blue")
+        create_transformation.setFixedWidth(400)
         create_transformation.clicked.connect(self.createTransformation.emit)
 
         button_row.addWidget(provide_transformation, alignment=Qt.AlignCenter)
         button_row.addWidget(create_transformation, alignment=Qt.AlignCenter)
+
         
         space = QLabel(" ")
 
