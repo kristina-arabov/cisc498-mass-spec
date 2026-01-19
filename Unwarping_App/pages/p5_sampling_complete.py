@@ -24,3 +24,21 @@ class SamplingComplete(QWidget):
             self.setStyleSheet(file.read())
 
         
+        layout = QVBoxLayout(self)
+
+        label_finished = QLabel("Sampling run finished", objectName="page_title")
+
+        button_align = QPushButton("Align timestamps now", objectName="blue")
+        button_align.setEnabled(False)
+        label_align = QLabel("Abundance-time file from MS computer required")
+
+        button_save = QPushButton("Save timestamp file for later", objectName="headerBlue")
+
+        # layout.addStretch()
+        layout.addWidget(label_finished, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        layout.addWidget(button_align, alignment=Qt.AlignCenter)
+        layout.addWidget(label_align, alignment=Qt.AlignCenter)
+        layout.addStretch()
+        layout.addWidget(button_save, alignment=Qt.AlignCenter)
+        layout.addStretch()
