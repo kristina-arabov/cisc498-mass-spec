@@ -63,7 +63,7 @@ def setPageTitle(nav, index):
         "",
         "",
         "Sampling Run in Progress...",
-        "Sampling Run Finished",
+        "",
         "",
         "",
         "",
