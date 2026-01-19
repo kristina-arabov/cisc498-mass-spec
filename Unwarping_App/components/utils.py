@@ -60,7 +60,7 @@ def setPageTitle(nav, index):
     titles = [
         "",
         "",
-        "Define Sampling Area",
+        "",
         "",
         "Sampling Run in Progress...",
         "Sampling Run Finished",
