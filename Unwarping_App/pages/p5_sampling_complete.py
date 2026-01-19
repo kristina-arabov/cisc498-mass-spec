@@ -34,7 +34,7 @@ class SamplingComplete(QWidget):
 
         button_save = QPushButton("Save timestamp file for later", objectName="headerBlue")
 
-        layout.addStretch()
+        # layout.addStretch()
         layout.addWidget(label_finished, alignment=Qt.AlignCenter)
         layout.addStretch()
         layout.addWidget(button_align, alignment=Qt.AlignCenter)
