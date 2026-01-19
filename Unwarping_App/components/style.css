@@ -274,3 +274,8 @@ QPushButton#headerBlue {
     background-color: #132c49;
     color: #ffffff;
 }
+
+QPushButton#red {
+    background-color: #ad1b1b;
+    color: #F0F0F0;
+}

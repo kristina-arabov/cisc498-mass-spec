@@ -1,7 +1,7 @@
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
+from PyQt5.QtGui import QPixmap, QImage, QMovie
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QSize
 
 import cv2
 
@@ -22,5 +22,36 @@ class SamplingProgress(QWidget):
         styling = "Unwarping_App/components/style.css"
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+        gif = QMovie("Unwarping_App\components\images\Loading.gif")
+
+        component_resultImg = CamFeed("")
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        img_loadingCircle = QLabel()
+        img_loadingCircle.setMovie(gif)
+        gif.start()
+        gif.setScaledSize(QSize(100, 100))
+
+        label_points = QLabel("___ points sampled")
+        label_estimatedTime = QLabel("Estimated time left: ___")
+
+        button_stop = QPushButton("Stop", objectName="red")
+
+        layout_right.addStretch()
+        layout_right.addWidget(img_loadingCircle, alignment=Qt.AlignCenter)
+        layout_right.addStretch()
+        layout_right.addWidget(label_points, alignment=Qt.AlignCenter)
+        layout_right.addWidget(label_estimatedTime,alignment=Qt.AlignCenter)
+        layout_right.addStretch()
+        layout_right.addWidget(button_stop, alignment=Qt.AlignCenter)
+        layout_right.addStretch()
+
+
+        layout.addWidget(component_resultImg)
+        layout.addWidget(right)
 
         
