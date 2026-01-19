@@ -121,7 +121,7 @@ class Main(QWidget):
         
         self.setLayout(self.layout)
 
-        self.setFixedSize(1440, 851)
+        self.setMaximumSize(1440, 851)
         self.setWindowTitle("Unwarping Application")
         self.show()
     
@@ -131,10 +131,12 @@ class Main(QWidget):
             self.stacked.setCurrentIndex(1)
             self.nav.back_button.setEnabled(True)
             self.nav.next_button.setEnabled(True)
+            self.resize(self.size())
         elif selection == "create":
             self.stacked.setCurrentIndex(6)
             self.nav.back_button.setEnabled(True)
             self.nav.next_button.setEnabled(True)
+            self.resize(self.size())
     
     def hide_nav(self, index):
         if index == 0:

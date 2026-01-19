@@ -56,15 +56,12 @@ QPushButton:disabled#clear {
 
 /* DARK BLUE BUTTON */
 QPushButton#dark_blue {
-    background-color: #212D99;
+    background-color: #08121e;
     color: #F0F0F0;
-    font-size: 15px;
-    font-weight: semibold;
-    padding: 12px 20px;
 }
 
 QPushButton:hover#dark_blue {
-    background-color: #17206e;
+    background-color: #252c69;
 }
 
 QPushButton:pressed#dark_blue {
@@ -117,6 +114,20 @@ QLabel#path_label {
 QLabel#larger {
     font-size: 15px;
     font-weight: semibold;
+}
+
+QLabel#title_screen_title {
+    color: #000000;
+    padding: 10px;
+    font-size: 32px;
+    padding-top: 80px;
+    font-weight: 500;
+}
+
+QLabel#title_screen_text {
+    color: #000000;
+    padding: 10px;
+    font-size: 14px;
 }
 
 QComboBox#port {
