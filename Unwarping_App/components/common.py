@@ -2,11 +2,11 @@ from PyQt5.QtWidgets import (
     QWidget, QFrame, QLabel, QGridLayout, 
     QHBoxLayout, QPushButton, QSizePolicy, QToolButton,
     QScrollArea, QComboBox, QSlider, QVBoxLayout,
-    QLineEdit
+    QLineEdit, QGraphicsDropShadowEffect, QCheckBox, QStyle
 )
 
 
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon, QFont
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QSize, QParallelAnimationGroup, QPropertyAnimation, QAbstractAnimation
 from PyQt5 import QtSvg
 
@@ -46,6 +46,274 @@ class DevicesButton(QPushButton):
         layout.addWidget(text_label, alignment=Qt.AlignCenter)
         layout.addStretch()
 
+# Devices Dropdown ############################################################################################
+
+class ToggleSwitch(QCheckBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setTristate(False)
+        self.setFixedSize(60, 25)  # wide enough for text
+
+        # We paint our own text+knob in paintEvent; indicator provides the pill background
+        self.setStyleSheet("""
+            QCheckBox { spacing: 0px; }
+            QCheckBox::indicator {
+                width: 60px;
+                height: 25px;
+                border-radius: 12px;
+                background: #132C49;            /* Connect (blue) */
+            }
+            QCheckBox::indicator:checked {
+                background: #A83232;            /* Disconnect (red) */
+            }
+        """)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing, True)
+
+        w, h = self.width(), self.height()
+        margin = 6
+        knob_d = h - 2 * margin
+        knob_x = (w - margin - knob_d) if self.isChecked() else margin
+
+        # # label text
+        # p.setPen(QColor("white"))
+        # font = self.font()
+        # font.setWeight(QFont.DemiBold)
+        # font.setPointSize(10)  
+        # p.setFont(font)
+        # text = "Disconnect" if self.isChecked() else "Connect"
+        # p.drawText(QRect(0, 0, w, h), Qt.AlignCenter, text)
+
+        # knob
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#F2F2F2"))
+        p.drawEllipse(knob_x, margin, knob_d, knob_d)
+        p.end()
+
+
+def _make_status_pixmap(kind: str, size=24) -> QPixmap:
+    """
+    kind: "connected" (blue check circle) or "disconnected" (red warning triangle)
+    """
+    pm = QPixmap(size, size)
+    pm.fill(Qt.transparent)
+
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.Antialiasing, True)
+
+    if kind == "connected":
+        # blue circle
+        p.setBrush(QColor("#0A5CC2"))
+        p.setPen(Qt.NoPen)
+        p.drawEllipse(0, 0, size, size)
+
+        # white check
+        pen = QPen(QColor("white"))
+        pen.setWidth(max(3, size // 9))
+        pen.setCapStyle(Qt.RoundCap)
+        pen.setJoinStyle(Qt.RoundJoin)
+        p.setPen(pen)
+        p.drawLine(int(size*0.28), int(size*0.55), int(size*0.43), int(size*0.70))
+        p.drawLine(int(size*0.43), int(size*0.70), int(size*0.74), int(size*0.34))
+
+    else:
+        # red triangle
+        p.setBrush(QColor("#E30000"))
+        p.setPen(Qt.NoPen)
+        poly = QPolygon([
+            QPoint(int(size*0.50), int(size*0.05)),
+            QPoint(int(size*0.95), int(size*0.92)),
+            QPoint(int(size*0.05), int(size*0.92))
+        ])
+        p.drawPolygon(poly)
+
+        # white exclamation
+        p.setBrush(QColor("white"))
+        p.drawRoundedRect(int(size*0.46), int(size*0.30), int(size*0.08), int(size*0.38), 2, 2)
+        p.drawEllipse(int(size*0.46), int(size*0.73), int(size*0.08), int(size*0.08))
+
+    p.end()
+    return pm
+
+class DeviceRow(QWidget):
+    """
+    Row layout:
+      [status icon] [name] [optional eye] [port dropdown] [toggle switch]
+    """
+    def __init__(self, name: str, kind: str, include_eye=False, parent=None):
+        super().__init__(parent)
+        self.kind = kind  # used to decide how to populate ports
+        self.include_eye = include_eye
+
+        row = QHBoxLayout(self)
+        row.setContentsMargins(28, 16, 28, 16)
+        row.setSpacing(18)
+
+        # status icon
+        self.status_lbl = QLabel()
+        self.status_lbl.setFixedSize(22, 22)
+        self.status_lbl.setAlignment(Qt.AlignCenter)
+
+        # name
+        self.name_lbl = QLabel(name)
+        f = self.name_lbl.font()
+        f.setPointSize(11)
+        f.setBold(True)
+        self.name_lbl.setFont(f)
+
+        # optional eye button
+        self.eye_btn = None
+        if include_eye:
+            self.eye_btn = QToolButton()
+            self.eye_btn.setCursor(Qt.PointingHandCursor)
+            self.eye_btn.setFixedSize(30, 30)
+            # Use a standard icon (no assets). Replace with your own svg if desired.
+            self.eye_btn.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxInformation))
+            self.eye_btn.setIconSize(QSize(20, 20))
+            self.eye_btn.setStyleSheet("""
+                QToolButton {
+                    background: #132C49;
+                    border-radius: 12px;
+                }
+                QToolButton:hover { background: #173556; }
+            """)
+            self.eye_btn.clicked.connect(lambda: None)
+
+        # port dropdown
+        self.port_combo = QComboBox()
+        self.port_combo.setFixedWidth(200)
+        self.port_combo.setStyleSheet("""
+            QComboBox {
+                background: white;
+                border: none;
+                border-radius: 12px;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            QComboBox::drop-down { border: 0px; width: 26px; }
+        """)
+
+        # toggle
+        self.toggle = ToggleSwitch()
+
+        # spacer to push right controls
+        row.addWidget(self.status_lbl)
+        row.addWidget(self.name_lbl)
+        row.addStretch(1)
+        if self.eye_btn:
+            row.addWidget(self.eye_btn)
+        row.addWidget(self.port_combo)
+        row.addWidget(self.toggle)
+
+        # initial state
+        start_connected = False
+        self.set_connected(start_connected)
+
+        # connect toggle -> update icon
+        self.toggle.stateChanged.connect(lambda _: self.set_connected(self.toggle.isChecked()))
+
+        self.populate_ports()
+
+    def set_connected(self, connected: bool):
+        self.toggle.setChecked(connected)
+        pm = _make_status_pixmap("connected" if connected else "disconnected", size=24)
+        self.status_lbl.setPixmap(pm)
+
+    def populate_ports(self):
+        self.port_combo.clear()
+        self.port_combo.addItem("Select port...")
+
+        if self.kind == "camera":
+            cams = QCameraInfo.availableCameras()
+            if not cams:
+                self.port_combo.addItem("No cameras found")
+                self.port_combo.setEnabled(False)
+                return
+            self.port_combo.setEnabled(True)
+            for idx, cam in enumerate(cams):
+                # description is usually the friendly name
+                self.port_combo.addItem(cam.description(), idx)
+
+        else:
+            ports = list(list_ports.comports())
+            if not ports:
+                self.port_combo.addItem("No ports found")
+                self.port_combo.setEnabled(False)
+                return
+            self.port_combo.setEnabled(True)
+            for p in ports:
+                # show "COM3 — USB Serial Device" style label
+                dev = getattr(p, "device", str(p).split(" - ")[0])
+                desc = getattr(p, "description", "")
+                label = f"{dev} — {desc}" if desc else dev
+                self.port_combo.addItem(label, dev)
+
+
+
+
+class DevicesDropdown(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+
+        self.setFixedSize(550, 300)
+        self.setObjectName("devicesDropdown")
+
+        self.setStyleSheet("""
+            #devicesDropdown {
+                background: transparent;   
+            }
+            #devicesDropdownInner {
+                background-color: #F0F0F0;
+                border-radius: 14px;
+                border: none;
+            }
+        """)
+
+        # Outer layout gives breathing room for shadow
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(18, 18, 18, 18)
+        outer.setSpacing(0)
+
+        inner = QWidget(self, objectName="devicesDropdownInner")
+
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(30)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        inner.setGraphicsEffect(shadow)
+
+        # Inner layout holds rows
+        inner_layout = QVBoxLayout(inner)
+        inner_layout.setContentsMargins(0, 0, 0, 0)
+        inner_layout.setSpacing(0)
+
+        # 4 rows
+        self.row_camera = DeviceRow("Camera", kind="camera", include_eye=True)
+        self.row_printer = DeviceRow("3D Printer", kind="printer")
+        self.row_cond = DeviceRow("Conductance", kind="conductance")
+        self.row_lights = DeviceRow("Lights", kind="lights")
+
+        inner_layout.addWidget(self.row_camera)
+        inner_layout.addWidget(self.row_printer)
+        inner_layout.addWidget(self.row_cond)
+        inner_layout.addWidget(self.row_lights)
+        inner_layout.addStretch(1)
+
+        outer.addWidget(inner)
+        self.setLayout(outer)
+
+######### End of Devices Dropdown #######################################################################################
+
+
 class Header(QWidget):
     def __init__(self, stacked_widget):
         super().__init__()
@@ -63,7 +331,10 @@ class Header(QWidget):
 
         credits_btn = QPushButton("Credits", objectName="headerBlue")
         help_btn = QPushButton("Help", objectName="headerBlue")
-        devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+
+        self.devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+        self.devices_btn.clicked.connect(self.showDevicesDropdown)
+        self.devices_dropdown = None
 
         self.legacy_btn.clicked.connect(self.showMonitor)
         self.return_btn.clicked.connect(self.showUnwarping)
@@ -73,13 +344,22 @@ class Header(QWidget):
         inner_layout.addStretch()
         inner_layout.addWidget(credits_btn)
         inner_layout.addWidget(help_btn)
-        inner_layout.addWidget(devices_btn)
+        inner_layout.addWidget(self.devices_btn)
 
         layout.addWidget(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         self.setLayout(layout)
+
+    def showDevicesDropdown(self):
+        if self.devices_dropdown is None:
+            self.devices_dropdown = DevicesDropdown(self)
+        
+        button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
+        self.devices_dropdown.move(button_pos)
+        self.devices_dropdown.show()
+        self.devices_dropdown.raise_() 
 
     def showMonitor(self):
         self.stacked.setCurrentIndex(1)
