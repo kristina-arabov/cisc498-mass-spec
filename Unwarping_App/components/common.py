@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QFrame, QLabel, QGridLayout, 
     QHBoxLayout, QPushButton, QSizePolicy, QToolButton,
     QScrollArea, QComboBox, QSlider, QVBoxLayout,
-    QLineEdit
+    QLineEdit, QGraphicsDropShadowEffect
 )
 
 
@@ -46,6 +46,40 @@ class DevicesButton(QPushButton):
         layout.addWidget(text_label, alignment=Qt.AlignCenter)
         layout.addStretch()
 
+class DevicesDropdown(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+
+        self.setFixedSize(500, 400)
+        self.setObjectName("devicesDropdown")
+
+        self.setStyleSheet("""
+            #devicesDropdown {
+                background: transparent;   
+            }
+            #devicesDropdownInner {
+                background-color: #E2E9EF;
+                border-radius: 20px;
+                border: none;
+            }
+        """)
+
+        inner = QWidget(self, objectName="devicesDropdownInner")
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(30)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        inner.setGraphicsEffect(shadow)
+
+        inner.setGeometry(self.rect())  
+        inner.setGeometry(15, 15, self.width()-30, self.height()-30)
+
+
 class Header(QWidget):
     def __init__(self, stacked_widget):
         super().__init__()
@@ -63,7 +97,10 @@ class Header(QWidget):
 
         credits_btn = QPushButton("Credits", objectName="headerBlue")
         help_btn = QPushButton("Help", objectName="headerBlue")
-        devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+
+        self.devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+        self.devices_btn.clicked.connect(self.showDevicesDropdown)
+        self.devices_dropdown = None
 
         self.legacy_btn.clicked.connect(self.showMonitor)
         self.return_btn.clicked.connect(self.showUnwarping)
@@ -73,13 +110,22 @@ class Header(QWidget):
         inner_layout.addStretch()
         inner_layout.addWidget(credits_btn)
         inner_layout.addWidget(help_btn)
-        inner_layout.addWidget(devices_btn)
+        inner_layout.addWidget(self.devices_btn)
 
         layout.addWidget(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         self.setLayout(layout)
+
+    def showDevicesDropdown(self):
+        if self.devices_dropdown is None:
+            self.devices_dropdown = DevicesDropdown(self)
+        
+        button_pos = self.devices_btn.mapToGlobal(QPoint(-380, self.devices_btn.height()))
+        self.devices_dropdown.move(button_pos)
+        self.devices_dropdown.show()
+        self.devices_dropdown.raise_() 
 
     def showMonitor(self):
         self.stacked.setCurrentIndex(1)
