@@ -210,7 +210,7 @@ class DeviceRow(QWidget):
         row.addWidget(self.toggle)
 
         # initial state
-        start_connected = (kind != "lights")  # match your screenshot: lights disconnected
+        start_connected = False
         self.set_connected(start_connected)
 
         # connect toggle -> update icon
