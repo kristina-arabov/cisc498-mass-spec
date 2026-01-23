@@ -912,7 +912,7 @@ class ClickableImage(QLabel):
         self.original_pixmap = None
         self.setStyleSheet("background-color: black;")
         
-        self.type = "Dot" # dot on default
+        self.type = None # None on default
 
         self.rectangle = None
         self.dot = None
