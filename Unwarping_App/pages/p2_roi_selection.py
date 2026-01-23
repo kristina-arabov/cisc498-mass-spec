@@ -170,6 +170,13 @@ class ROISelection(QWidget):
         if self.referencePoint.button_action.text() == "Select":
             self.referencePoint.button_action.setText("Done")
             self.photo.type = "Dot"
+
+            self.ROI.button_draw.setEnabled(False)
+            self.ROI.button_rectangle.setEnabled(False)
+
+            if self.ROI.button_draw.isChecked():
+                self.ROI.row_2.hide()
+                self.ROI.row_3.hide()
         
         elif self.referencePoint.button_action.text() == "Done":
             self.referencePoint.button_action.setText("Select")
@@ -180,8 +187,9 @@ class ROISelection(QWidget):
                 self.ROI.button_draw.setEnabled(True)
                 self.ROI.button_rectangle.setEnabled(True)
 
-                self.ROI.row_2.show()
-                self.ROI.row_3.show()
+                if self.ROI.button_draw.isChecked():
+                    self.ROI.row_2.show()
+                    self.ROI.row_3.show()
 
     
 
