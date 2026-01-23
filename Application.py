@@ -194,7 +194,7 @@ class App(QWidget):
         self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
 
         # Header to switch tabs
-        self.header = Header(self.stack)
+        self.header = Header(self.stack, self.camera_feed)
 
         # Layout
         layout = QVBoxLayout()

@@ -214,12 +214,12 @@ class DeviceRow(QWidget):
         self.set_connected(start_connected)
 
         # connect toggle -> update icon
-        self.toggle.stateChanged.connect(lambda _: self.set_connected(self.toggle.isChecked()))
+        # self.toggle.stateChanged.connect(lambda _: self.set_connected(self.toggle.isChecked()))
 
         self.populate_ports()
 
     def set_connected(self, connected: bool):
-        self.toggle.setChecked(connected)
+        # self.toggle.setChecked(connected)
         pm = _make_status_pixmap("connected" if connected else "disconnected", size=24)
         self.status_lbl.setPixmap(pm)
 
@@ -256,8 +256,10 @@ class DeviceRow(QWidget):
 
 
 class DevicesDropdown(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, camera=None):
         super().__init__(parent)
+
+        self.camera = camera
 
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -311,11 +313,34 @@ class DevicesDropdown(QWidget):
         outer.addWidget(inner)
         self.setLayout(outer)
 
+
+        # Function calls
+        self.row_camera.toggle.stateChanged.connect(lambda: self.camConnection())
+        
+
+    # Camera connect / disconnect functionality
+    def camConnection(self):
+        if self.row_camera.toggle.isChecked():
+            if not self.camera.running:
+                try:
+                    self.camera.start()
+                except:
+                    pass
+            
+            if self.camera.running and self.camera.capture.isOpened():
+                self.row_camera.set_connected(True) # Doesn't always work?
+        
+        elif not self.row_camera.toggle.isChecked():
+            if self.camera.running:
+                self.camera.stop()
+
+            self.row_camera.set_connected(False)
+
 ######### End of Devices Dropdown #######################################################################################
 
 
 class Header(QWidget):
-    def __init__(self, stacked_widget):
+    def __init__(self, stacked_widget, camera):
         super().__init__()
 
         layout = QHBoxLayout()
@@ -324,6 +349,7 @@ class Header(QWidget):
         inner_layout = QHBoxLayout(container)
 
         self.stacked = stacked_widget
+        self.camera = camera
 
         self.legacy_btn = QPushButton("Legacy Mode", objectName="headerGrey")
         self.return_btn = QPushButton("Return", objectName="headerGrey")
@@ -354,7 +380,7 @@ class Header(QWidget):
 
     def showDevicesDropdown(self):
         if self.devices_dropdown is None:
-            self.devices_dropdown = DevicesDropdown(self)
+            self.devices_dropdown = DevicesDropdown(self, self.camera)
         
         button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)
