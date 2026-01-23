@@ -35,6 +35,7 @@ class ReferencePointSection(QWidget):
             QPushButton#blue { background-color: #2A54F6; }
         """)
 
+
 class DrawROISection(QWidget):
     def __init__(self, image):
         super().__init__()
@@ -121,7 +122,6 @@ class DrawROISection(QWidget):
             self.row_2.show()
             self.row_3.show()
             self.image.type = "Draw"
-
 
 
 class ROISelection(QWidget):
