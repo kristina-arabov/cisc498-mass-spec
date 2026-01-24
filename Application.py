@@ -183,7 +183,10 @@ class App(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
-        self.setWindowTitle("Unwarping Application 2025")
+        self.setWindowTitle("CISC 498 - Automated Mass Spectrometry Sampling")
+
+        screen = QApplication.primaryScreen()
+        self.screen_size = screen.size()
 
         self.camera_feed = CameraThread()
         self.lighting_control = LightingThread()
@@ -193,19 +196,36 @@ class App(QWidget):
         self.stack.addWidget(unwarpingApp.Main(self.camera_feed, self.lighting_control, printer))
         self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
 
+        # Set size
+        self.width = int(self.screen_size.width() * 0.75)
+        self.height = int(self.screen_size.height() * 0.75)
+        self.setFixedSize(self.width, self.height)
+
         # Header to switch tabs
         self.header = Header(self.stack)
 
         # Layout
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
         layout.addWidget(self.header)
         layout.addWidget(self.stack)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         
-        self.setLayout(layout)
+        self.stack.currentChanged.connect(self.on_tab_changed)
 
+        self.resize(self.width, self.height)
         self.stack.setCurrentIndex(0)
+
+    
+    # Handle resizing between unwarping and printer control apps
+    def on_tab_changed(self, index):
+        # print(f"Tab changed to index: {index}")  # Debug print
+        if index == 0:  # unwarpingApp tab
+            new_width = int(self.screen_size.width() * 0.75)
+            new_height = int(self.screen_size.height() * 0.75)
+            self.setFixedSize(new_width, new_height)
+        elif index == 1:  # oppscan2 tab
+            self.setFixedSize(1400, 900)
 
 
 if __name__ == "__main__":
