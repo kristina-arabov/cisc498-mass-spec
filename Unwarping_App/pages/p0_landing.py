@@ -25,6 +25,8 @@ class LandingPage(QWidget):
         text_box.setAlignment(Qt.AlignCenter)
 
         button_row = QVBoxLayout()
+        button_row.setSpacing(25)
+
         provide_transformation = QPushButton("Sample with working transformation", objectName="blue")
         provide_transformation.setFixedWidth(400)
         provide_transformation.clicked.connect(self.provideTransformation.emit)
@@ -33,18 +35,13 @@ class LandingPage(QWidget):
         create_transformation.setFixedWidth(400)
         create_transformation.clicked.connect(self.createTransformation.emit)
 
-        button_row.addWidget(provide_transformation, alignment=Qt.AlignCenter)
-        button_row.addWidget(create_transformation, alignment=Qt.AlignCenter)
-
-        
-        space = QLabel(" ")
+        button_row.addWidget(provide_transformation, alignment=Qt.AlignTop | Qt.AlignCenter)
+        button_row.addWidget(create_transformation, alignment=Qt.AlignTop | Qt.AlignCenter)
+        button_row.addStretch()
 
         widgets.append(page_title)
         widgets.append(text_box)
         widgets.append(button_row)
-        widgets.append(space)
 
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
         layout = utils.addAllWidgets(layout, widgets)
-
-        self.setLayout(layout)
