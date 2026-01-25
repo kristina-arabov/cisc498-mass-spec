@@ -840,16 +840,20 @@ class CheckerboardDropdown(QWidget):
         self.setLayout(layout_final)
         
 class CamFeed(QWidget):
-    def __init__(self, text):
+    def __init__(self, text=None, scale=None):
         super().__init__()
 
-        layout = QHBoxLayout()
+        layout = QHBoxLayout(self)
 
         # dynamic size changing
-        self.feed_width = int(1280 * 0.7)
-        self.feed_height = int(720 * 0.7)
+        if scale:
+            self.feed_width = int(1280 * scale)
+            self.feed_height = int(720 * scale)
+        else:
+            self.feed_width = int(1280 * 0.65)
+            self.feed_height = int(720 * 0.65)
 
-        # PUT text in here
+        # Put text in here
         self.image_label = QLabel(objectName="camera_initial")
         self.image_label.setFixedSize(self.feed_width, self.feed_height)
         self.image_label.setText(text)
@@ -857,8 +861,9 @@ class CamFeed(QWidget):
         self.cam_thread = None
 
         layout.addWidget(self.image_label)
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)   
 
-        self.setLayout(layout)
 
 class TagOverlay(QWidget):
     def __init__(self):
@@ -931,8 +936,8 @@ class ClickableImage(QLabel):
         self.end_point = None
         self.drawing = False
 
-        self.feed_width = int(1280 * 0.7)
-        self.feed_height = int(720 * 0.7)
+        self.feed_width = int(1280 * 0.65)
+        self.feed_height = int(720 * 0.65)
         self.setFixedSize(self.feed_width, self.feed_height)
 
     def mousePressEvent(self, event):
@@ -1100,14 +1105,14 @@ class ArrowButton(QWidget):
         painter.drawPolygon(arrow)
 
 class UnwarpComparison(QWidget):
-    def __init__(self):
+    def __init__(self, size=None):
         super().__init__()
 
         layout = QVBoxLayout(self)
 
-        feed = CamFeedSmall("Live feed here")
+        feed = CamFeed(scale=0.4)
         unwarp_component = ArrowButton()
-        result = CamFeedSmall("Result here")
+        result = CamFeed(scale=0.4)
 
         layout.addWidget(feed)
         layout.addWidget(unwarp_component)
