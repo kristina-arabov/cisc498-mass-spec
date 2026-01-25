@@ -53,9 +53,9 @@ class CheckerboardParamsSection(QWidget):
 
 
 class CheckerboardDetection(QWidget):
-    def __init__(self, size):
+    def __init__(self):
         super().__init__()
-        self.initUI(size)
+        self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
     #     self.camera = camera
@@ -68,18 +68,12 @@ class CheckerboardDetection(QWidget):
     #     self.vars = vars
     #     self.initUI()
     
-    def initUI(self, size):
+    def initUI(self):
         styling = "Unwarping_App/components/style.css"
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
-
-        page_width = int(size.width() * 0.6)
-
-        left_col_width = int(page_width * 0.62)
-        right_col_width = int(page_width * 0.34)
-
         component_unwarpComparison = UnwarpComparison()
 
         right = QWidget()
@@ -98,19 +92,19 @@ class CheckerboardDetection(QWidget):
         layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addStretch()
 
-        # Allow for scrolling if needed on the user's monitor size
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(right)
-        scroll_area.setWidgetResizable(True) 
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar 
-        scroll_area.setFrameShape(QFrame.NoFrame) 
-        scroll_area.setFixedWidth(right_col_width)
+        # # Allow for scrolling if needed on the user's monitor size
+        # scroll_area = QScrollArea()
+        # scroll_area.setWidget(right)
+        # scroll_area.setWidgetResizable(True) 
+        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar 
+        # scroll_area.setFrameShape(QFrame.NoFrame) 
+        # # scroll_area.setFixedWidth(right_col_width)
 
 
         # Compose page
-        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout.addWidget(scroll_area, alignment=Qt.AlignLeft | Qt.AlignCenter)
+        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
 

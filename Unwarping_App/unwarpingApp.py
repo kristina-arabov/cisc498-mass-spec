@@ -81,7 +81,7 @@ class Main(QWidget):
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
-        self.page6 = CheckerboardDetection(screen_size)
+        self.page6 = CheckerboardDetection()
         self.page7 = ProbeDetection()
         self.page8 = TransformationReview()
 
