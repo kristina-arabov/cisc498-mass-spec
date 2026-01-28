@@ -151,7 +151,7 @@ class ProbeDetection(QWidget):
         left = QWidget()
         layout_left = QVBoxLayout(left)
 
-        component_cameraFeed = CamFeed("")
+        component_cameraFeed = CamFeed()
         component_tagDiagram = TagInstructions()
 
         layout_left.addWidget(component_cameraFeed)

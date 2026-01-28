@@ -1,5 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QLabel, QLineEdit
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QScrollArea, QFrame
 from PyQt5.QtCore import Qt
 
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
@@ -75,7 +74,6 @@ class CheckerboardDetection(QWidget):
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
-
         component_unwarpComparison = UnwarpComparison()
 
         right = QWidget()
@@ -86,13 +84,29 @@ class CheckerboardDetection(QWidget):
         component_lightControl = LightingDropdown()
         component_checkerboardParams = CheckerboardParamsSection()
 
-        layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft)
+
+        # Add components
+        layout_right.addStretch()
+        layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addStretch()
+
+        # # Allow for scrolling if needed on the user's monitor size
+        # scroll_area = QScrollArea()
+        # scroll_area.setWidget(right)
+        # scroll_area.setWidgetResizable(True) 
+        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar 
+        # scroll_area.setFrameShape(QFrame.NoFrame) 
+        # # scroll_area.setFixedWidth(right_col_width)
 
 
-        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter)
+        # Compose page
+        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(right, alignment=Qt.AlignCenter)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
 
 

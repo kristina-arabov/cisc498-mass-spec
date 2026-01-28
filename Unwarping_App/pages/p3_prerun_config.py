@@ -124,8 +124,7 @@ class PrerunConfig(QWidget):
 
 
         layout = QHBoxLayout(self)
-
-        component_resultImg = CamFeed("")
+        component_resultImg = CamFeed()
 
         right = QWidget()
         layout_right = QVBoxLayout(right)
