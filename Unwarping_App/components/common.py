@@ -373,49 +373,128 @@ class Header(QWidget):
 
 
 # TO BE UPDATED ANYWAY
-class NavButtons(QWidget):
+# class NavButtons(QWidget):
+#     def __init__(self, stacked):
+#         super().__init__()
+#         self.stacked = stacked
+#         self.back_button = QPushButton(" ← ", objectName="clear")
+#         self.back_button.clicked.connect(self.goBack)
+
+#         self.page_title = QLabel("", objectName="page_title")
+#         self.next_button = QPushButton(" → ", objectName="blue")
+#         self.next_button.clicked.connect(self.goForward)
+
+#         self.layout = QGridLayout()
+#         self.layout.addWidget(self.back_button, 0, 0, alignment=Qt.AlignLeft)
+#         self.layout.addWidget(self.page_title, 0, 1, alignment=Qt.AlignCenter)
+#         self.layout.addWidget(self.next_button, 0, 2, alignment=Qt.AlignRight)
+
+#         self.setLayout(self.layout)
+    
+#     def goForward(self):
+#         pages = len(self.stacked)
+
+#         self.back_button.setEnabled(True)
+
+#         if (self.stacked.currentIndex() + 1) <= (pages - 1):
+#             self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1)
+#             self.back_button.setEnabled(True)
+        
+#         if self.stacked.currentIndex() in [5, 8]:
+#             self.next_button.setEnabled(False)
+
+#     def goBack(self):
+#         if self.stacked.currentIndex() == 6:
+#             self.stacked.setCurrentIndex(0)
+#         # elif self.stacked.currentIndex() == 6:
+#         #     self.stacked.setCurrentIndex(4)
+#         #     self.next_button.setEnabled(False)
+#         elif self.stacked.currentIndex() > 0:
+#             self.stacked.setCurrentIndex(self.stacked.currentIndex() - 1)
+#             self.next_button.setEnabled(True) if self.stacked.currentIndex() != 4 else self.next_button.setEnabled(False)
+        
+#         if self.stacked.currentIndex() == 0:
+#             self.back_button.setEnabled(False)
+#             self.next_button.setEnabled(False)
+
+class NavBar(QWidget):
     def __init__(self, stacked):
         super().__init__()
-        self.stacked = stacked
-        self.back_button = QPushButton(" ← ", objectName="clear")
-        self.back_button.clicked.connect(self.goBack)
 
-        self.page_title = QLabel("", objectName="page_title")
-        self.next_button = QPushButton(" → ", objectName="blue")
-        self.next_button.clicked.connect(self.goForward)
+        self.exit_button = QPushButton("Exit", objectName="red")
+        self.steps = Steps()
 
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.back_button, 0, 0, alignment=Qt.AlignLeft)
-        self.layout.addWidget(self.page_title, 0, 1, alignment=Qt.AlignCenter)
-        self.layout.addWidget(self.next_button, 0, 2, alignment=Qt.AlignRight)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        self.setLayout(self.layout)
-    
-    def goForward(self):
-        pages = len(self.stacked)
+        layout.addWidget(self.exit_button)
+        layout.addStretch()
+        layout.addWidget(self.steps)
+        layout.addStretch()
 
-        self.back_button.setEnabled(True)
+class Steps(QWidget):
+    def __init__(self, steps=3, filled=0):
+        super().__init__()
 
-        if (self.stacked.currentIndex() + 1) <= (pages - 1):
-            self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1)
-            self.back_button.setEnabled(True)
-        
-        if self.stacked.currentIndex() in [5, 8]:
-            self.next_button.setEnabled(False)
+        self.steps = steps
+        self.filledSteps = filled
 
-    def goBack(self):
-        if self.stacked.currentIndex() == 6:
-            self.stacked.setCurrentIndex(0)
-        # elif self.stacked.currentIndex() == 6:
-        #     self.stacked.setCurrentIndex(4)
-        #     self.next_button.setEnabled(False)
-        elif self.stacked.currentIndex() > 0:
-            self.stacked.setCurrentIndex(self.stacked.currentIndex() - 1)
-            self.next_button.setEnabled(True) if self.stacked.currentIndex() != 4 else self.next_button.setEnabled(False)
-        
-        if self.stacked.currentIndex() == 0:
-            self.back_button.setEnabled(False)
-            self.next_button.setEnabled(False)
+        self.setMinimumHeight(60)
+        self.setMinimumWidth(300)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+    # Function to render progress bar
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        w = self.width()
+        h = self.height()
+        center_y = h // 2
+
+        radius = 18
+
+        if self.steps > 1:
+            spacing = (w - 2 * radius) // (self.steps - 1)
+        else:
+            spacing = 0
+
+        line_color = QColor("#132c49")
+        fill_color = QColor("#132c49")
+        empty_color = QColor("white")
+
+        painter.setPen(QPen(line_color, 3))
+        painter.drawLine(radius, center_y, w - radius, center_y)
+
+        font = QFont()
+        font.setBold(True)
+        painter.setFont(font)
+
+        for i in range(self.steps):
+            x = radius + i * spacing
+            step_number = i + 1
+
+            painter.setBrush(QBrush(empty_color))
+            painter.setPen(QPen(fill_color, 3))
+            text_color = Qt.black
+
+            painter.drawEllipse(
+                x - radius,
+                center_y - radius,
+                2 * radius,
+                2 * radius
+            )
+
+            painter.setPen(text_color)
+            painter.drawText(
+                x - radius,
+                center_y - radius,
+                2 * radius,
+                2 * radius,
+                Qt.AlignCenter,
+                str(step_number)
+            )
+
 
         
 class FolderSelect(QWidget):

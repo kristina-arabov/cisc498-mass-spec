@@ -17,7 +17,7 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 
 
 import Unwarping_App.components.utils as utils
-from Unwarping_App.components.common import NavButtons
+from Unwarping_App.components.common import NavBar
 
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):
@@ -106,10 +106,10 @@ class Main(QWidget):
         self.page0.createTransformation.connect(lambda: self.setPageFromLanding("create"))
 
         ''' LAYOUT SETUP'''
-        self.nav = NavButtons(self.stacked)
+        self.nav = NavBar(self.stacked)
         self.nav.hide()
-        self.nav.back_button.setEnabled(False)
-        self.nav.next_button.setEnabled(False)
+        # self.nav.back_button.setEnabled(False)
+        # self.nav.next_button.setEnabled(False)
 
         space = QLabel("")
 
