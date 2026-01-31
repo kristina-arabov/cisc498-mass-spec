@@ -107,6 +107,8 @@ class SamplingParameters(QWidget):
 
 
 class PrerunConfig(QWidget):
+    next = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -139,6 +141,7 @@ class PrerunConfig(QWidget):
         component_samplingParams = SamplingParameters()
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
+        button_startRun.clicked.connect(self.next.emit)
 
         ''' ASSEMBLE RIGHT COLUMN '''
         layout_right.addStretch()

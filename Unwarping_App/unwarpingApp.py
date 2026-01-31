@@ -97,19 +97,26 @@ class Main(QWidget):
         self.stacked.addWidget(self.page7)
         self.stacked.addWidget(self.page8)
 
-        # Update the page title and hide the next/back buttons if necessary
-        self.stacked.currentChanged.connect(lambda: utils.setPageTitle(self.nav, self.stacked.currentIndex()))
         self.stacked.currentChanged.connect(lambda: self.hide_nav(self.stacked.currentIndex()))
 
         ''' PAGE CONNECTIONS '''
-        self.page0.provideTransformation.connect(lambda: self.setPageFromLanding("provide"))
-        self.page0.createTransformation.connect(lambda: self.setPageFromLanding("create"))
+        # Landing page, manually change stack index for specific workflow
+        self.page0.provideTransformation.connect(lambda: self.stacked.setCurrentIndex(1))
+        self.page0.createTransformation.connect(lambda: self.stacked.setCurrentIndex(6))
+
+        # Sampling workflow
+        self.page1.next.connect(lambda: self.handleNext())
+        self.page2.next.connect(lambda: self.handleNext())
+        self.page3.next.connect(lambda: self.handleNext())
+        self.page4.next.connect(lambda: self.handleNext())
+
+        # Transformation creation workflow
+
+        
 
         ''' LAYOUT SETUP'''
         self.nav = NavBar(self.stacked)
         self.nav.hide()
-        # self.nav.back_button.setEnabled(False)
-        # self.nav.next_button.setEnabled(False)
 
         space = QLabel("")
 
@@ -125,19 +132,12 @@ class Main(QWidget):
         self.setWindowTitle("Unwarping Application")
         self.show()
     
-    # Handle which page to navigate to from the initial page
-    def setPageFromLanding(self, selection):
-        if selection == "provide":
-            self.stacked.setCurrentIndex(1)
-            self.nav.back_button.setEnabled(True)
-            self.nav.next_button.setEnabled(True)
-            self.resize(self.size())
-        elif selection == "create":
-            self.stacked.setCurrentIndex(6)
-            self.nav.back_button.setEnabled(True)
-            self.nav.next_button.setEnabled(True)
-            self.resize(self.size())
+
+    def handleNext(self):
+        index = self.stacked.currentIndex()
+        self.stacked.setCurrentIndex(index + 1)
     
+
     def hide_nav(self, index):
         if index == 0:
             self.nav.hide()
