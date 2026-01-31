@@ -423,6 +423,7 @@ class NavBar(QWidget):
 
         self.exit_button = QPushButton("Exit", objectName="red")
         self.steps = Steps()
+        self.stacked = stacked
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -431,6 +432,13 @@ class NavBar(QWidget):
         layout.addStretch()
         layout.addWidget(self.steps)
         layout.addStretch()
+
+        # Functions
+        self.exit_button.clicked.connect(self.handleExit)
+
+    # Return to landing page
+    def handleExit(self):
+        self.stacked.setCurrentIndex(0)
 
 class Steps(QWidget):
     def __init__(self, steps=3, filled=0):
