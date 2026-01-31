@@ -441,7 +441,7 @@ class NavBar(QWidget):
         self.stacked.setCurrentIndex(0)
 
 class Steps(QWidget):
-    def __init__(self, steps=3, filled=0):
+    def __init__(self, steps=3, filled=1):
         super().__init__()
 
         self.steps = steps
@@ -482,9 +482,15 @@ class Steps(QWidget):
             x = radius + i * spacing
             step_number = i + 1
 
-            painter.setBrush(QBrush(empty_color))
-            painter.setPen(QPen(fill_color, 3))
-            text_color = Qt.black
+            # Colour in filled steps (default = 1)
+            if step_number <= self.filledSteps:
+                painter.setBrush(QBrush(fill_color))
+                painter.setPen(Qt.NoPen)
+                text_color = Qt.white
+            else:
+                painter.setBrush(QBrush(empty_color))
+                painter.setPen(QPen(fill_color, 3))
+                text_color = Qt.black
 
             painter.drawEllipse(
                 x - radius,
