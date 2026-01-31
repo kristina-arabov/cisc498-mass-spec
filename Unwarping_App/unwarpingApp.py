@@ -106,18 +106,18 @@ class Main(QWidget):
         self.page0.createTransformation.connect(lambda: self.stacked.setCurrentIndex(6))
 
         # Sampling workflow
-        self.page1.next.connect(lambda: self.handleNext())
-        self.page2.next.connect(lambda: self.handleNext())
-        self.page3.next.connect(lambda: self.handleNext())
-        self.page4.next.connect(lambda: self.handleNext())
+        self.page1.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page2.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page3.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page4.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
 
         # Transformation creation workflow
-        self.page6.next.connect(lambda: self.handleNext())
-        self.page7.next.connect(lambda: self.handleNext())
+        self.page6.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page7.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
         
 
-        ''' LAYOUT SETUP'''
         self.nav = NavBar(self.stacked)
+        self.nav.steps.stepClicked.connect(lambda step: self.handleStepClick(step))
         self.nav.hide()
 
         space = QLabel("")
@@ -135,9 +135,25 @@ class Main(QWidget):
         self.show()
     
 
-    def handleNext(self):
-        index = self.stacked.currentIndex()
-        self.stacked.setCurrentIndex(index + 1)
+    # Navigate to the appropriate page if the user clicks a number on the nav bar
+    def handleStepClick(self, step):
+        # Sampling workflow
+        if self.stacked.currentIndex() in [1, 2, 3]:
+            if step == 1:
+                self.stacked.setCurrentIndex(1)
+            elif step == 2:
+                self.stacked.setCurrentIndex(2)
+            else:
+                self.stacked.setCurrentIndex(3)
+
+        # Transformation creation workflow
+        elif self.stacked.currentIndex() in [6, 7, 8]:
+            if step == 1:
+                self.stacked.setCurrentIndex(6)
+            elif step == 2:
+                self.stacked.setCurrentIndex(7)
+            else:
+                self.stacked.setCurrentIndex(8)
     
 
     def hide_nav(self, index):

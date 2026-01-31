@@ -399,11 +399,14 @@ class NavBar(QWidget):
 
 # Numbered steps for Nav Bar
 class Steps(QWidget):
+    stepClicked = pyqtSignal(int)
+
     def __init__(self, steps=3, filled=1):
         super().__init__()
 
         self.steps = steps
         self.filledSteps = filled
+        self.areas = []
 
         self.setMinimumHeight(60)
         self.setMinimumWidth(300)
@@ -436,9 +439,19 @@ class Steps(QWidget):
         font.setBold(True)
         painter.setFont(font)
 
+        self.areas.clear()
+
         for i in range(self.steps):
             x = radius + i * spacing
             step_number = i + 1
+
+            area = QRect(
+                x - radius,
+                center_y - radius,
+                2 * radius,
+                2 * radius
+            )
+            self.areas.append((step_number, area))
 
             # Colour in filled steps (default = 1)
             if step_number <= self.filledSteps:
@@ -450,22 +463,9 @@ class Steps(QWidget):
                 painter.setPen(QPen(fill_color, 3))
                 text_color = Qt.black
 
-            painter.drawEllipse(
-                x - radius,
-                center_y - radius,
-                2 * radius,
-                2 * radius
-            )
-
+            painter.drawEllipse(area)
             painter.setPen(text_color)
-            painter.drawText(
-                x - radius,
-                center_y - radius,
-                2 * radius,
-                2 * radius,
-                Qt.AlignCenter,
-                str(step_number)
-            )
+            painter.drawText(area, Qt.AlignCenter, str(step_number))
 
     def updateSteps(self, index):
         if index in [3, 4, 5, 8]:
@@ -476,6 +476,12 @@ class Steps(QWidget):
             self.filledSteps = 1
 
         self.update()
+
+    def mousePressEvent(self, event):
+        for step_number, area in self.areas:
+            if area.contains(event.pos()) and step_number <= self.filledSteps:
+                self.stepClicked.emit(step_number)
+            return
 
 # ----------- END OF NAV BAR COMPONENT ------------
         
