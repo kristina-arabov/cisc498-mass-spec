@@ -372,50 +372,7 @@ class Header(QWidget):
         self.return_btn.hide()
 
 
-# TO BE UPDATED ANYWAY
-# class NavButtons(QWidget):
-#     def __init__(self, stacked):
-#         super().__init__()
-#         self.stacked = stacked
-#         self.back_button = QPushButton(" ← ", objectName="clear")
-#         self.back_button.clicked.connect(self.goBack)
-
-#         self.page_title = QLabel("", objectName="page_title")
-#         self.next_button = QPushButton(" → ", objectName="blue")
-#         self.next_button.clicked.connect(self.goForward)
-
-#         self.layout = QGridLayout()
-#         self.layout.addWidget(self.back_button, 0, 0, alignment=Qt.AlignLeft)
-#         self.layout.addWidget(self.page_title, 0, 1, alignment=Qt.AlignCenter)
-#         self.layout.addWidget(self.next_button, 0, 2, alignment=Qt.AlignRight)
-
-#         self.setLayout(self.layout)
-    
-#     def goForward(self):
-#         pages = len(self.stacked)
-
-#         self.back_button.setEnabled(True)
-
-#         if (self.stacked.currentIndex() + 1) <= (pages - 1):
-#             self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1)
-#             self.back_button.setEnabled(True)
-        
-#         if self.stacked.currentIndex() in [5, 8]:
-#             self.next_button.setEnabled(False)
-
-#     def goBack(self):
-#         if self.stacked.currentIndex() == 6:
-#             self.stacked.setCurrentIndex(0)
-#         # elif self.stacked.currentIndex() == 6:
-#         #     self.stacked.setCurrentIndex(4)
-#         #     self.next_button.setEnabled(False)
-#         elif self.stacked.currentIndex() > 0:
-#             self.stacked.setCurrentIndex(self.stacked.currentIndex() - 1)
-#             self.next_button.setEnabled(True) if self.stacked.currentIndex() != 4 else self.next_button.setEnabled(False)
-        
-#         if self.stacked.currentIndex() == 0:
-#             self.back_button.setEnabled(False)
-#             self.next_button.setEnabled(False)
+# ----------- NAV BAR COMPONENT ------------
 
 class NavBar(QWidget):
     def __init__(self, stacked):
@@ -440,6 +397,7 @@ class NavBar(QWidget):
     def handleExit(self):
         self.stacked.setCurrentIndex(0)
 
+# Numbered steps for Nav Bar
 class Steps(QWidget):
     def __init__(self, steps=3, filled=1):
         super().__init__()
@@ -519,6 +477,7 @@ class Steps(QWidget):
 
         self.update()
 
+# ----------- END OF NAV BAR COMPONENT ------------
         
 class FolderSelect(QWidget):
     def __init__(self):
