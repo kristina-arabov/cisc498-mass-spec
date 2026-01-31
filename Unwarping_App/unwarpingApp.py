@@ -98,6 +98,7 @@ class Main(QWidget):
         self.stacked.addWidget(self.page8)
 
         self.stacked.currentChanged.connect(lambda: self.hide_nav(self.stacked.currentIndex()))
+        self.stacked.currentChanged.connect(lambda: self.nav.steps.updateSteps(self.stacked.currentIndex()))
 
         ''' PAGE CONNECTIONS '''
         # Landing page, manually change stack index for specific workflow
@@ -140,10 +141,17 @@ class Main(QWidget):
     
 
     def hide_nav(self, index):
+        # Hide/show entire Nav bar
         if index == 0:
             self.nav.hide()
         else:
             self.nav.show() 
+        
+        # Only hide/show step numbers
+        if index in [4, 5]:
+            self.nav.steps.hide()
+        else:
+            self.nav.steps.show()
 
 
 if __name__ == "__main__":

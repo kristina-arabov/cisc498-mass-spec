@@ -509,6 +509,15 @@ class Steps(QWidget):
                 str(step_number)
             )
 
+    def updateSteps(self, index):
+        if index in [3, 4, 5, 8]:
+            self.filledSteps = 3
+        elif index == 2 or index == 7:
+            self.filledSteps = 2
+        else:
+            self.filledSteps = 1
+
+        self.update()
 
         
 class FolderSelect(QWidget):
