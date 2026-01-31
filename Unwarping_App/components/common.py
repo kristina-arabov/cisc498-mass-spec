@@ -481,7 +481,7 @@ class Steps(QWidget):
         for step_number, area in self.areas:
             if area.contains(event.pos()) and step_number <= self.filledSteps:
                 self.stepClicked.emit(step_number)
-            return
+                return
 
 # ----------- END OF NAV BAR COMPONENT ------------
         
