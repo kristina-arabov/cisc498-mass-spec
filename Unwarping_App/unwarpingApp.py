@@ -111,7 +111,8 @@ class Main(QWidget):
         self.page4.next.connect(lambda: self.handleNext())
 
         # Transformation creation workflow
-
+        self.page6.next.connect(lambda: self.handleNext())
+        self.page7.next.connect(lambda: self.handleNext())
         
 
         ''' LAYOUT SETUP'''

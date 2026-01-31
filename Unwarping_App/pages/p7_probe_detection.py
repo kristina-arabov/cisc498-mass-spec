@@ -1,9 +1,74 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox
 from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from Unwarping_App.components.common import CamFeed, LightingDropdown, ProbeDropdown, PortControl, TagOverlay
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPhoto, getPrinterPosition, setBrightness, updateDropdownIndex
+
+class ProbeDetection(QWidget):
+    next = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+    # def __init__(self, camera, light_connection, printer, vars):
+    #     super().__init__()
+    #     self.camera = camera
+    #     self.camera.enable_buttons.connect(self.camConnection)
+        
+    #     self.light_connection = light_connection
+    #     self.light_connection.enable_buttons.connect(self.lightConnection)
+        
+    #     self.printer = printer
+    #     self.vars = vars
+
+    #     self.initUI()
+    
+    def initUI(self):
+        styling = "Unwarping_App/components/style.css"
+        with open(styling,"r") as file:
+            self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+
+        ''' LEFT COLUMN '''
+        left = QWidget()
+        layout_left = QVBoxLayout(left)
+
+        component_cameraFeed = CamFeed()
+        component_tagDiagram = TagInstructions()
+
+        layout_left.addWidget(component_cameraFeed)
+        layout_left.addWidget(component_tagDiagram)
+
+
+        ''' RIGHT COLUMN '''
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_probeDetection = QLabel("Probe Detection", objectName="page_title")
+        # TODO symbol?
+
+        # Lighting control
+        component_lightControl = LightingDropdown()
+
+        # Tag information
+        component_tagInformation = TagInformationSection()
+
+        button_next = QPushButton("Next", objectName="blue")
+        button_next.clicked.connect(self.next.emit)
+
+        layout_right.addStretch()
+        layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
+        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addStretch()
+
+        layout.addWidget(left)
+        layout.addWidget(right)
+
+
 
 class TagInformationSection(QWidget):
     def __init__(self):
@@ -120,65 +185,6 @@ class TagInstructions(QWidget):
         layout.addWidget(component_tagOverlay)
         layout.addWidget(column_1)
         layout.addWidget(column_2)
-
-
-
-class ProbeDetection(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-    # def __init__(self, camera, light_connection, printer, vars):
-    #     super().__init__()
-    #     self.camera = camera
-    #     self.camera.enable_buttons.connect(self.camConnection)
-        
-    #     self.light_connection = light_connection
-    #     self.light_connection.enable_buttons.connect(self.lightConnection)
-        
-    #     self.printer = printer
-    #     self.vars = vars
-
-    #     self.initUI()
-    
-    def initUI(self):
-        styling = "Unwarping_App/components/style.css"
-        with open(styling,"r") as file:
-            self.setStyleSheet(file.read())
-
-        layout = QHBoxLayout(self)
-
-        ''' LEFT COLUMN '''
-        left = QWidget()
-        layout_left = QVBoxLayout(left)
-
-        component_cameraFeed = CamFeed()
-        component_tagDiagram = TagInstructions()
-
-        layout_left.addWidget(component_cameraFeed)
-        layout_left.addWidget(component_tagDiagram)
-
-
-        ''' RIGHT COLUMN '''
-        right = QWidget()
-        layout_right = QVBoxLayout(right)
-
-        label_probeDetection = QLabel("Probe Detection", objectName="page_title")
-        # TODO symbol?
-
-        # Lighting control
-        component_lightControl = LightingDropdown()
-
-        # Tag information
-        component_tagInformation = TagInformationSection()
-
-        layout_right.addStretch()
-        layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
-        layout_right.addStretch()
-
-        layout.addWidget(left)
-        layout.addWidget(right)
 
 
 
