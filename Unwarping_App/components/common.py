@@ -441,17 +441,18 @@ class Steps(QWidget):
 
         self.areas.clear()
 
+        # Draw steps
         for i in range(self.steps):
             x = radius + i * spacing
             step_number = i + 1
 
-            area = QRect(
+            circle = QRect(
                 x - radius,
                 center_y - radius,
                 2 * radius,
                 2 * radius
             )
-            self.areas.append((step_number, area))
+            self.areas.append((step_number, circle))
 
             # Colour in filled steps (default = 1)
             if step_number <= self.filledSteps:
@@ -463,10 +464,12 @@ class Steps(QWidget):
                 painter.setPen(QPen(fill_color, 3))
                 text_color = Qt.black
 
-            painter.drawEllipse(area)
+            painter.drawEllipse(circle)
             painter.setPen(text_color)
-            painter.drawText(area, Qt.AlignCenter, str(step_number))
+            painter.drawText(circle, Qt.AlignCenter, str(step_number))
 
+
+    # Update which steps are filled according to the workflow
     def updateSteps(self, index):
         if index in [3, 4, 5, 8]:
             self.filledSteps = 3
@@ -477,9 +480,10 @@ class Steps(QWidget):
 
         self.update()
 
+    # Handle user clicks on filled steps
     def mousePressEvent(self, event):
-        for step_number, area in self.areas:
-            if area.contains(event.pos()) and step_number <= self.filledSteps:
+        for step_number, circle in self.areas:
+            if circle.contains(event.pos()) and step_number <= self.filledSteps:
                 self.stepClicked.emit(step_number)
                 return
 
