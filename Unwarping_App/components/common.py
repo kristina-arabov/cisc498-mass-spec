@@ -372,51 +372,134 @@ class Header(QWidget):
         self.return_btn.hide()
 
 
-# TO BE UPDATED ANYWAY
-class NavButtons(QWidget):
+# ----------- NAV BAR COMPONENT ------------
+
+class NavBar(QWidget):
     def __init__(self, stacked):
         super().__init__()
+
+        self.exit_button = QPushButton("Exit", objectName="red")
+        self.steps = Steps()
         self.stacked = stacked
-        self.back_button = QPushButton(" ← ", objectName="clear")
-        self.back_button.clicked.connect(self.goBack)
 
-        self.page_title = QLabel("", objectName="page_title")
-        self.next_button = QPushButton(" → ", objectName="blue")
-        self.next_button.clicked.connect(self.goForward)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.back_button, 0, 0, alignment=Qt.AlignLeft)
-        self.layout.addWidget(self.page_title, 0, 1, alignment=Qt.AlignCenter)
-        self.layout.addWidget(self.next_button, 0, 2, alignment=Qt.AlignRight)
+        layout.addWidget(self.exit_button)
+        layout.addStretch()
+        layout.addWidget(self.steps)
+        layout.addStretch()
 
-        self.setLayout(self.layout)
-    
-    def goForward(self):
-        pages = len(self.stacked)
+        # Functions
+        self.exit_button.clicked.connect(self.handleExit)
 
-        self.back_button.setEnabled(True)
+    # Return to landing page
+    def handleExit(self):
+        self.stacked.setCurrentIndex(0)
 
-        if (self.stacked.currentIndex() + 1) <= (pages - 1):
-            self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1)
-            self.back_button.setEnabled(True)
-        
-        if self.stacked.currentIndex() in [5, 8]:
-            self.next_button.setEnabled(False)
+# Numbered steps for Nav Bar
+class Steps(QWidget):
+    stepClicked = pyqtSignal(int)
 
-    def goBack(self):
-        if self.stacked.currentIndex() == 6:
-            self.stacked.setCurrentIndex(0)
-        # elif self.stacked.currentIndex() == 6:
-        #     self.stacked.setCurrentIndex(4)
-        #     self.next_button.setEnabled(False)
-        elif self.stacked.currentIndex() > 0:
-            self.stacked.setCurrentIndex(self.stacked.currentIndex() - 1)
-            self.next_button.setEnabled(True) if self.stacked.currentIndex() != 4 else self.next_button.setEnabled(False)
-        
-        if self.stacked.currentIndex() == 0:
-            self.back_button.setEnabled(False)
-            self.next_button.setEnabled(False)
+    def __init__(self, steps=3, filled=1):
+        super().__init__()
 
+        self.steps = steps
+        self.filledSteps = filled
+        self.areas = []
+
+        self.setMinimumHeight(60)
+        self.setMinimumWidth(300)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setMouseTracking(True)
+
+    # Function to render progress bar
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        w = self.width()
+        h = self.height()
+        center_y = h // 2
+
+        radius = 18
+
+        if self.steps > 1:
+            spacing = (w - 2 * radius) // (self.steps - 1)
+        else:
+            spacing = 0
+
+        line_color = QColor("#132c49")
+        fill_color = QColor("#132c49")
+        empty_color = QColor("white")
+
+        painter.setPen(QPen(line_color, 3))
+        painter.drawLine(radius, center_y, w - radius, center_y)
+
+        font = QFont()
+        font.setBold(True)
+        painter.setFont(font)
+
+        self.areas.clear()
+
+        # Draw steps
+        for i in range(self.steps):
+            x = radius + i * spacing
+            step_number = i + 1
+
+            circle = QRect(
+                x - radius,
+                center_y - radius,
+                2 * radius,
+                2 * radius
+            )
+            self.areas.append((step_number, circle))
+
+            # Colour in filled steps (default = 1)
+            if step_number <= self.filledSteps:
+                painter.setBrush(QBrush(fill_color))
+                painter.setPen(Qt.NoPen)
+                text_color = Qt.white
+            else:
+                painter.setBrush(QBrush(empty_color))
+                painter.setPen(QPen(fill_color, 3))
+                text_color = Qt.black
+
+            painter.drawEllipse(circle)
+            painter.setPen(text_color)
+            painter.drawText(circle, Qt.AlignCenter, str(step_number))
+
+
+    # Update which steps are filled according to the workflow
+    def updateSteps(self, index):
+        if index in [3, 4, 5, 8]:
+            self.filledSteps = 3
+        elif index == 2 or index == 7:
+            self.filledSteps = 2
+        else:
+            self.filledSteps = 1
+
+        self.update()
+
+    # Handle user clicks on filled steps
+    def mousePressEvent(self, event):
+        for step_number, circle in self.areas:
+            if circle.contains(event.pos()) and step_number <= self.filledSteps:
+                self.stepClicked.emit(step_number)
+                return
+            
+    # Handle user cursor 
+    def mouseMoveEvent(self, event):
+        # Show a pointing hand cursor if hovering over a clickable step
+        for step_number, circle in self.areas:
+            if circle.contains(event.pos()) and step_number <= self.filledSteps:
+                self.setCursor(Qt.PointingHandCursor)
+                return
+
+        # Show the default cursor if step is not filled
+        self.setCursor(Qt.ArrowCursor)
+
+# ----------- END OF NAV BAR COMPONENT ------------
         
 class FolderSelect(QWidget):
     def __init__(self):

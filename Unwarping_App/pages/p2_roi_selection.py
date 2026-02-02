@@ -8,6 +8,107 @@ import json
 from Unwarping_App.components.common import LightingDropdown, PortControl, CamFeed, ClickableImage
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, setBrightness, updateDropdownIndex, unwarpPhoto
 
+class ROISelection(QWidget):
+    next = pyqtSignal()
+    resultAvailable = pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    # def __init__(self, size, camera, light_connection, json_path):
+    #     super().__init__()
+    #     self.size = size
+    #     self.camera = camera
+    #     self.camera.enable_buttons.connect(self.camConnection)
+
+    #     self.light_connection = light_connection
+    #     self.light_connection.enable_buttons.connect(self.lightConnection)
+
+    #     self.json_path = json_path
+    #     self.initUI()
+    
+    def initUI(self):
+        styling = "Unwarping_App/components/style.css"
+        with open(styling,"r") as file:
+            self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+
+        self.photo = ClickableImage()
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_selectArea = QLabel("Select sampling area", objectName="page_title")
+
+        self.referencePoint = ReferencePointSection()
+        self.ROI = DrawROISection()
+
+        button_next = QPushButton("Next", objectName="blue")
+        button_next.clicked.connect(self.next.emit)
+
+        layout_right.addStretch()
+        layout_right.addWidget(label_selectArea)
+        layout_right.addWidget(self.referencePoint)
+        layout_right.addWidget(self.ROI)
+        layout_right.addStretch()
+        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addStretch()
+
+        layout.addWidget(self.photo)
+        layout.addWidget(right)
+
+        ''' FUNCTIONS '''
+        self.referencePoint.button_action.clicked.connect(lambda: self.setReference())
+
+        self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
+        self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
+
+
+
+    ''' Function to handle setting a reference point '''
+    def setReference(self):
+        if self.referencePoint.button_action.text() == "Select":
+            self.referencePoint.button_action.setText("Done")
+            self.photo.type = "Dot"
+
+            self.ROI.button_draw.setEnabled(False)
+            self.ROI.button_rectangle.setEnabled(False)
+
+            if self.ROI.button_draw.isChecked():
+                self.ROI.row_2.hide()
+                self.ROI.row_3.hide()
+        
+        elif self.referencePoint.button_action.text() == "Done":
+            self.referencePoint.button_action.setText("Select")
+            self.photo.type = None
+
+            # If a dot is on the image, enable the next component
+            if self.photo.dot:
+                self.ROI.button_draw.setEnabled(True)
+                self.ROI.button_rectangle.setEnabled(True)
+
+                if self.ROI.button_draw.isChecked():
+                    self.ROI.row_2.show()
+                    self.ROI.row_3.show()
+
+    
+
+    ''' Function to handle when user selects a drawing type '''
+    def ROIMode(self, type=None):
+        # Handle rectangle selections
+        if type == "Rectangle":
+            self.ROI.row_2.hide()
+            self.ROI.row_3.hide()
+            self.photo.type = "Rectangle"
+
+        # Handle hand-drawn selections
+        elif type == "Draw":
+            self.ROI.row_2.show()
+            self.ROI.row_3.show()
+            self.photo.type = "Draw"
+
 class ReferencePointSection(QWidget):
     def __init__(self):
         super().__init__()
@@ -107,105 +208,6 @@ class DrawROISection(QWidget):
         self.row_2.hide()
         self.row_3.hide()
 
-
-class ROISelection(QWidget):
-    resultAvailable = pyqtSignal(object)
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    # def __init__(self, size, camera, light_connection, json_path):
-    #     super().__init__()
-    #     self.size = size
-    #     self.camera = camera
-    #     self.camera.enable_buttons.connect(self.camConnection)
-
-    #     self.light_connection = light_connection
-    #     self.light_connection.enable_buttons.connect(self.lightConnection)
-
-    #     self.json_path = json_path
-    #     self.initUI()
-    
-    def initUI(self):
-        styling = "Unwarping_App/components/style.css"
-        with open(styling,"r") as file:
-            self.setStyleSheet(file.read())
-
-        layout = QHBoxLayout(self)
-
-        self.photo = ClickableImage()
-
-        right = QWidget()
-        layout_right = QVBoxLayout(right)
-
-        label_selectArea = QLabel("Select sampling area", objectName="page_title")
-
-        self.referencePoint = ReferencePointSection()
-        self.ROI = DrawROISection()
-
-        button_next = QPushButton("Next", objectName="blue")
-
-        layout_right.addStretch()
-        layout_right.addWidget(label_selectArea)
-        layout_right.addWidget(self.referencePoint)
-        layout_right.addWidget(self.ROI)
-        layout_right.addStretch()
-        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
-        layout_right.addStretch()
-
-        layout.addWidget(self.photo)
-        layout.addWidget(right)
-
-        ''' FUNCTIONS '''
-        self.referencePoint.button_action.clicked.connect(lambda: self.setReference())
-
-        self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
-        self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
-
-
-
-    ''' Function to handle setting a reference point '''
-    def setReference(self):
-        if self.referencePoint.button_action.text() == "Select":
-            self.referencePoint.button_action.setText("Done")
-            self.photo.type = "Dot"
-
-            self.ROI.button_draw.setEnabled(False)
-            self.ROI.button_rectangle.setEnabled(False)
-
-            if self.ROI.button_draw.isChecked():
-                self.ROI.row_2.hide()
-                self.ROI.row_3.hide()
-        
-        elif self.referencePoint.button_action.text() == "Done":
-            self.referencePoint.button_action.setText("Select")
-            self.photo.type = None
-
-            # If a dot is on the image, enable the next component
-            if self.photo.dot:
-                self.ROI.button_draw.setEnabled(True)
-                self.ROI.button_rectangle.setEnabled(True)
-
-                if self.ROI.button_draw.isChecked():
-                    self.ROI.row_2.show()
-                    self.ROI.row_3.show()
-
-    
-
-    ''' Function to handle when user selects a drawing type '''
-    def ROIMode(self, type=None):
-        # Handle rectangle selections
-        if type == "Rectangle":
-            self.ROI.row_2.hide()
-            self.ROI.row_3.hide()
-            self.photo.type = "Rectangle"
-
-        # Handle hand-drawn selections
-        elif type == "Draw":
-            self.ROI.row_2.show()
-            self.ROI.row_3.show()
-            self.photo.type = "Draw"
 
 
     #     widgets = []

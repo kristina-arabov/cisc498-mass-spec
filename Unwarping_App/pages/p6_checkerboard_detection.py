@@ -1,8 +1,70 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QScrollArea, QFrame
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QScrollArea, QFrame
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
 from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
+
+class CheckerboardDetection(QWidget):
+    next = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+    # def __init__(self, camera, light_connection, printer, vars):
+    #     super().__init__()
+    #     self.camera = camera
+    #     self.camera.enable_buttons.connect(self.camConnection)
+
+    #     self.light_connection = light_connection
+    #     self.light_connection.enable_buttons.connect(self.lightConnection)
+
+    #     self.printer = printer
+    #     self.vars = vars
+    #     self.initUI()
+    
+    def initUI(self):
+        styling = "Unwarping_App/components/style.css"
+        with open(styling,"r") as file:
+            self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+        component_unwarpComparison = UnwarpComparison()
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_checkerboard = QLabel("Checkerboard Detection", objectName="page_title")
+
+        component_lightControl = LightingDropdown()
+        component_checkerboardParams = CheckerboardParamsSection()
+
+        button_next = QPushButton("Next", objectName="blue")
+        button_next.clicked.connect(self.next.emit)
+
+        # Add components
+        layout_right.addStretch()
+        layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addStretch()
+
+        # # Allow for scrolling if needed on the user's monitor size
+        # scroll_area = QScrollArea()
+        # scroll_area.setWidget(right)
+        # scroll_area.setWidgetResizable(True) 
+        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar 
+        # scroll_area.setFrameShape(QFrame.NoFrame) 
+        # # scroll_area.setFixedWidth(right_col_width)
+
+
+        # Compose page
+        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+
 
 class CheckerboardParamsSection(QWidget):
     def __init__(self):
@@ -50,63 +112,6 @@ class CheckerboardParamsSection(QWidget):
             QLineEdit { background-color: white; }
         """)
         self.setFixedWidth(375)
-
-
-class CheckerboardDetection(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-    # def __init__(self, camera, light_connection, printer, vars):
-    #     super().__init__()
-    #     self.camera = camera
-    #     self.camera.enable_buttons.connect(self.camConnection)
-
-    #     self.light_connection = light_connection
-    #     self.light_connection.enable_buttons.connect(self.lightConnection)
-
-    #     self.printer = printer
-    #     self.vars = vars
-    #     self.initUI()
-    
-    def initUI(self):
-        styling = "Unwarping_App/components/style.css"
-        with open(styling,"r") as file:
-            self.setStyleSheet(file.read())
-
-        layout = QHBoxLayout(self)
-        component_unwarpComparison = UnwarpComparison()
-
-        right = QWidget()
-        layout_right = QVBoxLayout(right)
-
-        label_checkerboard = QLabel("Checkerboard Detection", objectName="page_title")
-
-        component_lightControl = LightingDropdown()
-        component_checkerboardParams = CheckerboardParamsSection()
-
-
-        # Add components
-        layout_right.addStretch()
-        layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addStretch()
-
-        # # Allow for scrolling if needed on the user's monitor size
-        # scroll_area = QScrollArea()
-        # scroll_area.setWidget(right)
-        # scroll_area.setWidgetResizable(True) 
-        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
-        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)    # Hide vertical scrollbar 
-        # scroll_area.setFrameShape(QFrame.NoFrame) 
-        # # scroll_area.setFixedWidth(right_col_width)
-
-
-        # Compose page
-        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
-        layout.addWidget(right, alignment=Qt.AlignCenter)
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
 
 
 
