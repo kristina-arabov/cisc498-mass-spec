@@ -411,6 +411,7 @@ class Steps(QWidget):
         self.setMinimumHeight(60)
         self.setMinimumWidth(300)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setMouseTracking(True)
 
     # Function to render progress bar
     def paintEvent(self, event):
@@ -486,6 +487,17 @@ class Steps(QWidget):
             if circle.contains(event.pos()) and step_number <= self.filledSteps:
                 self.stepClicked.emit(step_number)
                 return
+            
+    # Handle user cursor 
+    def mouseMoveEvent(self, event):
+        # Show a pointing hand cursor if hovering over a clickable step
+        for step_number, circle in self.areas:
+            if circle.contains(event.pos()) and step_number <= self.filledSteps:
+                self.setCursor(Qt.PointingHandCursor)
+                return
+
+        # Show the default cursor if step is not filled
+        self.setCursor(Qt.ArrowCursor)
 
 # ----------- END OF NAV BAR COMPONENT ------------
         
