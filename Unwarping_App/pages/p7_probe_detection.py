@@ -166,6 +166,9 @@ class TagInstructions(QWidget):
         layout_column_1 = QVBoxLayout(column_1)
 
         self.label_instructions = QLabel("Please manually align the blue tag corner with the crosshair.")
+        self.label_instructions.adjustSize()
+        self.label_instructions.setFixedSize(self.label_instructions.size())
+
         line_progressBar = QProgressBar() # TODO
 
         layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignCenter)
