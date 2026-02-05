@@ -153,18 +153,22 @@ class TagInstructions(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.idx = 0
+        self.corners_imaged = [False, False, False, False]
+
         layout = QHBoxLayout(self)
 
-        component_tagOverlay = TagOverlay()
+        self.component_tagOverlay = TagOverlay()
+        self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
 
         ''' COLUMN 1 '''
         column_1 = QWidget()
         layout_column_1 = QVBoxLayout(column_1)
 
-        label_instructions = QLabel("Please move the probe to the highlighted blue corner.")
+        self.label_instructions = QLabel("Please manually align the blue tag corner with the crosshair.")
         line_progressBar = QProgressBar() # TODO
 
-        layout_column_1.addWidget(label_instructions, alignment=Qt.AlignCenter)
+        layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignCenter)
         layout_column_1.addWidget(line_progressBar, alignment=Qt.AlignCenter)
 
 
@@ -172,27 +176,84 @@ class TagInstructions(QWidget):
         column_2 = QWidget()
         layout_column_2 = QVBoxLayout(column_2)
 
-        button_nextCorner = QPushButton("Next corner", objectName="headerBlue")
-        button_previousCorner = QPushButton("Previous corner", objectName="clear")
-        button_probeHere = QPushButton("Probe here", objectName="blue")
+        self.button_nextCorner = QPushButton("Next corner", objectName="headerBlue")
+        self.button_previousCorner = QPushButton("Previous corner", objectName="clear")
+        self.button_previousCorner.setEnabled(False)
 
-        layout_column_2.addWidget(button_nextCorner)
-        layout_column_2.addWidget(button_previousCorner)
-        layout_column_2.addWidget(button_probeHere)
+        self.button_probeLocation = QPushButton("Probe at location", objectName="blue")
+
+        layout_column_2.addWidget(self.button_nextCorner)
+        layout_column_2.addWidget(self.button_previousCorner)
+        layout_column_2.addWidget(self.button_probeLocation)
 
 
         ''' COMPOSE '''
-        layout.addWidget(component_tagOverlay)
+        layout.addWidget(self.component_tagOverlay)
         layout.addWidget(column_1)
         layout.addWidget(column_2)
 
 
+        ''' FUNCTIONS '''
+        self.button_nextCorner.clicked.connect(lambda: self.handleCorners("next"))
+        self.button_previousCorner.clicked.connect(lambda: self.handleCorners("back"))
+        self.button_probeLocation.clicked.connect(lambda: self.handleCornerConfirm())
 
 
+    # Function to properly colour the corners of the tag diagram
+    def handleCorners(self, type):
+        # Move to next corner
+        if type == "next":
+            if (self.idx + 1) >= 3:
+                self.button_nextCorner.setEnabled(False)    # Disable the button if the next increment will be the last corner
+            
+            self.idx += 1
+            if self.idx >= 1:
+                self.button_previousCorner.setEnabled(True)
+        
+        # Move to previous corner
+        elif type == "back":
+            if (self.idx - 1) == 0:
+                self.button_previousCorner.setEnabled(False) # Disable the button if the next increment will be the first corner
+
+            self.idx -= 1
+            
+            if self.idx < 3:
+                self.button_nextCorner.setEnabled(True)
+        
+        self.setProbedColors()
+        self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
+        self.label_instructions.setText("Please manually align the blue tag corner with the crosshair.")
+
+        self.update()
 
 
+    # Function to acquire the probe's position in alignment with a specific tag corner
+    def handleCornerConfirm(self):
+        # img = self.camera.frame.copy()
+        # img = unwarpPhoto(img, self.vars["checkerboard"])
+
+        # position = getPrinterPosition(self.printer)
+
+        # self.vars["tags"]["loc" + str(self.idx)] = position
+        # self.vars["tags"]["img" + str(self.idx)] = img
+
+        self.label_instructions.setText("Photo captured successfully!")
+        self.corners_imaged[self.idx] = True
+
+        # TODO set input of bottom/top-left rows
+        # if self.idx == 1:
+        #     self.probe_dropdown.bottom_left_X.setText(str(position[0]))
+        #     self.probe_dropdown.bottom_left_Y.setText(str(position[1]))
+        # elif self.idx == 3:
+        #     self.probe_dropdown.top_right_X.setText(str(position[0]))
+        #     self.probe_dropdown.top_right_Y.setText(str(position[1]))
 
 
+    # Function to set colours to probed or not probed corners
+    def setProbedColors(self):
+        for i in range(4):
+            self.component_tagOverlay.corner_colours[i] = QColor("#4FC46E") if self.corners_imaged[i] else QColor("#C5C5C5")
+    
 
 
 ''' OLD CODE BELOW '''
@@ -207,12 +268,12 @@ class TagInstructions(QWidget):
     #     self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.feed, frame))
 
     #     # corner buttons
-    #     self.next_point = QPushButton("Next corner", objectName="blue")
-    #     self.next_point.clicked.connect(lambda: self.handleCorners("next"))
+    #     self.button_nextCorner = QPushButton("Next corner", objectName="blue")
+    #     self.button_nextCorner.clicked.connect(lambda: self.handleCorners("next"))
 
-    #     self.previous_point = QPushButton("Previous corner", objectName="blue")
-    #     self.previous_point.clicked.connect(lambda: self.handleCorners("previous"))
-    #     self.previous_point.setEnabled(False)
+    #     self.button_previousCorner = QPushButton("Previous corner", objectName="blue")
+    #     self.button_previousCorner.clicked.connect(lambda: self.handleCorners("previous"))
+    #     self.button_previousCorner.setEnabled(False)
 
     #     # april tag overlay
     #     self.tag_overlay = TagOverlay()
@@ -271,76 +332,18 @@ class TagInstructions(QWidget):
     #     control_col.setLayout(control_col_layout)
 
     #     layout.addWidget(self.feed, 0, 0, 1, 4, alignment=Qt.AlignLeft)
-    #     layout.addWidget(self.next_point, 1, 0)
+    #     layout.addWidget(self.button_nextCorner, 1, 0)
     #     layout.addWidget(self.tag_overlay, 1, 1, 2, 1)
     #     layout.addWidget(self.instructions, 1, 2, 2, 1)
-    #     layout.addWidget(self.previous_point, 2, 0)
+    #     layout.addWidget(self.button_previousCorner, 2, 0)
     #     layout.addWidget(control_col, 0, 3, 3, 1)
 
 
     #     self.setLayout(layout)
 
 
-    # def handleCorners(self, type):
-    #     if type == "next":
-    #         # Disable the button if the next increment will be the last corner
-    #         if (self.idx + 1) >= 3:
-    #             self.next_point.setEnabled(False)
-            
-    #         self.idx += 1
-    #         if self.idx >= 1:
-    #             self.previous_point.setEnabled(True)
-            
-    #     elif type == "previous":
-    #         # Disable the button if the next increment will be the first corner
-    #         if (self.idx - 1) == 0:
-    #             self.previous_point.setEnabled(False)
 
-    #         self.idx -= 1
-            
-    #         if self.idx < 3:
-    #             self.next_point.setEnabled(True)
-        
-    #     self.setOriginalColors()
-    #     self.tag_overlay.corner_colours[self.idx] = QColor("#212D99")
-    #     self.update()
 
-    #     self.done_button.show()
-    #     self.capture_button.hide()
-    #     self.instructions.setText("Please move the probe to the highlighted blue corner.")
-    
-    # def setOriginalColors(self):
-    #     for i in range(4):
-    #         self.tag_overlay.corner_colours[i] = QColor("#4FC46E") if self.corners_imaged[i] else QColor("#C5C5C5")
-    
-    # def handleCornerConfirm(self):
-    #     self.done_button.hide()
-    #     self.capture_button.show()
-    #     self.capture_button.setEnabled(True)
-
-    #     location = getPrinterPosition(self.printer) # TODO change to calibration
-
-    #     self.instructions.setText("Please move the probe to Z={0}.".format(location[2]))
-    
-    # def saveTagPhoto(self):
-    #     img = self.camera.frame.copy()
-    #     img = unwarpPhoto(img, self.vars["checkerboard"])
-
-    #     position = getPrinterPosition(self.printer)
-
-    #     self.vars["tags"]["loc" + str(self.idx)] = position
-    #     self.vars["tags"]["img" + str(self.idx)] = img
-
-    #     self.instructions.setText("Photo captured successfully!")
-    #     self.corners_imaged[self.idx] = True
-
-    #     if self.idx == 1:
-    #         self.probe_dropdown.bottom_left_X.setText(str(position[0]))
-    #         self.probe_dropdown.bottom_left_Y.setText(str(position[1]))
-    #     elif self.idx == 3:
-    #         self.probe_dropdown.top_right_X.setText(str(position[0]))
-    #         self.probe_dropdown.top_right_Y.setText(str(position[1]))
-    
     # def saveTagSize(self, vars, value):
     #     # Save as float, in case the tag has some mm measurement
     #     vars["tags"]["size"] = float(value)
