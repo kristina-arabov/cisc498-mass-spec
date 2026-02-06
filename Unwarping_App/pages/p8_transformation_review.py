@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
 from Unwarping_App.components.utils import processUpload, addAllWidgets, calculateOffset, generateTransformationFolder
-from Unwarping_App.components.common import NewTransformationItem, CamFeed, CamFeedSmall
+from Unwarping_App.components.common import NewTransformationItem, CamFeed
 
 class TransformationReview(QWidget):
     def __init__(self):

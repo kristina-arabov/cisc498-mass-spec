@@ -67,12 +67,18 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
+        layout_right.setContentsMargins(0,0,0,0)
+        layout_right.setSpacing(0) 
+
         ''' COMPOSE '''
         layout.addWidget(left)
         layout.addWidget(right)
 
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0) 
+
         ''' FUNCTIONS '''
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame))
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
 
 
 
@@ -191,6 +197,9 @@ class TagInstructions(QWidget):
         layout.addWidget(component_tagOverlay)
         layout.addWidget(column_1)
         layout.addWidget(column_2)
+
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
 
 

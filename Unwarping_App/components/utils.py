@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QVBoxLayout, QFileDialog
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 
 import itertools
@@ -79,13 +79,52 @@ def controlToggle(checked, toggle, inner, outer, height):
 
 
 # Update the front-end view to show the live camera feed
-def updateFrame(container, frame):
+def updateFrame(container, frame, crosshair=False):
     rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     h, w, ch = rgb_image.shape
     bytes_per_line = ch * w
     q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-    scaled = q_img.scaled(container.feed_width, container.feed_height, Qt.KeepAspectRatio)
-    container.image_label.setPixmap(QPixmap.fromImage(scaled))
+
+    scaled = q_img.scaled(
+        container.image_label.size(),
+        Qt.KeepAspectRatio,
+        Qt.SmoothTransformation
+    )
+
+    # Crosshair for probe detection page
+    if crosshair:
+        pixmap = QPixmap.fromImage(scaled)
+
+        painter = QPainter(pixmap)
+        pen = QPen(QColor(0, 255, 255))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        label_w = pixmap.width()
+        label_h = pixmap.height()
+
+        center_x = label_w // 2
+        center_y = label_h // 2
+        crosshair_length = 10
+
+        # Horizontal
+        painter.drawLine(
+            center_x - crosshair_length, center_y,
+            center_x + crosshair_length, center_y
+        )
+
+        # Vertical
+        painter.drawLine(
+            center_x, center_y - crosshair_length,
+            center_x, center_y + crosshair_length
+        )
+
+        painter.end()
+
+        container.image_label.setPixmap(pixmap)
+    
+    else:
+        container.image_label.setPixmap(QPixmap.fromImage(scaled))
 
 def processUpload(item, type):
     if type == 'folder':

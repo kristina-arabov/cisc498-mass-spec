@@ -959,19 +959,21 @@ class CamFeed(QWidget):
             self.feed_width = int(1280 * scale)
             self.feed_height = int(720 * scale)
         else:
-            self.feed_width = int(1280 * 0.65)
-            self.feed_height = int(720 * 0.65)
+            self.feed_width = int(1280 * 0.7)
+            self.feed_height = int(720 * 0.7)
 
-        # Put text in here
         self.image_label = QLabel(objectName="camera_initial")
         self.image_label.setFixedSize(self.feed_width, self.feed_height)
         self.image_label.setText(text)
 
-        self.cam_thread = None
+        self.image_label.setSizePolicy(
+            QSizePolicy.Fixed,
+            QSizePolicy.Fixed
+        )
 
         layout.addWidget(self.image_label)
-        layout.setContentsMargins(0, 0, 0, 0) 
-        layout.setSpacing(0)   
+        # layout.setContentsMargins(0, 0, 0, 0) 
+        # layout.setSpacing(0)   
 
 
 class TagOverlay(QWidget):
@@ -1045,8 +1047,8 @@ class ClickableImage(QLabel):
         self.end_point = None
         self.drawing = False
 
-        self.feed_width = int(1280 * 0.65)
-        self.feed_height = int(720 * 0.65)
+        self.feed_width = int(1280 * 0.7)
+        self.feed_height = int(720 * 0.7)
         self.setFixedSize(self.feed_width, self.feed_height)
 
     def mousePressEvent(self, event):
@@ -1151,27 +1153,6 @@ class InputField(QWidget):
 
             layout.addWidget(space)
             layout.addWidget(self.input2)
-
-        self.setLayout(layout)
-
-class CamFeedSmall(QWidget):
-    def __init__(self, text):
-        super().__init__()
-
-        layout = QHBoxLayout()
-
-        # TODO Dynamic sizes
-        self.feed_width = int(1280 * 0.4)
-        self.feed_height = int(720 * 0.4)
-
-        # Text here if needed
-        self.image_label = QLabel(objectName="camera_initial")
-        self.image_label.setFixedSize(self.feed_width, self.feed_height)
-        self.image_label.setText(text)
-
-        self.cam_thread = None
-
-        layout.addWidget(self.image_label, alignment=Qt.AlignCenter)
 
         self.setLayout(layout)
 
