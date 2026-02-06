@@ -9,6 +9,8 @@ from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
 from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
 
 class SamplingProgress(QWidget):
+    next = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -26,7 +28,7 @@ class SamplingProgress(QWidget):
         layout = QHBoxLayout(self)
         gif = QMovie("Unwarping_App\components\images\Loading.gif")
 
-        component_resultImg = CamFeed("")
+        component_resultImg = CamFeed()
 
         right = QWidget()
         layout_right = QVBoxLayout(right)
@@ -41,6 +43,9 @@ class SamplingProgress(QWidget):
 
         button_stop = QPushButton("Stop", objectName="red")
 
+        button_temp = QPushButton("Temporary next button", objectName="headerBlue")
+        button_temp.clicked.connect(self.next.emit)
+
         layout_right.addStretch()
         layout_right.addWidget(img_loadingCircle, alignment=Qt.AlignCenter)
         layout_right.addStretch()
@@ -48,6 +53,7 @@ class SamplingProgress(QWidget):
         layout_right.addWidget(label_estimatedTime,alignment=Qt.AlignCenter)
         layout_right.addStretch()
         layout_right.addWidget(button_stop, alignment=Qt.AlignCenter)
+        layout_right.addWidget(button_temp, alignment=Qt.AlignCenter)
         layout_right.addStretch()
 
 

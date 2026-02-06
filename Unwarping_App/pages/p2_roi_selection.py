@@ -8,10 +8,110 @@ import json
 from Unwarping_App.components.common import LightingDropdown, PortControl, CamFeed, ClickableImage
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, setBrightness, updateDropdownIndex, unwarpPhoto
 
+class ROISelection(QWidget):
+    next = pyqtSignal()
+    resultAvailable = pyqtSignal(object)
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    # def __init__(self, size, camera, light_connection, json_path):
+    #     super().__init__()
+    #     self.size = size
+    #     self.camera = camera
+    #     self.camera.enable_buttons.connect(self.camConnection)
+
+    #     self.light_connection = light_connection
+    #     self.light_connection.enable_buttons.connect(self.lightConnection)
+
+    #     self.json_path = json_path
+    #     self.initUI()
+    
+    def initUI(self):
+        styling = "Unwarping_App/components/style.css"
+        with open(styling,"r") as file:
+            self.setStyleSheet(file.read())
+
+        layout = QHBoxLayout(self)
+
+        self.photo = ClickableImage()
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_selectArea = QLabel("Select sampling area", objectName="page_title")
+
+        self.referencePoint = ReferencePointSection()
+        self.ROI = DrawROISection()
+
+        button_next = QPushButton("Next", objectName="blue")
+        button_next.clicked.connect(self.next.emit)
+
+        layout_right.addStretch()
+        layout_right.addWidget(label_selectArea)
+        layout_right.addWidget(self.referencePoint)
+        layout_right.addWidget(self.ROI)
+        layout_right.addStretch()
+        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addStretch()
+
+        layout.addWidget(self.photo)
+        layout.addWidget(right)
+
+        ''' FUNCTIONS '''
+        self.referencePoint.button_action.clicked.connect(lambda: self.setReference())
+
+        self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
+        self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
+
+
+
+    ''' Function to handle setting a reference point '''
+    def setReference(self):
+        if self.referencePoint.button_action.text() == "Select":
+            self.referencePoint.button_action.setText("Done")
+            self.photo.type = "Dot"
+
+            self.ROI.button_draw.setEnabled(False)
+            self.ROI.button_rectangle.setEnabled(False)
+
+            if self.ROI.button_draw.isChecked():
+                self.ROI.row_2.hide()
+                self.ROI.row_3.hide()
+        
+        elif self.referencePoint.button_action.text() == "Done":
+            self.referencePoint.button_action.setText("Select")
+            self.photo.type = None
+
+            # If a dot is on the image, enable the next component
+            if self.photo.dot:
+                self.ROI.button_draw.setEnabled(True)
+                self.ROI.button_rectangle.setEnabled(True)
+
+                if self.ROI.button_draw.isChecked():
+                    self.ROI.row_2.show()
+                    self.ROI.row_3.show()
+
+    
+
+    ''' Function to handle when user selects a drawing type '''
+    def ROIMode(self, type=None):
+        # Handle rectangle selections
+        if type == "Rectangle":
+            self.ROI.row_2.hide()
+            self.ROI.row_3.hide()
+            self.photo.type = "Rectangle"
+
+        # Handle hand-drawn selections
+        elif type == "Draw":
+            self.ROI.row_2.show()
+            self.ROI.row_3.show()
+            self.photo.type = "Draw"
+
 class ReferencePointSection(QWidget):
     def __init__(self):
         super().__init__()
-
         layout = QVBoxLayout(self)
 
         container = QWidget(objectName="light_blue_box")
@@ -21,26 +121,23 @@ class ReferencePointSection(QWidget):
         label_title = QLabel("Reference Point selection", objectName="larger")
         label_title.setStyleSheet("font-weight: bold;")
 
-        button_action = QPushButton("Select", objectName="blue")
+        self.button_action = QPushButton("Select", objectName="blue")
 
         layout_container.addWidget(icon_number, alignment=Qt.AlignLeft)
         layout_container.addWidget(label_title, alignment=Qt.AlignLeft)
         layout_container.addStretch()
-        layout_container.addWidget(button_action)
+        layout_container.addWidget(self.button_action)
 
         layout.addWidget(container)
 
         self.setStyleSheet("""
-            QWidget { background-color: #C8D3F1; }
-            QPushButton#blue { background-color: #2A54F6; }
+            QWidget#light_blue_box, QLabel { background-color: #C8D3F1; }
         """)
 
 
 class DrawROISection(QWidget):
-    def __init__(self, image):
+    def __init__(self):
         super().__init__()
-        self.image = image  # Clickable image component
-
         layout = QVBoxLayout(self)
 
         container = QWidget(objectName="light_blue_box")
@@ -54,23 +151,20 @@ class DrawROISection(QWidget):
         label_selection = QLabel("ROI selection", objectName="larger")
         label_selection.setStyleSheet("font-weight: bold;")
 
-        button_draw = QRadioButton("Draw")
-        button_draw.clicked.connect(lambda: self.drawingMode("Draw"))
-
-        button_rectangle = QRadioButton("Rectangle")
-        button_rectangle.clicked.connect(lambda: self.drawingMode("Rectangle"))
+        self.button_draw = QRadioButton("Draw")
+        self.button_rectangle = QRadioButton("Rectangle")
         
         mode_group = QButtonGroup()
-        mode_group.addButton(button_draw, 0)
-        mode_group.addButton(button_rectangle, 1)
+        mode_group.addButton(self.button_draw, 0)
+        mode_group.addButton(self.button_rectangle, 1)
 
-        button_draw.setChecked(True)
+        self.button_draw.setChecked(True)
 
         layout_row_1.addWidget(icon_number, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(label_selection, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
-        layout_row_1.addWidget(button_draw)
-        layout_row_1.addWidget(button_rectangle)
+        layout_row_1.addWidget(self.button_draw)
+        layout_row_1.addWidget(self.button_rectangle)
 
 
         ''' ROW 2 '''
@@ -107,71 +201,14 @@ class DrawROISection(QWidget):
             QPushButton#blue { background-color: #2A54F6; }
             QPushButton#clear { background-color: #F0F0F0; }
         """)
-    
 
-    ''' Function to handle when user selects a drawing type '''
-    def drawingMode(self, type=None):
-        # Handle rectangle selections
-        if type == "Rectangle":
-            self.row_2.hide()
-            self.row_3.hide()
-            self.image.type = "Rectangle"
-
-        # Handle hand-drawn selections
-        elif type == "Draw":
-            self.row_2.show()
-            self.row_3.show()
-            self.image.type = "Draw"
+        ''' DISABLE / HIDE ON INITIALIZATION '''
+        self.button_draw.setEnabled(False)
+        self.button_rectangle.setEnabled(False)
+        self.row_2.hide()
+        self.row_3.hide()
 
 
-class ROISelection(QWidget):
-    resultAvailable = pyqtSignal(object)
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    # def __init__(self, size, camera, light_connection, json_path):
-    #     super().__init__()
-    #     self.size = size
-    #     self.camera = camera
-    #     self.camera.enable_buttons.connect(self.camConnection)
-
-    #     self.light_connection = light_connection
-    #     self.light_connection.enable_buttons.connect(self.lightConnection)
-
-    #     self.json_path = json_path
-    #     self.initUI()
-    
-    def initUI(self):
-        styling = "Unwarping_App/components/style.css"
-        with open(styling,"r") as file:
-            self.setStyleSheet(file.read())
-
-        layout = QHBoxLayout(self)
-
-        component_photo = ClickableImage()
-
-        right = QWidget()
-        layout_right = QVBoxLayout(right)
-
-        label_selectArea = QLabel("Select sampling area", objectName="page_title")
-
-        component_referencePoint = ReferencePointSection()
-        component_ROI = DrawROISection(component_photo)
-
-        button_next = QPushButton("Next", objectName="blue")
-
-        layout_right.addStretch()
-        layout_right.addWidget(label_selectArea)
-        layout_right.addWidget(component_referencePoint)
-        layout_right.addWidget(component_ROI)
-        layout_right.addStretch()
-        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
-        layout_right.addStretch()
-
-        layout.addWidget(component_photo)
-        layout.addWidget(right)
 
     #     widgets = []
     #     layout = QGridLayout()

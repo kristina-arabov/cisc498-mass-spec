@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton
 from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets
@@ -8,6 +8,8 @@ from Unwarping_App.components.utils import processUpload, verifyTransformation, 
 
 ''' This page handles any existing transformations the user provides'''
 class ProvideTransformation(QWidget):
+    next = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -47,14 +49,14 @@ class ProvideTransformation(QWidget):
         select_box_layout.addWidget(folder_error, alignment=Qt.AlignCenter)
 
 
-        # Next button (TODO connect page)
-        next_btn = QPushButton("Next", objectName="blue")
+        button_next = QPushButton("Next", objectName="blue")
+        button_next.clicked.connect(self.next.emit)
 
         right_layout.addStretch()
         right_layout.addWidget(label)
         right_layout.addWidget(select_box)
         right_layout.addStretch()
-        right_layout.addWidget(next_btn, alignment=Qt.AlignRight)
+        right_layout.addWidget(button_next, alignment=Qt.AlignRight)
 
         # FULL PAGE
         layout.addWidget(component_unwarpComparison)

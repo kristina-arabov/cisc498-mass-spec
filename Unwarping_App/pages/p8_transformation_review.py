@@ -30,7 +30,7 @@ class TransformationReview(QWidget):
         label_estimate = QLabel("Estimated probe-to-camera offset:")
         label_offset = QLabel("<OFFSET RESULT HERE>")
 
-        component_unwarpResult = CamFeed("Modify this component for custom sizes?")
+        component_unwarpResult = CamFeed()
 
         button_save = QPushButton("Save transformation", objectName="headerBlue")
 

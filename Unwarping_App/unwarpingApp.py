@@ -17,7 +17,7 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 
 
 import Unwarping_App.components.utils as utils
-from Unwarping_App.components.common import NavButtons
+from Unwarping_App.components.common import NavBar
 
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):
@@ -97,19 +97,28 @@ class Main(QWidget):
         self.stacked.addWidget(self.page7)
         self.stacked.addWidget(self.page8)
 
-        # Update the page title and hide the next/back buttons if necessary
-        self.stacked.currentChanged.connect(lambda: utils.setPageTitle(self.nav, self.stacked.currentIndex()))
         self.stacked.currentChanged.connect(lambda: self.hide_nav(self.stacked.currentIndex()))
+        self.stacked.currentChanged.connect(lambda: self.nav.steps.updateSteps(self.stacked.currentIndex()))
 
         ''' PAGE CONNECTIONS '''
-        self.page0.provideTransformation.connect(lambda: self.setPageFromLanding("provide"))
-        self.page0.createTransformation.connect(lambda: self.setPageFromLanding("create"))
+        # Landing page, manually change stack index for specific workflow
+        self.page0.provideTransformation.connect(lambda: self.stacked.setCurrentIndex(1))
+        self.page0.createTransformation.connect(lambda: self.stacked.setCurrentIndex(6))
 
-        ''' LAYOUT SETUP'''
-        self.nav = NavButtons(self.stacked)
+        # Sampling workflow
+        self.page1.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page2.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page3.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page4.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+
+        # Transformation creation workflow
+        self.page6.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page7.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        
+
+        self.nav = NavBar(self.stacked)
+        self.nav.steps.stepClicked.connect(lambda step: self.handleStepClick(step))
         self.nav.hide()
-        self.nav.back_button.setEnabled(False)
-        self.nav.next_button.setEnabled(False)
 
         space = QLabel("")
 
@@ -125,24 +134,40 @@ class Main(QWidget):
         self.setWindowTitle("Unwarping Application")
         self.show()
     
-    # Handle which page to navigate to from the initial page
-    def setPageFromLanding(self, selection):
-        if selection == "provide":
-            self.stacked.setCurrentIndex(1)
-            self.nav.back_button.setEnabled(True)
-            self.nav.next_button.setEnabled(True)
-            self.resize(self.size())
-        elif selection == "create":
-            self.stacked.setCurrentIndex(6)
-            self.nav.back_button.setEnabled(True)
-            self.nav.next_button.setEnabled(True)
-            self.resize(self.size())
+
+    # Navigate to the appropriate page if the user clicks a number on the nav bar
+    def handleStepClick(self, step):
+        # Sampling workflow
+        if self.stacked.currentIndex() in [1, 2, 3]:
+            if step == 1:
+                self.stacked.setCurrentIndex(1)
+            elif step == 2:
+                self.stacked.setCurrentIndex(2)
+            else:
+                self.stacked.setCurrentIndex(3)
+
+        # Transformation creation workflow
+        elif self.stacked.currentIndex() in [6, 7, 8]:
+            if step == 1:
+                self.stacked.setCurrentIndex(6)
+            elif step == 2:
+                self.stacked.setCurrentIndex(7)
+            else:
+                self.stacked.setCurrentIndex(8)
     
+
     def hide_nav(self, index):
+        # Hide/show entire Nav bar
         if index == 0:
             self.nav.hide()
         else:
             self.nav.show() 
+        
+        # Only hide/show step numbers
+        if index in [4, 5]:
+            self.nav.steps.hide()
+        else:
+            self.nav.steps.show()
 
 
 if __name__ == "__main__":
