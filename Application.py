@@ -197,8 +197,8 @@ class App(QWidget):
         self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
 
         # Set size
-        self.width = int(self.screen_size.width() * 0.8)
-        self.height = int(self.screen_size.height() * 0.8)
+        self.width = int(self.screen_size.width() * 0.75)
+        self.height = int(self.screen_size.height() * 0.75)
         self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
@@ -221,8 +221,8 @@ class App(QWidget):
     def on_tab_changed(self, index):
         # print(f"Tab changed to index: {index}")  # Debug print
         if index == 0:  # unwarpingApp tab
-            new_width = int(self.screen_size.width() * 0.8)
-            new_height = int(self.screen_size.height() * 0.8)
+            new_width = int(self.screen_size.width() * 0.75)
+            new_height = int(self.screen_size.height() * 0.75)
             self.setFixedSize(new_width, new_height)
         elif index == 1:  # oppscan2 tab
             self.setFixedSize(1400, 900)

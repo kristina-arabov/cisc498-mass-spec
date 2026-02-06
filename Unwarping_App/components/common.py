@@ -972,8 +972,8 @@ class CamFeed(QWidget):
         )
 
         layout.addWidget(self.image_label)
-        # layout.setContentsMargins(0, 0, 0, 0) 
-        # layout.setSpacing(0)   
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)   
 
 
 class TagOverlay(QWidget):

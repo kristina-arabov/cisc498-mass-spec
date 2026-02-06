@@ -35,6 +35,9 @@ class ModeSelection(QWidget):
 
         layout.addWidget(container)
 
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
         self.setStyleSheet("background-color: #C8D3F1;")
 
 class SamplingParameters(QWidget):
@@ -100,6 +103,9 @@ class SamplingParameters(QWidget):
 
         layout.addWidget(container)
 
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
@@ -145,16 +151,22 @@ class PrerunConfig(QWidget):
 
         ''' ASSEMBLE RIGHT COLUMN '''
         layout_right.addStretch()
-        layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_samplingMode, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_samplingParams, alignment=Qt.AlignLeft)
+        layout_right.addWidget(label_prerun)
+        layout_right.addWidget(component_samplingMode)
+        layout_right.addWidget(component_samplingParams)
         layout_right.addStretch()
-        layout_right.addWidget(button_startRun, alignment=Qt.AlignLeft)
+        layout_right.addWidget(button_startRun)
         layout_right.addStretch()
+
+        # layout_right.setContentsMargins(0, 0, 0, 0) 
+        # layout_right.setSpacing(0)  
 
         ''' COMPOSE ALL '''
         layout.addWidget(component_resultImg)
         layout.addWidget(right)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
 
 
