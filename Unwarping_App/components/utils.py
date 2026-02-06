@@ -78,6 +78,7 @@ def controlToggle(checked, toggle, inner, outer, height):
         outer.setFixedHeight(height)
 
 
+# Update the front-end view to show the live camera feed
 def updateFrame(container, frame):
     rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     h, w, ch = rgb_image.shape

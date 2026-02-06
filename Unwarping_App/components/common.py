@@ -315,11 +315,11 @@ class DevicesDropdown(QWidget):
 
 
         # Function calls
-        self.row_camera.toggle.stateChanged.connect(lambda: self.camConnection())
+        self.row_camera.toggle.stateChanged.connect(lambda: self.cam_connection())
         
 
     # Camera connect / disconnect functionality
-    def camConnection(self):
+    def cam_connection(self):
         if self.row_camera.toggle.isChecked():
             if not self.camera.running:
                 try:
