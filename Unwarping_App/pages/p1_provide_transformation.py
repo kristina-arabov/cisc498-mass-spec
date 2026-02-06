@@ -63,6 +63,9 @@ class ProvideTransformation(QWidget):
         layout.addWidget(component_unwarpComparison)
         layout.addWidget(right)
 
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
 
