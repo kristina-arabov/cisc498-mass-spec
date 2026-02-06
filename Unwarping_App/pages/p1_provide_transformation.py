@@ -65,5 +65,4 @@ class ProvideTransformation(QWidget):
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.result, frame))
 

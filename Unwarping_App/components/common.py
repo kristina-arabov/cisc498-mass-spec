@@ -1166,9 +1166,11 @@ class ArrowButton(QWidget):
         self.button = QPushButton("Unwarp", objectName="clear")
         # self.button.setEnabled(False)
         
-        layout.setContentsMargins(0, 10, 0, 10)
         layout.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.button)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -1200,10 +1202,13 @@ class UnwarpComparison(QWidget):
 
         layout = QVBoxLayout(self)
 
-        self.feed = CamFeed(scale=0.4)
+        self.feed = CamFeed(scale=0.42)
         unwarp_component = ArrowButton()
-        self.result = CamFeed(scale=0.4)
+        self.result = CamFeed(scale=0.42)
 
         layout.addWidget(self.feed)
         layout.addWidget(unwarp_component)
         layout.addWidget(self.result)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
