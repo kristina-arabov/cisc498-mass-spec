@@ -324,6 +324,7 @@ class DevicesDropdown(QWidget):
             if not self.camera.running:
                 try:
                     self.camera.start()
+                    self.row_camera.set_connected(True)
                 except:
                     pass
             
