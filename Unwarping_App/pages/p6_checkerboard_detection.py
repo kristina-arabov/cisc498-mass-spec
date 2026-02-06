@@ -7,8 +7,10 @@ from Unwarping_App.components.common import CamFeed, LightingDropdown, Checkerbo
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera):
         super().__init__()
+        self.camera = camera
+
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
@@ -28,8 +30,11 @@ class CheckerboardDetection(QWidget):
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
+
+        ''' LEFT COLUMN '''
         component_unwarpComparison = UnwarpComparison()
 
+        ''' RIGHT COLUMN '''
         right = QWidget()
         layout_right = QVBoxLayout(right)
 
@@ -59,11 +64,14 @@ class CheckerboardDetection(QWidget):
         # # scroll_area.setFixedWidth(right_col_width)
 
 
-        # Compose page
+        ''' COMPOSE '''
         layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(right, alignment=Qt.AlignCenter)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
 
 
 class CheckerboardParamsSection(QWidget):

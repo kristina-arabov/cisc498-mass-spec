@@ -55,22 +55,6 @@ temp_vars = {
 R_cam2base_overlay = None
 t_cam2base_overlay = None
 
-# Page titles (will remove?)
-def setPageTitle(nav, index):
-    titles = [
-        "",
-        "",
-        "",
-        "",
-        "Sampling Run in Progress...",
-        "",
-        "",
-        "",
-        "",
-        ""
-    ]
-
-    nav.page_title.setText(titles[index])
 
 # General function to add a bunch of widgets in an horizontal/vertical layout
 def addAllWidgets(layout, widgets):

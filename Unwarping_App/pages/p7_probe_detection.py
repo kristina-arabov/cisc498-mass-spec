@@ -8,8 +8,10 @@ from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPho
 class ProbeDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera):
         super().__init__()
+        self.camera = camera
+
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
@@ -65,8 +67,12 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
+        ''' COMPOSE '''
         layout.addWidget(left)
         layout.addWidget(right)
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame))
 
 
 

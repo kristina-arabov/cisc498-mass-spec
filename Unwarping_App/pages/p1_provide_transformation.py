@@ -3,15 +3,17 @@ from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison
-from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets
+from Unwarping_App.components.utils import processUpload, updateFrame, verifyTransformation, addAllWidgets
 
 
 ''' This page handles any existing transformations the user provides'''
 class ProvideTransformation(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera):
         super().__init__()
+        self.camera = camera
+
         self.initUI()
         
     # def __init__(self, json_path):
@@ -26,11 +28,10 @@ class ProvideTransformation(QWidget):
 
         layout = QHBoxLayout(self)
 
-        # LEFT COLUMN
+        ''' LEFT COLUMN '''
         component_unwarpComparison = UnwarpComparison()
 
-
-        # RIGHT COLUMN
+        ''' RIGHT COLUMN '''
         right = QWidget()
         right_layout = QVBoxLayout(right)
 
@@ -58,6 +59,11 @@ class ProvideTransformation(QWidget):
         right_layout.addStretch()
         right_layout.addWidget(button_next, alignment=Qt.AlignRight)
 
-        # FULL PAGE
+        ''' COMPOSE '''
         layout.addWidget(component_unwarpComparison)
         layout.addWidget(right)
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.result, frame))
+

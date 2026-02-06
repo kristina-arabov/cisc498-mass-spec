@@ -1182,7 +1182,7 @@ class ArrowButton(QWidget):
         layout = QVBoxLayout(self)
         self.setFixedHeight(100)
 
-        self.button = QPushButton("Unwarped", objectName="clear")
+        self.button = QPushButton("Unwarp", objectName="clear")
         # self.button.setEnabled(False)
         
         layout.setContentsMargins(0, 10, 0, 10)
@@ -1219,10 +1219,10 @@ class UnwarpComparison(QWidget):
 
         layout = QVBoxLayout(self)
 
-        feed = CamFeed(scale=0.4)
+        self.feed = CamFeed(scale=0.4)
         unwarp_component = ArrowButton()
-        result = CamFeed(scale=0.4)
+        self.result = CamFeed(scale=0.4)
 
-        layout.addWidget(feed)
+        layout.addWidget(self.feed)
         layout.addWidget(unwarp_component)
-        layout.addWidget(result)
+        layout.addWidget(self.result)
