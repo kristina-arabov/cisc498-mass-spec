@@ -41,6 +41,7 @@ class ProbeDetection(QWidget):
         component_tagDiagram = TagInstructions()
 
         layout_left.addWidget(component_cameraFeed)
+        layout_left.addStretch()
         layout_left.addWidget(component_tagDiagram)
 
 
