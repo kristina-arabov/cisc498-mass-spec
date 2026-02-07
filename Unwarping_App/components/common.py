@@ -17,6 +17,8 @@ import cv2
 
 from Unwarping_App.components import utils
 
+from Unwarping_App.services import device_service
+
 class DevicesButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
         super().__init__(parent)
@@ -315,27 +317,7 @@ class DevicesDropdown(QWidget):
 
 
         # Function calls
-        self.row_camera.toggle.stateChanged.connect(lambda: self.cam_connection())
-        
-
-    # Camera connect / disconnect functionality
-    def cam_connection(self):
-        if self.row_camera.toggle.isChecked():
-            if not self.camera.running:
-                try:
-                    self.camera.start()
-                    self.row_camera.set_connected(True)
-                except:
-                    pass
-            
-            if self.camera.running and self.camera.capture.isOpened():
-                self.row_camera.set_connected(True) # Doesn't always work?
-        
-        elif not self.row_camera.toggle.isChecked():
-            if self.camera.running:
-                self.camera.stop()
-
-            self.row_camera.set_connected(False)
+        self.row_camera.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_camera, self.camera))
 
 ######### End of Devices Dropdown #######################################################################################
 
