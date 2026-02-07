@@ -153,8 +153,7 @@ class CameraThread(QThread):
             self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
             self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
             self.running = True
-            # self.enable_buttons.emit(True)
-            
+
             if self.capture.isOpened():
                 while self.running:
                     ret, img = self.capture.read()
@@ -166,14 +165,12 @@ class CameraThread(QThread):
 
             else:
                 self.running = False
-                # self.enable_buttons.emit(False)
         else:
             print("No available cameras to connect to.")
     
     # Stop feed
     def stop(self):
         self.running = False
-        # self.enable_buttons.emit(False)
         self.wait()
         if self.capture:
             self.capture.release()
