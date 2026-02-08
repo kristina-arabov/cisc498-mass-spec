@@ -258,10 +258,11 @@ class DeviceRow(QWidget):
 
 
 class DevicesDropdown(QWidget):
-    def __init__(self, parent=None, camera=None):
+    def __init__(self, parent=None, camera=None, light_thread=None):
         super().__init__(parent)
 
         self.camera = camera
+        self.lights = light_thread
 
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -318,12 +319,13 @@ class DevicesDropdown(QWidget):
 
         # Function calls
         self.row_camera.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_camera, self.camera))
+        self.row_lights.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_lights, self.lights))
 
 ######### End of Devices Dropdown #######################################################################################
 
 
 class Header(QWidget):
-    def __init__(self, stacked_widget, camera):
+    def __init__(self, stacked_widget, camera, lights):
         super().__init__()
 
         layout = QHBoxLayout()
@@ -333,6 +335,7 @@ class Header(QWidget):
 
         self.stacked = stacked_widget
         self.camera = camera
+        self.lights = lights
 
         self.legacy_btn = QPushButton("Legacy Mode", objectName="headerGrey")
         self.return_btn = QPushButton("Return", objectName="headerGrey")
@@ -363,7 +366,7 @@ class Header(QWidget):
 
     def showDevicesDropdown(self):
         if self.devices_dropdown is None:
-            self.devices_dropdown = DevicesDropdown(self, self.camera)
+            self.devices_dropdown = DevicesDropdown(self, self.camera, self.lights)
         
         button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)

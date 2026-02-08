@@ -13,9 +13,10 @@ def toggle(row, device):
             pass
         # Lights
         case "lights":
-            pass
+            connect_lights(row, device) if row.toggle.isChecked() else disconnect_lights(row, device)
 
 
+''' CAMERA '''
 # Connect camera
 def connect_camera(row, camera, deviceIndex=0, resolution=(1280, 720), fps=None, name=None):
     camera.idx = deviceIndex
@@ -47,3 +48,26 @@ def disconnect_camera(row, camera):
 
     success = True if not camera.capture.isOpened() else False
 
+
+''' LIGHTS '''
+# Connect lights
+def connect_lights(row, lights):
+    lights.idx = row.port_combo.currentData()
+
+
+    if not lights.running:
+        try:
+            lights.start()
+            row.set_connected(True)
+        except:
+            pass
+
+    if lights.running:
+        row.set_connected(True)
+
+
+def disconnect_lights(row, lights):
+    if lights.running:
+        lights.stop()
+
+    row.set_connected(False)
