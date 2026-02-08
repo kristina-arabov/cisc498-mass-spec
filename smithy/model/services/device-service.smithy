@@ -26,10 +26,16 @@ service DeviceService {
         // Connection management
         ConnectPrinter
         DisconnectPrinter
+
         ConnectCamera
         DisconnectCamera
+
         ConnectConductanceMeter
         DisconnectConductanceMeter
+
+        ConnectLights
+        DisconnectLights
+
         GetDevicesStatus
         // Printer operations
         HomePrinter
@@ -233,6 +239,40 @@ structure DisconnectConductanceMeterOutput {
     @required
     success: Boolean
 }
+
+/// Connect to light controller
+operation ConnectLights {
+    input: ConnectLightsInput
+    output: ConnectLightsOutput
+}
+
+@input
+structure ConnectLightsInput {}
+
+@output
+structure ConnectLightsOutput {
+    /// Connection result
+    @required
+    connection: DeviceConnection
+}
+
+/// Disconnect light controller
+operation DisconnectLights {
+    input: DisconnectLightsInput
+    output: DisconnectLightsOutput
+}
+
+@input
+structure DisconnectLightsInput {}
+
+@output
+structure DisconnectLightsOutput {
+    /// Success
+    @required
+    success: Boolean
+}
+
+
 
 /// Get status of all devices
 operation GetDevicesStatus {
