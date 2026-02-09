@@ -182,10 +182,14 @@ class TagInstructions(QWidget):
         self.label_instructions.adjustSize()
         self.label_instructions.setFixedSize(self.label_instructions.size())
 
-        line_progressBar = QProgressBar() # TODO
+        self.line_progressBar = QProgressBar()
+        self.line_progressBar.setRange(0, 100)
+        self.line_progressBar.setFormat("%p %") 
+        self.line_progressBar.setTextVisible(True)
+        self.line_progressBar.setFixedWidth(self.label_instructions.width())
 
-        layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignCenter)
-        layout_column_1.addWidget(line_progressBar, alignment=Qt.AlignCenter)
+        layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignLeft)
+        layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
 
 
         ''' COLUMN 2 '''
@@ -258,6 +262,11 @@ class TagInstructions(QWidget):
 
         self.label_instructions.setText("Photo captured successfully!")
         self.corners_imaged[self.idx] = True
+
+        # Update progress bar status
+        corners_probed = int(((self.corners_imaged.count(True))/ len(self.corners_imaged)) * 100)
+
+        self.line_progressBar.setValue(corners_probed)
 
         # TODO set input of bottom/top-left rows
         # if self.idx == 1:
