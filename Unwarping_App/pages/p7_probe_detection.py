@@ -171,8 +171,10 @@ class TagInstructions(QWidget):
 
         self.line_progressBar = QProgressBar()
         self.line_progressBar.setRange(0, 100)
+        self.line_progressBar.setValue(0)
+        self.line_progressBar.setFormat("%p %") 
+        self.line_progressBar.setTextVisible(True)
         self.line_progressBar.setFixedWidth(self.label_instructions.width())
-        
 
         layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignLeft)
         layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)

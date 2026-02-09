@@ -279,3 +279,8 @@ QPushButton#red {
     background-color: #ad1b1b;
     color: #F0F0F0;
 }
+
+QProgressBar {
+   text-align: right;
+   margin-right: 4em;
+}
