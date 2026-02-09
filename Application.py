@@ -85,7 +85,8 @@ def global_poll():
 
     # Idle
     elif len(gcodes.gcode_list) <= 0:
-        print("running...")
+        pass
+        # print("running...")
 
 class LightingThread(QThread):
     light_signal = pyqtSignal(str)
