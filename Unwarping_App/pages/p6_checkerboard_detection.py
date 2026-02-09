@@ -1,8 +1,10 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QScrollArea, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
+from Unwarping_App.components.utils import addAllWidgets, updateFrame, saveUnwarping, setBrightness, updateDropdownIndex
 from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
+
+from Unwarping_App.services import calibration_service
 
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
@@ -72,6 +74,12 @@ class CheckerboardDetection(QWidget):
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        
+        component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
+                                                                        self.camera.frame.copy(), 
+                                                                        component_checkerboardParams.input_columns.text(), 
+                                                                        component_checkerboardParams.input_rows.text(), 
+                                                                        component_unwarpComparison.result))
 
 
 class CheckerboardParamsSection(QWidget):
@@ -91,10 +99,10 @@ class CheckerboardParamsSection(QWidget):
         layout_row_1 = QHBoxLayout(row_1)
 
         label_rows = QLabel("Rows: ")
-        input_rows = QLineEdit()
+        self.input_rows = QLineEdit()
 
         layout_row_1.addWidget(label_rows)
-        layout_row_1.addWidget(input_rows)
+        layout_row_1.addWidget(self.input_rows)
 
 
         ''' ROW 2 '''
@@ -102,10 +110,10 @@ class CheckerboardParamsSection(QWidget):
         layout_row_2 = QHBoxLayout(row_2)
 
         label_columns = QLabel("Columns: ")
-        input_columns = QLineEdit()
+        self.input_columns = QLineEdit()
 
         layout_row_2.addWidget(label_columns)
-        layout_row_2.addWidget(input_columns)
+        layout_row_2.addWidget(self.input_columns)
 
 
         ''' COMPOSE ALL '''
