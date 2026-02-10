@@ -730,9 +730,6 @@ class LightingDropdown(QWidget):
         self.minus.setStyleSheet("background-color: #F0F0F0;")
         self.plus.setStyleSheet("background-color: #F0F0F0;")
 
-        self.minus.clicked.connect(lambda: self.brightnessIncrement(self.increments.currentText(), "minus"))
-        self.plus.clicked.connect(lambda: self.brightnessIncrement(self.increments.currentText(), "plus"))
-
         # List of self.increments to adjust lighting
         self.increments = QComboBox(objectName="increment_dropdown")
         self.increments.setStyleSheet("background-color: #F0F0F0;")
@@ -746,6 +743,7 @@ class LightingDropdown(QWidget):
         self.slider.setMinimum(0)
         self.slider.setMaximum(100)
         self.slider.setValue(50)
+
 
         # Labels for min/max values
         slider_min = QLabel("0")
@@ -776,6 +774,11 @@ class LightingDropdown(QWidget):
         layout_final.addWidget(self.container)
 
         self.setLayout(layout_final)
+
+        ''' Functions '''
+        self.minus.clicked.connect(lambda: self.brightnessIncrement(self.increments.currentText(), "minus"))
+        self.plus.clicked.connect(lambda: self.brightnessIncrement(self.increments.currentText(), "plus"))
+
     
     def brightnessIncrement(self, value, type):
         if type == 'plus':

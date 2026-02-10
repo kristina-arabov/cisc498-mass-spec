@@ -10,9 +10,10 @@ from Unwarping_App.components.utils import processUpload, updateFrame, verifyTra
 class ProvideTransformation(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera):
+    def __init__(self, camera, lights):
         super().__init__()
         self.camera = camera
+        self.lights = lights
 
         self.initUI()
         

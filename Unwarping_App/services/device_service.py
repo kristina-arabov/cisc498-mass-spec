@@ -73,10 +73,11 @@ def disconnect_lights(row, lights):
     row.set_connected(False)
 
 # Adjust brightness intensity
-def set_brightness(slider, lights):
-    percent = slider.value() / 100
+def set_brightness(value, lights):
+    percent = value / 100
     brightness = int(percent * 255)
     try:
+        print(brightness)
         if 0 <= brightness <= 255:
             lights.serial_conn.write(str(brightness).encode())
             lights.serial_conn.write(b'\n')
