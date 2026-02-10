@@ -65,9 +65,21 @@ def connect_lights(row, lights):
     if lights.running:
         row.set_connected(True)
 
-
+# Disconnect lights
 def disconnect_lights(row, lights):
     if lights.running:
         lights.stop()
 
     row.set_connected(False)
+
+# Adjust brightness intensity
+def set_brightness(slider, lights):
+    percent = slider.value() / 100
+    brightness = int(percent * 255)
+    try:
+        if 0 <= brightness <= 255:
+            lights.serial_conn.write(str(brightness).encode())
+            lights.serial_conn.write(b'\n')
+    except:
+        print("didnt work!")
+        pass
