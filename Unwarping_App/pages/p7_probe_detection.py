@@ -106,38 +106,17 @@ class TagInformationSection(QWidget):
         row_2 = QWidget()
         layout_row_2 = QHBoxLayout(row_2)
 
-        label_topRight = QLabel("Top-right corner")
-
-        label_topRightX = QLabel("X: ")
-        input_topRightX = QLineEdit()
-
-        label_topRightY = QLabel("Y: ")
-        input_topRightY = QLineEdit()
-
-        layout_row_2.addWidget(label_topRight, alignment=Qt.AlignLeft)
-        layout_row_2.addStretch()
-        layout_row_2.addWidget(label_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(label_topRightY, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightY, alignment=Qt.AlignRight)
-
-
-        ''' ROW 3 '''
-        row_3 = QWidget()
-        layout_row_3 = QHBoxLayout(row_3)
-
         label_tagSize = QLabel("Tag size (mm): ")
         input_tagSize = QLineEdit()
 
-        layout_row_3.addWidget(label_tagSize, alignment=Qt.AlignLeft)
-        layout_row_3.addWidget(input_tagSize, alignment=Qt.AlignRight)
+        layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(input_tagSize, alignment=Qt.AlignRight)
 
 
         ''' COMPOSE '''
         layout_container.addWidget(label_tagInformation)
         layout_container.addWidget(row_1)
         layout_container.addWidget(row_2)
-        layout_container.addWidget(row_3)
 
         layout.addWidget(container)
 
@@ -165,7 +144,7 @@ class TagInstructions(QWidget):
         column_1 = QWidget()
         layout_column_1 = QVBoxLayout(column_1)
 
-        self.label_instructions = QLabel("Please manually align the blue tag corner with the crosshair.")
+        self.label_instructions = QLabel("Please manually align the highlighted blue corner with the crosshair.")
         self.label_instructions.adjustSize()
         self.label_instructions.setFixedSize(self.label_instructions.size())
 
@@ -229,7 +208,11 @@ class TagInstructions(QWidget):
         
         self.setProbedColors()
         self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
-        self.label_instructions.setText("Please manually align the blue tag corner with the crosshair.")
+
+        if self.corners_imaged[self.idx]:
+            self.label_instructions.setText("Corner aligned!")
+        else:
+            self.label_instructions.setText("Please manually align the highlighted blue corner with the crosshair.")
 
         self.update()
 
@@ -244,7 +227,7 @@ class TagInstructions(QWidget):
         # self.vars["tags"]["loc" + str(self.idx)] = position
         # self.vars["tags"]["img" + str(self.idx)] = img
 
-        self.label_instructions.setText("Photo captured successfully!")
+        self.label_instructions.setText("Corner aligned!")
         self.corners_imaged[self.idx] = True
 
         # Update progress bar status
