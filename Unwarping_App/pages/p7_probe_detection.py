@@ -106,38 +106,17 @@ class TagInformationSection(QWidget):
         row_2 = QWidget()
         layout_row_2 = QHBoxLayout(row_2)
 
-        label_topRight = QLabel("Top-right corner")
-
-        label_topRightX = QLabel("X: ")
-        input_topRightX = QLineEdit()
-
-        label_topRightY = QLabel("Y: ")
-        input_topRightY = QLineEdit()
-
-        layout_row_2.addWidget(label_topRight, alignment=Qt.AlignLeft)
-        layout_row_2.addStretch()
-        layout_row_2.addWidget(label_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(label_topRightY, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightY, alignment=Qt.AlignRight)
-
-
-        ''' ROW 3 '''
-        row_3 = QWidget()
-        layout_row_3 = QHBoxLayout(row_3)
-
         label_tagSize = QLabel("Tag size (mm): ")
         input_tagSize = QLineEdit()
 
-        layout_row_3.addWidget(label_tagSize, alignment=Qt.AlignLeft)
-        layout_row_3.addWidget(input_tagSize, alignment=Qt.AlignRight)
+        layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(input_tagSize, alignment=Qt.AlignRight)
 
 
         ''' COMPOSE '''
         layout_container.addWidget(label_tagInformation)
         layout_container.addWidget(row_1)
         layout_container.addWidget(row_2)
-        layout_container.addWidget(row_3)
 
         layout.addWidget(container)
 
