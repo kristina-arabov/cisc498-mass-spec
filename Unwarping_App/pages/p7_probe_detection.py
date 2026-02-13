@@ -144,7 +144,7 @@ class TagInstructions(QWidget):
         column_1 = QWidget()
         layout_column_1 = QVBoxLayout(column_1)
 
-        self.label_instructions = QLabel("Please manually align the blue tag corner with the crosshair.")
+        self.label_instructions = QLabel("Please manually align the highlighted blue corner with the crosshair.")
         self.label_instructions.adjustSize()
         self.label_instructions.setFixedSize(self.label_instructions.size())
 
@@ -208,7 +208,11 @@ class TagInstructions(QWidget):
         
         self.setProbedColors()
         self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
-        self.label_instructions.setText("Please manually align the blue tag corner with the crosshair.")
+
+        if self.corners_imaged[self.idx]:
+            self.label_instructions.setText("Corner aligned!")
+        else:
+            self.label_instructions.setText("Please manually align the highlighted blue corner with the crosshair.")
 
         self.update()
 
@@ -223,7 +227,7 @@ class TagInstructions(QWidget):
         # self.vars["tags"]["loc" + str(self.idx)] = position
         # self.vars["tags"]["img" + str(self.idx)] = img
 
-        self.label_instructions.setText("Photo captured successfully!")
+        self.label_instructions.setText("Corner aligned!")
         self.corners_imaged[self.idx] = True
 
         # Update progress bar status
