@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 
@@ -59,11 +60,11 @@ def checkFishReadability(img, checkerboard, objp, flags):
         stability_vals = poseStability(objpoints, imgpoints, K, D)   
 
         # TODO is this super necessary?
-        # if (stability_vals["translation_std"] > 0.0015 and 
-        #     stability_vals["translation_max"] > 0.005 and 
-        #     stability_vals["rotation_max_deg"] > 0.05):
-        #     msg = "?"
-        #     retval = False
+        if (stability_vals["translation_std"] > 0.0015 and 
+            stability_vals["translation_max"] > 0.005 and 
+            stability_vals["rotation_max_deg"] > 0.05):
+            msg = "?"
+            retval = False
 
     else:
         msg = "RMS error is too high to accurately calculate the probe-to-camera offset."
@@ -127,32 +128,40 @@ def getCheckerboardUnwarp(img, columns, rows, result, printer=None):
     subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1)
     calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_FIX_SKEW
 
+    # Set values
+    start = time.time()
+    end = start + 3 # Run for 3 seconds max
+    
+    retval = False
+    msg = "Board was unreadable. Ensure the correct dimensions are used and the entire board is visible."
+
     # Actual checking and unwarping
-    retval, K, D, msg = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
-    if retval:
-        image = fisheyeUnwarp(img, K, D)
-        retval, mtx, dist = checkSecondReadability(image, CHECKERBOARD, objp, subpix_criteria)
-        
+    # Loop here, run until end condition or until retval is true.
+    while time.time() < end and not retval:
+        retval, K, D, msg = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
         if retval:
-            final = secondUnwarp(image, mtx, dist)
+            image = fisheyeUnwarp(img, K, D)
+            retval, mtx, dist = checkSecondReadability(image, CHECKERBOARD, objp, subpix_criteria)
+            
+            if retval:
+                final = secondUnwarp(image, mtx, dist)
 
-            # # Save params and image of successful unwarping
-            # unwarping_vars = temp_vars["checkerboard"]
-            # unwarping_vars["mtx1"] = K
-            # unwarping_vars["dist1"] = D
+                # # Save params and image of successful unwarping
+                # unwarping_vars = temp_vars["checkerboard"]
+                # unwarping_vars["mtx1"] = K
+                # unwarping_vars["dist1"] = D
 
-            # unwarping_vars["mtx2"] = mtx
-            # unwarping_vars["dist2"] = dist
+                # unwarping_vars["mtx2"] = mtx
+                # unwarping_vars["dist2"] = dist
 
-            # unwarping_vars["size"] = CHECKERBOARD
-            # unwarping_vars["location"] = getPrinterPosition(printer)
-            # unwarping_vars["image"] = img
+                # unwarping_vars["size"] = CHECKERBOARD
+                # unwarping_vars["location"] = getPrinterPosition(printer)
+                # unwarping_vars["image"] = img
 
-            # Display unwarping results on result feed
-            updateResult(final, result)
+                # Display unwarping results on result feed
+                updateResult(final, result)
 
-    else:
-        result.image_label.setText(msg)
+    result.image_label.setText(msg)
 
 def rvec_tvec_to_transform(rvec, tvec):
     R, _ = cv2.Rodrigues(rvec)
