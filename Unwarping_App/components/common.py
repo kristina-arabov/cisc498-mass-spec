@@ -994,6 +994,8 @@ class TagOverlay(QWidget):
             painter.drawEllipse(x, y, diameter, diameter)
 
 class ClickableImage(QLabel):
+    roiSignal = pyqtSignal(object, object)
+
     # Overlay with unwarped image, else black screen
     def __init__(self):
         super().__init__()
@@ -1002,8 +1004,8 @@ class ClickableImage(QLabel):
         
         self.type = None # None on default
 
-        self.rectangle = None
         self.dot = None
+        self.rectangle = None
 
         # probe rectange is a list of corners, dot is just one point
         self.probe_rectangle = []
@@ -1090,6 +1092,7 @@ class ClickableImage(QLabel):
             painter.end()
 
         self.update()
+        self.roiSignal.emit(self.dot, self.rectangle)
     
     def setNewPixmap(self, pixmap):
         rgb_img = cv2.cvtColor(pixmap, cv2.COLOR_BGR2RGB)
@@ -1101,6 +1104,12 @@ class ClickableImage(QLabel):
         self.scaled = q_img.scaled(int(1280 * 0.7), int(720 * 0.7), Qt.KeepAspectRatio)
         self.scaled = QPixmap.fromImage(self.scaled)
         self.setPixmap(self.scaled)
+
+    def setVals(self, pt, rect=None):
+        self.dot = pt
+        self.rectangle = rect
+
+        self.update()
         
 
 class InputField(QWidget):
