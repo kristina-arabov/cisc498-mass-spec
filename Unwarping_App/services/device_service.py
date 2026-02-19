@@ -82,5 +82,4 @@ def set_brightness(value, lights):
             lights.serial_conn.write(str(brightness).encode())
             lights.serial_conn.write(b'\n')
     except:
-        print("didnt work!")
         pass
