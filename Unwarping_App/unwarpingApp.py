@@ -85,7 +85,8 @@ class Main(QWidget):
         self.page7 = ProbeDetection(self.camera)
         self.page8 = TransformationReview()
 
-        self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
+        # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
+        self.page2.photo.roiSignal.connect(lambda dot, rect: self.page3.photo.setVals(dot, rect))
 
         self.stacked.addWidget(self.page0)
         self.stacked.addWidget(self.page1)

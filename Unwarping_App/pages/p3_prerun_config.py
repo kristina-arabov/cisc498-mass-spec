@@ -8,6 +8,60 @@ import cv2
 from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
 from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
 
+class PrerunConfig(QWidget):
+    next = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        
+    # def __init__(self, printer, json_path):
+    #     super().__init__()
+    #     self.printer = printer
+    #     self.json_path = json_path
+    #     self.initUI()
+    
+    def initUI(self):
+        styling = "Unwarping_App/components/style.css"
+        with open(styling,"r") as file:
+            self.setStyleSheet(file.read())
+
+
+        layout = QHBoxLayout(self)
+        self.photo = ClickableImage()
+
+        right = QWidget()
+        layout_right = QVBoxLayout(right)
+
+        label_prerun = QLabel("Pre-run Config", objectName="page_title")
+        # TODO logo?
+
+        ''' SAMPLING MODE SELECTION '''
+        component_samplingMode = ModeSelection()
+
+        ''' PARAMETER INPUTS '''
+        component_samplingParams = SamplingParameters()
+
+        button_startRun = QPushButton("Start sampling run", objectName="blue")
+        button_startRun.clicked.connect(self.next.emit)
+
+        ''' ASSEMBLE RIGHT COLUMN '''
+        layout_right.addStretch()
+        layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_samplingMode, alignment=Qt.AlignLeft)
+        layout_right.addWidget(component_samplingParams, alignment=Qt.AlignLeft)
+        layout_right.addStretch()
+        layout_right.addWidget(button_startRun, alignment=Qt.AlignLeft)
+        layout_right.addStretch()
+
+        ''' COMPOSE ALL '''
+        layout.addWidget(self.photo)
+        layout.addWidget(right)
+
+        
+        
+
+
 class ModeSelection(QWidget):
     def __init__(self):
         super().__init__()
@@ -110,64 +164,6 @@ class SamplingParameters(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
         """)
-
-
-class PrerunConfig(QWidget):
-    next = pyqtSignal()
-
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-        
-    # def __init__(self, printer, json_path):
-    #     super().__init__()
-    #     self.printer = printer
-    #     self.json_path = json_path
-    #     self.initUI()
-    
-    def initUI(self):
-        styling = "Unwarping_App/components/style.css"
-        with open(styling,"r") as file:
-            self.setStyleSheet(file.read())
-
-
-        layout = QHBoxLayout(self)
-        component_resultImg = CamFeed()
-
-        right = QWidget()
-        layout_right = QVBoxLayout(right)
-
-        label_prerun = QLabel("Pre-run Config", objectName="page_title")
-        # TODO logo?
-
-        ''' SAMPLING MODE SELECTION '''
-        component_samplingMode = ModeSelection()
-
-        ''' PARAMETER INPUTS '''
-        component_samplingParams = SamplingParameters()
-
-        button_startRun = QPushButton("Start sampling run", objectName="blue")
-        button_startRun.clicked.connect(self.next.emit)
-
-        ''' ASSEMBLE RIGHT COLUMN '''
-        layout_right.addStretch()
-        layout_right.addWidget(label_prerun)
-        layout_right.addWidget(component_samplingMode)
-        layout_right.addWidget(component_samplingParams)
-        layout_right.addStretch()
-        layout_right.addWidget(button_startRun)
-        layout_right.addStretch()
-
-        # layout_right.setContentsMargins(0, 0, 0, 0) 
-        # layout_right.setSpacing(0)  
-
-        ''' COMPOSE ALL '''
-        layout.addWidget(component_resultImg)
-        layout.addWidget(right)
-
-        layout.setContentsMargins(0, 0, 0, 0) 
-        layout.setSpacing(0)  
-
 
 
     #     widgets = []
