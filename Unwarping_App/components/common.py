@@ -948,6 +948,67 @@ class CamFeed(QWidget):
         layout.setSpacing(0)   
 
 
+class TagInformationSection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        label_tagInformation = QLabel("Tag Information", objectName="larger")
+        label_tagInformation.setStyleSheet("font-weight: bold;")
+
+        self.label_msg = QLabel("An AprilTag must be clearly visible in the image.")
+        self.label_msg.hide()
+
+        ''' ROW 1 '''
+        row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(row_1)
+
+        label_bottomLeft = QLabel("Bottom-left corner")
+
+        label_bottomLeftX = QLabel("X: ")
+        input_bottomLeftX = QLineEdit()
+
+        label_bottomLeftY = QLabel("Y: ")
+        input_bottomLeftY = QLineEdit()
+
+        layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
+        layout_row_1.addStretch()
+        layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(input_bottomLeftX, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(input_bottomLeftY, alignment=Qt.AlignRight)
+
+
+        ''' ROW 2 '''
+        row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(row_2)
+
+        label_tagSize = QLabel("Tag size (mm): ")
+        input_tagSize = QLineEdit()
+
+        layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(input_tagSize)
+
+
+        ''' COMPOSE '''
+        layout_container.addWidget(label_tagInformation)
+        layout_container.addWidget(self.label_msg)
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(row_2)
+
+        layout.addWidget(container)
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit { background-color: white; }
+        """)
+
+
+
 class TagOverlay(QWidget):
     def __init__(self):
         super().__init__()
