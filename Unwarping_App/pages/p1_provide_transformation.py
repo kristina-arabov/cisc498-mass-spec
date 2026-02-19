@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushBut
 from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
-from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison
+from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets
 
 
@@ -57,3 +57,26 @@ class ProvideTransformation(QWidget):
         ''' COMPOSE '''
         layout.addWidget(component_unwarpComparison)
         layout.addWidget(right)
+
+class FileSelection(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        select_box_layout = QVBoxLayout(container)
+
+        folder_path = QLabel("", objectName="path_label")
+        folder_select_btn = QPushButton("Select file", objectName="blue")
+        
+        self.label_error = QLabel("", objectName="light_blue_box")
+        self.label_error.hide()
+
+        select_box_layout.addWidget(folder_path)
+        select_box_layout.addWidget(folder_select_btn, alignment=Qt.AlignCenter)
+        select_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
+
+        container.setFixedWidth(475)
+
+        layout.addWidget(container)
