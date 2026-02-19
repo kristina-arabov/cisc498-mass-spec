@@ -58,7 +58,8 @@ class PrerunConfig(QWidget):
         layout.addWidget(self.photo)
         layout.addWidget(right)
 
-        
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)       
         
 
 
@@ -88,6 +89,9 @@ class ModeSelection(QWidget):
         layout_container.addWidget(button_conductive)
 
         layout.addWidget(container)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
         self.setStyleSheet("background-color: #C8D3F1;")
 
@@ -153,6 +157,9 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(row_4)
 
         layout.addWidget(container)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }

@@ -76,13 +76,13 @@ class Main(QWidget):
 
         # connect pages for application
         self.page0 = LandingPage()
-        self.page1 = ProvideTransformation()
+        self.page1 = ProvideTransformation(self.camera)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
-        self.page6 = CheckerboardDetection()
-        self.page7 = ProbeDetection()
+        self.page6 = CheckerboardDetection(self.camera)
+        self.page7 = ProbeDetection(self.camera)
         self.page8 = TransformationReview()
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))

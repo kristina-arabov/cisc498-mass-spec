@@ -58,6 +58,9 @@ class ROISelection(QWidget):
 
         layout.addWidget(self.photo)
         layout.addWidget(right)
+        
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
         ''' FUNCTIONS '''
         self.referencePoint.button_action.clicked.connect(lambda: self.setReference())

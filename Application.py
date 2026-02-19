@@ -12,7 +12,7 @@ import cv2
 import threading
 import re
 import numpy as np
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QTimer
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QTimer, QObject
 
 from Printer_Control_App import oppscan2
 
@@ -130,7 +130,7 @@ class LightingThread(QThread):
 
             self.serial_conn = None
             self.idx = None
-        
+
 
 # Element to update camera feed 
 class CameraThread(QThread):
@@ -142,18 +142,19 @@ class CameraThread(QThread):
         cameras = QCameraInfo.availableCameras()
         self.running = False
         self.cap = None
-        self.idx = 0 if len(cameras) > 0 else None
+
+        self.idx = None
+        self.resolution = None
 
     # Start running feed
     def run(self):
         if self.idx is not None:
             print("attempting connection: ", self.idx)
             self.capture = cv2.VideoCapture(self.idx)
-            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
             self.running = True
-            self.enable_buttons.emit(True)
-            
+
             if self.capture.isOpened():
                 while self.running:
                     ret, img = self.capture.read()
@@ -165,14 +166,12 @@ class CameraThread(QThread):
 
             else:
                 self.running = False
-                self.enable_buttons.emit(False)
         else:
             print("No available cameras to connect to.")
     
     # Stop feed
     def stop(self):
         self.running = False
-        self.enable_buttons.emit(False)
         self.wait()
         if self.capture:
             self.capture.release()
@@ -203,7 +202,7 @@ class App(QWidget):
         self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
-        self.header = Header(self.stack)
+        self.header = Header(self.stack, self.camera_feed)
 
         # Layout
         layout = QVBoxLayout(self)

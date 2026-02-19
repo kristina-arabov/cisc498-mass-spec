@@ -16,6 +16,9 @@ enum DeviceType {
 
     /// Conductance meter
     CONDUCTANCE
+
+    /// Lights
+    LIGHTS
 }
 
 /// Device connection status

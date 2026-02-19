@@ -17,6 +17,8 @@ import cv2
 
 from Unwarping_App.components import utils
 
+from Unwarping_App.services import device_service
+
 class DevicesButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
         super().__init__(parent)
@@ -214,12 +216,12 @@ class DeviceRow(QWidget):
         self.set_connected(start_connected)
 
         # connect toggle -> update icon
-        self.toggle.stateChanged.connect(lambda _: self.set_connected(self.toggle.isChecked()))
+        # self.toggle.stateChanged.connect(lambda _: self.set_connected(self.toggle.isChecked()))
 
         self.populate_ports()
 
     def set_connected(self, connected: bool):
-        self.toggle.setChecked(connected)
+        # self.toggle.setChecked(connected)
         pm = _make_status_pixmap("connected" if connected else "disconnected", size=24)
         self.status_lbl.setPixmap(pm)
 
@@ -256,8 +258,10 @@ class DeviceRow(QWidget):
 
 
 class DevicesDropdown(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, camera=None):
         super().__init__(parent)
+
+        self.camera = camera
 
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
@@ -311,11 +315,15 @@ class DevicesDropdown(QWidget):
         outer.addWidget(inner)
         self.setLayout(outer)
 
+
+        # Function calls
+        self.row_camera.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_camera, self.camera))
+
 ######### End of Devices Dropdown #######################################################################################
 
 
 class Header(QWidget):
-    def __init__(self, stacked_widget):
+    def __init__(self, stacked_widget, camera):
         super().__init__()
 
         layout = QHBoxLayout()
@@ -324,6 +332,7 @@ class Header(QWidget):
         inner_layout = QHBoxLayout(container)
 
         self.stacked = stacked_widget
+        self.camera = camera
 
         self.legacy_btn = QPushButton("Legacy Mode", objectName="headerGrey")
         self.return_btn = QPushButton("Return", objectName="headerGrey")
@@ -354,7 +363,7 @@ class Header(QWidget):
 
     def showDevicesDropdown(self):
         if self.devices_dropdown is None:
-            self.devices_dropdown = DevicesDropdown(self)
+            self.devices_dropdown = DevicesDropdown(self, self.camera)
         
         button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)
@@ -933,15 +942,17 @@ class CamFeed(QWidget):
             self.feed_width = int(1280 * scale)
             self.feed_height = int(720 * scale)
         else:
-            self.feed_width = int(1280 * 0.65)
-            self.feed_height = int(720 * 0.65)
+            self.feed_width = int(1280 * 0.7)
+            self.feed_height = int(720 * 0.7)
 
-        # Put text in here
         self.image_label = QLabel(objectName="camera_initial")
         self.image_label.setFixedSize(self.feed_width, self.feed_height)
         self.image_label.setText(text)
 
-        self.cam_thread = None
+        self.image_label.setSizePolicy(
+            QSizePolicy.Fixed,
+            QSizePolicy.Fixed
+        )
 
         layout.addWidget(self.image_label)
         layout.setContentsMargins(0, 0, 0, 0) 
@@ -1001,6 +1012,9 @@ class TagInformationSection(QWidget):
         layout_container.addWidget(row_2)
 
         layout.addWidget(container)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
@@ -1082,8 +1096,8 @@ class ClickableImage(QLabel):
         self.end_point = None
         self.drawing = False
 
-        self.feed_width = int(1280 * 0.65)
-        self.feed_height = int(720 * 0.65)
+        self.feed_width = int(1280 * 0.7)
+        self.feed_height = int(720 * 0.7)
         self.setFixedSize(self.feed_width, self.feed_height)
 
     def mousePressEvent(self, event):
@@ -1198,27 +1212,6 @@ class InputField(QWidget):
 
         self.setLayout(layout)
 
-class CamFeedSmall(QWidget):
-    def __init__(self, text):
-        super().__init__()
-
-        layout = QHBoxLayout()
-
-        # TODO Dynamic sizes
-        self.feed_width = int(1280 * 0.4)
-        self.feed_height = int(720 * 0.4)
-
-        # Text here if needed
-        self.image_label = QLabel(objectName="camera_initial")
-        self.image_label.setFixedSize(self.feed_width, self.feed_height)
-        self.image_label.setText(text)
-
-        self.cam_thread = None
-
-        layout.addWidget(self.image_label, alignment=Qt.AlignCenter)
-
-        self.setLayout(layout)
-
 class ArrowButton(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1226,12 +1219,14 @@ class ArrowButton(QWidget):
         layout = QVBoxLayout(self)
         self.setFixedHeight(100)
 
-        self.button = QPushButton("Unwarped", objectName="clear")
+        self.button = QPushButton("Unwarp", objectName="clear")
         # self.button.setEnabled(False)
         
-        layout.setContentsMargins(0, 10, 0, 10)
         layout.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.button)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
 
     def paintEvent(self, event):
         painter = QPainter(self)
@@ -1263,10 +1258,13 @@ class UnwarpComparison(QWidget):
 
         layout = QVBoxLayout(self)
 
-        feed = CamFeed(scale=0.4)
+        self.feed = CamFeed(scale=0.42)
         unwarp_component = ArrowButton()
-        result = CamFeed(scale=0.4)
+        self.result = CamFeed(scale=0.42)
 
-        layout.addWidget(feed)
+        layout.addWidget(self.feed)
         layout.addWidget(unwarp_component)
-        layout.addWidget(result)
+        layout.addWidget(self.result)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  

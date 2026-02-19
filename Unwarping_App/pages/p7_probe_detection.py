@@ -8,8 +8,10 @@ from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPho
 class ProbeDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera):
         super().__init__()
+        self.camera = camera
+
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
@@ -39,6 +41,7 @@ class ProbeDetection(QWidget):
         component_tagDiagram = TagInstructions()
 
         layout_left.addWidget(component_cameraFeed)
+        layout_left.addStretch()
         layout_left.addWidget(component_tagDiagram)
 
 
@@ -65,8 +68,15 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
+        ''' COMPOSE '''
         layout.addWidget(left)
         layout.addWidget(right)
+
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0) 
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
 
 
 class TagInstructions(QWidget):
@@ -113,11 +123,17 @@ class TagInstructions(QWidget):
         layout_column_2.addWidget(self.button_previousCorner)
         layout_column_2.addWidget(self.button_probeLocation)
 
+        layout_column_2.setContentsMargins(0,0,0,0)
+        layout_column_2.setSpacing(5)
+
 
         ''' COMPOSE '''
         layout.addWidget(self.component_tagOverlay)
         layout.addWidget(column_1)
         layout.addWidget(column_2)
+
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
 
         ''' FUNCTIONS '''
