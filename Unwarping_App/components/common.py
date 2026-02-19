@@ -1135,15 +1135,15 @@ class ClickableImage(QLabel):
 
         # Pixel overlay
         if self.sample_overlay_x and self.sample_overlay_y:
+            painter.setPen(QPen(QColor("#EAFFC2"), 2))
+            painter.setOpacity(0.6)
 
+            # Get drawing coordinates
             start_x = self.rectangle.left()
             start_y = self.rectangle.top()
 
             end_x = self.rectangle.right()
             end_y = self.rectangle.bottom()
-
-            painter.setPen(QPen(QColor("#EAFFC2"), 2))
-            painter.setOpacity(0.6)
 
             width  = end_x - start_x
             height = end_y - start_y
