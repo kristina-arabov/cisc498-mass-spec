@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayou
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from Unwarping_App.components.common import CamFeed, LightingDropdown, ProbeDropdown, PortControl, TagOverlay
+from Unwarping_App.components.common import CamFeed, LightingDropdown, TagOverlay, TagInformationSection
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPhoto, getPrinterPosition, setBrightness, updateDropdownIndex
 from Unwarping_App.services import device_service
 
@@ -85,84 +85,8 @@ class ProbeDetection(QWidget):
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
 
-
-class TagInformationSection(QWidget):
-    def __init__(self):
-        super().__init__()
-
-        layout = QVBoxLayout(self)
-
-        container = QWidget(objectName="light_blue_box")
-        layout_container = QVBoxLayout(container)
-
-        label_tagInformation = QLabel("Tag Information", objectName="larger")
-        label_tagInformation.setStyleSheet("font-weight: bold;")
-
-        ''' ROW 1 '''
-        row_1 = QWidget()
-        layout_row_1 = QHBoxLayout(row_1)
-
-        label_bottomLeft = QLabel("Bottom-left corner")
-
-        label_bottomLeftX = QLabel("X: ")
-        input_bottomLeftX = QLineEdit()
-
-        label_bottomLeftY = QLabel("Y: ")
-        input_bottomLeftY = QLineEdit()
-
-        layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
-        layout_row_1.addStretch()
-        layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(input_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(input_bottomLeftY, alignment=Qt.AlignRight)
-
-
-        ''' ROW 2 '''
-        row_2 = QWidget()
-        layout_row_2 = QHBoxLayout(row_2)
-
-        label_topRight = QLabel("Top-right corner")
-
-        label_topRightX = QLabel("X: ")
-        input_topRightX = QLineEdit()
-
-        label_topRightY = QLabel("Y: ")
-        input_topRightY = QLineEdit()
-
-        layout_row_2.addWidget(label_topRight, alignment=Qt.AlignLeft)
-        layout_row_2.addStretch()
-        layout_row_2.addWidget(label_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightX, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(label_topRightY, alignment=Qt.AlignRight)
-        layout_row_2.addWidget(input_topRightY, alignment=Qt.AlignRight)
-
-
-        ''' ROW 3 '''
-        row_3 = QWidget()
-        layout_row_3 = QHBoxLayout(row_3)
-
-        label_tagSize = QLabel("Tag size (mm): ")
-        input_tagSize = QLineEdit()
-
-        layout_row_3.addWidget(label_tagSize, alignment=Qt.AlignLeft)
-        layout_row_3.addWidget(input_tagSize, alignment=Qt.AlignRight)
-
-
-        ''' COMPOSE '''
-        layout_container.addWidget(label_tagInformation)
-        layout_container.addWidget(row_1)
-        layout_container.addWidget(row_2)
-        layout_container.addWidget(row_3)
-
-        layout.addWidget(container)
-
-        self.setStyleSheet("""
-            QWidget { background-color: #C8D3F1; }
-            QLineEdit { background-color: white; }
-        """)
-        self.setFixedWidth(375)
-
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
 
 
 class TagInstructions(QWidget):
@@ -181,7 +105,7 @@ class TagInstructions(QWidget):
         column_1 = QWidget()
         layout_column_1 = QVBoxLayout(column_1)
 
-        self.label_instructions = QLabel("Please manually align the blue tag corner with the crosshair.")
+        self.label_instructions = QLabel("Please manually align the highlighted blue corner with the crosshair.")
         self.label_instructions.adjustSize()
         self.label_instructions.setFixedSize(self.label_instructions.size())
 
@@ -208,6 +132,9 @@ class TagInstructions(QWidget):
         layout_column_2.addWidget(self.button_nextCorner)
         layout_column_2.addWidget(self.button_previousCorner)
         layout_column_2.addWidget(self.button_probeLocation)
+
+        layout_column_2.setContentsMargins(0,0,0,0)
+        layout_column_2.setSpacing(5)
 
 
         ''' COMPOSE '''
@@ -248,7 +175,11 @@ class TagInstructions(QWidget):
         
         self.setProbedColors()
         self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
-        self.label_instructions.setText("Please manually align the blue tag corner with the crosshair.")
+
+        if self.corners_imaged[self.idx]:
+            self.label_instructions.setText("Corner aligned!")
+        else:
+            self.label_instructions.setText("Please manually align the highlighted blue corner with the crosshair.")
 
         self.update()
 
@@ -263,7 +194,7 @@ class TagInstructions(QWidget):
         # self.vars["tags"]["loc" + str(self.idx)] = position
         # self.vars["tags"]["img" + str(self.idx)] = img
 
-        self.label_instructions.setText("Photo captured successfully!")
+        self.label_instructions.setText("Corner aligned!")
         self.corners_imaged[self.idx] = True
 
         # Update progress bar status

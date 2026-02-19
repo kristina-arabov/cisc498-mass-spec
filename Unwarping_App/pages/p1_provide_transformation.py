@@ -2,8 +2,8 @@ from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushBut
 from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
-from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison
-from Unwarping_App.components.utils import processUpload, updateFrame, verifyTransformation, addAllWidgets
+from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
+from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets, updateFrame
 
 
 ''' This page handles any existing transformations the user provides'''
@@ -39,24 +39,19 @@ class ProvideTransformation(QWidget):
         label = QLabel("Provide a Transformation", objectName="page_title")
 
         # Selection box
-        select_box = QWidget(objectName="light_blue_box")
-        select_box_layout = QVBoxLayout(select_box)
+        select_box = FileSelection()
 
-        folder_path = QLabel("<Path here>", objectName="path_label")
-        folder_select_btn = QPushButton("Select file", objectName="blue")
-        folder_error = QLabel("<Errors will go here>", objectName="light_blue_box")
-
-        select_box_layout.addWidget(folder_path)
-        select_box_layout.addWidget(folder_select_btn, alignment=Qt.AlignCenter)
-        select_box_layout.addWidget(folder_error, alignment=Qt.AlignCenter)
-
+        # Tag inputs
+        component_tagInfo = TagInformationSection()
+        component_tagInfo.label_msg.show()
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
 
         right_layout.addStretch()
-        right_layout.addWidget(label)
-        right_layout.addWidget(select_box)
+        right_layout.addWidget(label, alignment=Qt.AlignLeft | Qt.AlignTop)
+        right_layout.addWidget(select_box, alignment=Qt.AlignLeft | Qt.AlignTop)
+        right_layout.addWidget(component_tagInfo, alignment=Qt.AlignLeft | Qt.AlignTop)
         right_layout.addStretch()
         right_layout.addWidget(button_next, alignment=Qt.AlignRight)
 
@@ -70,3 +65,25 @@ class ProvideTransformation(QWidget):
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
 
+class FileSelection(QWidget):
+    def __init__(self):
+        super().__init__()
+        
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        select_box_layout = QVBoxLayout(container)
+
+        folder_path = QLabel("", objectName="path_label")
+        folder_select_btn = QPushButton("Select file", objectName="blue")
+        
+        self.label_error = QLabel("", objectName="light_blue_box")
+        self.label_error.hide()
+
+        select_box_layout.addWidget(folder_path)
+        select_box_layout.addWidget(folder_select_btn, alignment=Qt.AlignCenter)
+        select_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
+
+        container.setFixedWidth(475)
+
+        layout.addWidget(container)
