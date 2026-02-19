@@ -4,11 +4,16 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
 from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
 
+from Unwarping_App.services import device_service
+
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera, lights):
         super().__init__()
+        self.camera = camera
+        self.lights = lights
+
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
@@ -28,8 +33,11 @@ class CheckerboardDetection(QWidget):
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
+
+        ''' LEFT COLUMN '''
         component_unwarpComparison = UnwarpComparison()
 
+        ''' RIGHT COLUMN '''
         right = QWidget()
         layout_right = QVBoxLayout(right)
 
@@ -59,11 +67,15 @@ class CheckerboardDetection(QWidget):
         # # scroll_area.setFixedWidth(right_col_width)
 
 
-        # Compose page
+        ''' COMPOSE '''
         layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(right, alignment=Qt.AlignCenter)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
 
 class CheckerboardParamsSection(QWidget):
