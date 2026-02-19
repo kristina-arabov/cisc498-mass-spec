@@ -85,7 +85,8 @@ def global_poll():
 
     # Idle
     elif len(gcodes.gcode_list) <= 0:
-        print("running...")
+        pass
+        # print("running...")
 
 class LightingThread(QThread):
     light_signal = pyqtSignal(str)
@@ -201,7 +202,7 @@ class App(QWidget):
         self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
-        self.header = Header(self.stack, self.camera_feed)
+        self.header = Header(self.stack, self.camera_feed, self.lighting_control)
 
         # Layout
         layout = QVBoxLayout(self)
