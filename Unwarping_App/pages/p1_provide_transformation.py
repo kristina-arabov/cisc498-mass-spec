@@ -10,9 +10,10 @@ from Unwarping_App.components.utils import processUpload, verifyTransformation, 
 class ProvideTransformation(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera):
+    def __init__(self, camera, lights):
         super().__init__()
         self.camera = camera
+        self.lights = lights
 
         self.initUI()
         
@@ -58,6 +59,8 @@ class ProvideTransformation(QWidget):
         layout.addWidget(component_unwarpComparison)
         layout.addWidget(right)
 
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))

@@ -17,9 +17,11 @@ use msrobot.services.calibration#ValidateCalibration
 use msrobot.services.device#CaptureFrame
 use msrobot.services.device#ConnectCamera
 use msrobot.services.device#ConnectConductanceMeter
+use msrobot.services.device#ConnectLights
 use msrobot.services.device#ConnectPrinter
 use msrobot.services.device#DisconnectCamera
 use msrobot.services.device#DisconnectConductanceMeter
+use msrobot.services.device#DisconnectLights
 use msrobot.services.device#DisconnectPrinter
 use msrobot.services.device#EmergencyStop
 use msrobot.services.device#ExecuteGCode
@@ -211,6 +213,8 @@ resource DeviceResource {
         DisconnectCamera
         ConnectConductanceMeter
         DisconnectConductanceMeter
+        ConnectLights
+        DisconnectLights
         GetDevicesStatus
         HomePrinter
         MoveTo

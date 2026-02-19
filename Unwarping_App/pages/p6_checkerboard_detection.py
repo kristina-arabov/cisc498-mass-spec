@@ -4,12 +4,15 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
 from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
 
+from Unwarping_App.services import device_service
+
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera):
+    def __init__(self, camera, lights):
         super().__init__()
         self.camera = camera
+        self.lights = lights
 
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
@@ -72,6 +75,7 @@ class CheckerboardDetection(QWidget):
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
 
 class CheckerboardParamsSection(QWidget):

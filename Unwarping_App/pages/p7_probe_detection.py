@@ -4,13 +4,15 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from Unwarping_App.components.common import CamFeed, LightingDropdown, TagOverlay, TagInformationSection
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPhoto, getPrinterPosition, setBrightness, updateDropdownIndex
+from Unwarping_App.services import device_service
 
 class ProbeDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera):
+    def __init__(self, camera, lights):
         super().__init__()
         self.camera = camera
+        self.lights = lights
 
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
@@ -68,12 +70,20 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
+        layout_right.setContentsMargins(0,0,0,0)
+        layout_right.setSpacing(0) 
+
         ''' COMPOSE '''
         layout.addWidget(left)
         layout.addWidget(right)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0) 
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
+        component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
+
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))

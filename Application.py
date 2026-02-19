@@ -202,7 +202,7 @@ class App(QWidget):
         self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
-        self.header = Header(self.stack, self.camera_feed)
+        self.header = Header(self.stack, self.camera_feed, self.lighting_control)
 
         # Layout
         layout = QVBoxLayout(self)
