@@ -58,7 +58,8 @@ class PrerunConfig(QWidget):
         layout.addWidget(self.photo)
         layout.addWidget(right)
 
-        
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)       
         
 
 

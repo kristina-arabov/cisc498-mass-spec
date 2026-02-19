@@ -68,9 +68,6 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
-        layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(0) 
-
         ''' COMPOSE '''
         layout.addWidget(left)
         layout.addWidget(right)
@@ -125,6 +122,9 @@ class TagInstructions(QWidget):
         layout_column_2.addWidget(self.button_nextCorner)
         layout_column_2.addWidget(self.button_previousCorner)
         layout_column_2.addWidget(self.button_probeLocation)
+
+        layout_column_2.setContentsMargins(0,0,0,0)
+        layout_column_2.setSpacing(5)
 
 
         ''' COMPOSE '''

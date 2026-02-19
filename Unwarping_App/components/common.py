@@ -1013,6 +1013,9 @@ class TagInformationSection(QWidget):
 
         layout.addWidget(container)
 
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
