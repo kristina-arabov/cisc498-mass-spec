@@ -1178,8 +1178,6 @@ class ClickableImage(QLabel):
 
                     painter.drawPoint(int(mid_x), int(mid_y))
 
-            # function.... get middle of all grids and draw points
-
         self.update()
         self.roiSignal.emit(self.dot, self.rectangle)
     
