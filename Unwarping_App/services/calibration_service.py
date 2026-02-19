@@ -14,9 +14,6 @@ def checkFishReadability(img, checkerboard, objp, flags):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, corners = cv2.findChessboardCorners(gray, checkerboard, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_NORMALIZE_IMAGE)
 
-    print("HERE")
-    print(ret)
-
     if ret:
         objpoints.append(objp)
         imgpoints.append(corners)
