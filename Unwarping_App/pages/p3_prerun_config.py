@@ -40,7 +40,7 @@ class PrerunConfig(QWidget):
         component_samplingMode = ModeSelection()
 
         ''' PARAMETER INPUTS '''
-        component_samplingParams = SamplingParameters()
+        component_samplingParams = SamplingParameters(self.photo)
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
         button_startRun.clicked.connect(self.next.emit)
@@ -92,7 +92,7 @@ class ModeSelection(QWidget):
         self.setStyleSheet("background-color: #C8D3F1;")
 
 class SamplingParameters(QWidget):
-    def __init__(self):
+    def __init__(self, photo):
         super().__init__()
         
         layout = QVBoxLayout(self)
@@ -158,6 +158,9 @@ class SamplingParameters(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
         """)
+
+        ''' FUNCTIONS '''
+        input_spatialRes.textChanged.connect(lambda: photo.updateOverlay(input_spatialRes.text()))
 
 
     #     widgets = []
