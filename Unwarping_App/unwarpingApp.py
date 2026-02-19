@@ -76,16 +76,17 @@ class Main(QWidget):
 
         # connect pages for application
         self.page0 = LandingPage()
-        self.page1 = ProvideTransformation(self.camera)
+        self.page1 = ProvideTransformation(self.camera,self.light_connection)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
-        self.page6 = CheckerboardDetection(self.camera)
-        self.page7 = ProbeDetection(self.camera)
+        self.page6 = CheckerboardDetection(self.camera, self.light_connection)
+        self.page7 = ProbeDetection(self.camera, self.light_connection)
         self.page8 = TransformationReview()
 
-        self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
+        # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
+        self.page2.photo.roiSignal.connect(lambda dot, rect: self.page3.photo.setVals(dot, rect))
 
         self.stacked.addWidget(self.page0)
         self.stacked.addWidget(self.page1)

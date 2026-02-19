@@ -172,6 +172,11 @@ structure ConductanceMeterState {
     readingsPerSecond: Float
 }
 
+
+/// Light controller state
+structure LightState { }
+
+
 /// All devices status
 structure DevicesStatus {
     /// Printer connection
@@ -194,4 +199,7 @@ structure DevicesStatus {
 
     /// Conductance state (if connected)
     conductanceState: ConductanceMeterState
+
+    /// Lights state (if connected)
+    lightsState: LightsState
 }
