@@ -14,6 +14,7 @@ from PyQt5.QtMultimedia import QCameraInfo
 from serial.tools import list_ports
 
 import cv2
+import numpy as np
 
 from Unwarping_App.components import utils
 
@@ -1066,7 +1067,7 @@ class ClickableImage(QLabel):
         self.type = None # None on default
 
         self.dot = None
-        self.rectangle = None
+        self.rectangle = QRect(QPoint(250, 159), QPoint(460, 288)).normalized()
 
         # probe rectange is a list of corners, dot is just one point
         self.probe_rectangle = []
@@ -1078,8 +1079,8 @@ class ClickableImage(QLabel):
         # self.sample_overlay = None
 
         # positions + flag
-        self.start_point = None
-        self.end_point = None
+        self.start_point = QPoint(250, 159)
+        self.end_point = QPoint(460, 288)
         self.drawing = False
 
         self.feed_width = int(1280 * 0.65)
@@ -1134,23 +1135,42 @@ class ClickableImage(QLabel):
 
         # Pixel overlay
         if self.sample_overlay_x and self.sample_overlay_y:
-            # Get offset between points relative to number of probing spots
-            painter.setPen(QPen(QColor("#EAFFC2"), 3))
-            pixels_x = int((self.end_point.x() - self.start_point.x()) / (self.sample_overlay_x))
-            pixels_y = int((self.end_point.y() - self.start_point.y()) / (self.sample_overlay_y))
 
-            y = self.start_point.y()
-            x = self.start_point.x()
+            painter.setPen(QPen(QColor("#EAFFC2"), 2))
+            painter.setOpacity(0.6)
 
-            for i in range(self.sample_overlay_y + 1):
-                for j in range(self.sample_overlay_x + 1):
-                    painter.drawPoint(QPoint(x, y))
-                    x += pixels_x
-                    
-                x = self.start_point.x()
-                y += pixels_y
-            
-            painter.end()
+            width  = self.end_point.x() - self.start_point.x()
+            height = self.end_point.y() - self.start_point.y()
+
+            step_x = width  / self.sample_overlay_x
+            step_y = height / self.sample_overlay_y
+
+            # Vertical lines
+            for i in range(self.sample_overlay_x + 1):
+                x = int(self.start_point.x() + i * step_x)
+                painter.drawLine(
+                    x, self.start_point.y(),
+                    x, self.end_point.y()
+                )
+
+            # Horizontal lines
+            for j in range(self.sample_overlay_y + 1):
+                y = int(self.start_point.y() + j * step_y)
+                painter.drawLine(
+                    self.start_point.x(), y,
+                    self.end_point.x(), y
+                )
+
+            # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
+            painter.setOpacity(1)
+            for j in range(self.sample_overlay_y):
+                for i in range(self.sample_overlay_x):
+                    mid_x = self.start_point.x() + (i + 0.5) * step_x
+                    mid_y = self.start_point.y() + (j + 0.5) * step_y
+
+                    painter.drawPoint(int(mid_x), int(mid_y))
+
+            # function.... get middle of all grids and draw points
 
         self.update()
         self.roiSignal.emit(self.dot, self.rectangle)
@@ -1169,6 +1189,20 @@ class ClickableImage(QLabel):
     def setVals(self, pt, rect=None):
         self.dot = pt
         self.rectangle = rect
+
+        self.update()
+
+    def updateOverlay(self, resolution):
+        # let be 15 * 10 mm
+        # bug, greater to smaller val range thing
+        self.probe_rectangle = [100, 40, 115, 50]
+        x0, y0, x1, y1 = self.probe_rectangle
+
+        x_range = np.arange(x0, x1, float(resolution))
+        y_range = np.arange(y0, y1, float(resolution))
+
+        self.sample_overlay_x = len(x_range)
+        self.sample_overlay_y = len(y_range)
 
         self.update()
         
