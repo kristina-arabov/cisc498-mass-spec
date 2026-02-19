@@ -1,6 +1,6 @@
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
 import cv2
@@ -110,6 +110,7 @@ class SamplingParameters(QWidget):
 
         label_spatialRes = QLabel("Spatial resolution (mm): ")
         input_spatialRes = QLineEdit()
+        input_spatialRes.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_spatialRes)
         layout_row_1.addWidget(input_spatialRes)   

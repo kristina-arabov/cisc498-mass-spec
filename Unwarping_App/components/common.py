@@ -1201,16 +1201,20 @@ class ClickableImage(QLabel):
     def updateOverlay(self, resolution):
         # let be 15 * 10 mm
         # bug, greater to smaller val range thing
-        self.probe_rectangle = [100, 40, 115, 50]
-        x0, y0, x1, y1 = self.probe_rectangle
+        try:
+            self.probe_rectangle = [100, 40, 115, 50]
+            x0, y0, x1, y1 = self.probe_rectangle
 
-        x_range = np.arange(x0, x1, float(resolution))
-        y_range = np.arange(y0, y1, float(resolution))
+            x_range = np.arange(x0, x1, float(resolution))
+            y_range = np.arange(y0, y1, float(resolution))
 
-        self.sample_overlay_x = len(x_range)
-        self.sample_overlay_y = len(y_range)
+            self.sample_overlay_x = len(x_range)
+            self.sample_overlay_y = len(y_range)
 
-        self.update()
+            self.update()
+        except:
+            self.sample_overlay_x = None
+            self.sample_overlay_y = None
         
 
 class InputField(QWidget):
