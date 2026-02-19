@@ -32,12 +32,6 @@ def connect_camera(row, camera, deviceIndex=0, resolution=(1280, 720), fps=None,
     if camera.running and camera.capture.isOpened():
         row.set_connected(True)
 
-    # TODO return values?
-    deviceType = row.kind
-    connectionId = str(camera.idx)
-    status = camera.capture.isOpened()
-    lastError = None
-    connectedAt = None
 
 # Disconnect camera
 def disconnect_camera(row, camera):
