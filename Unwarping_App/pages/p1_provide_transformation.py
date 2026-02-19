@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
-from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets
+from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets, updateFrame
 
 
 ''' This page handles any existing transformations the user provides'''
@@ -57,6 +57,10 @@ class ProvideTransformation(QWidget):
         ''' COMPOSE '''
         layout.addWidget(component_unwarpComparison)
         layout.addWidget(right)
+
+
+        ''' FUNCTIONS '''
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
 
 class FileSelection(QWidget):
     def __init__(self):
