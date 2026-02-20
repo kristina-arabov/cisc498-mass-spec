@@ -19,7 +19,7 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 import Unwarping_App.components.utils as utils
 from Unwarping_App.components.common import NavBar
 
-from services.calibration_service import Transformation
+from Unwarping_App.services.calibration_service import Transformation
 
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):

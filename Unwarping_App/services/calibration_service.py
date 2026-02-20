@@ -4,7 +4,7 @@ import time
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 
-from services import device_service
+from Unwarping_App.services import device_service
 
 
 class Transformation():
