@@ -4,6 +4,44 @@ import time
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 
+from services import device_service
+
+
+class Transformation():
+    def __init__(self):
+        super().__init__()
+
+        # Chessboard
+        self.mtx1 = None
+        self.dist1 = None
+
+        self.mtx2 = None
+        self.dist2 = None
+
+        self.chessboard_img = None
+        self.chessboard_loc = None
+        self.chessboard_size = None
+        self.chessboard_height = None
+
+        # AprilTags
+        self.loc1 = None
+        self.loc2 = None
+        self.loc3 = None
+        self.loc4 = None
+
+        self.img1 = None
+        self.img2 = None
+        self.img3 = None
+        self.img4 = None
+
+        self.tag_bottom_left = None
+        self.tag_size = None
+
+
+        # Probe-to-camera offset
+        self.offset_x = None
+        self.offset_y = None
+
 
 # Function to check chessboard readability for initial unwarp
 def checkFishReadability(img, checkerboard, objp, flags):
@@ -109,7 +147,7 @@ def secondUnwarp(image, mtx, dist):
 
 
 # Unwarp current view
-def getCheckerboardUnwarp(img, columns, rows, result, printer=None):
+def getCheckerboardUnwarp(img, columns, rows, result, transformation, printer=None):
     # First check that dimensions are provided
     if not columns or not rows or int(columns) <= 1 or int(rows) <= 1:
         result.image_label.clear()
@@ -142,6 +180,18 @@ def getCheckerboardUnwarp(img, columns, rows, result, printer=None):
             
             if retval:
                 final = secondUnwarp(image, mtx, dist)
+
+                # Update transformation vars for chessboard
+                transformation.mtx1 = K
+                transformation.dist1 = D
+
+                transformation.mtx2 = mtx
+                transformation.dist2 = dist
+
+                transformation.chessboard_loc = device_service.getPrinterPosition(printer)
+                transformation.chessboard_height = transformation.chessboard_loc[2]
+                transformation.chessboard_size = CHECKERBOARD
+                transformation.chessboard_img = img
 
                 # # Save params and image of successful unwarping
                 # unwarping_vars = temp_vars["checkerboard"]

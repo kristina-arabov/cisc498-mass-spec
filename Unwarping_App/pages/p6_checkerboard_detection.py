@@ -9,10 +9,12 @@ from Unwarping_App.services import calibration_service, device_service
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera, lights):
+    def __init__(self, camera, lights, transformation):
         super().__init__()
         self.camera = camera
         self.lights = lights
+
+        self.transformation = transformation
 
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
@@ -78,10 +80,12 @@ class CheckerboardDetection(QWidget):
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
         
         component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
-                                                                        self.camera.frame.copy(), 
-                                                                        component_checkerboardParams.input_columns.text(), 
-                                                                        component_checkerboardParams.input_rows.text(), 
-                                                                        component_unwarpComparison.result))
+                                                                            self.camera.frame.copy(), 
+                                                                            component_checkerboardParams.input_columns.text(), 
+                                                                            component_checkerboardParams.input_rows.text(), 
+                                                                            component_unwarpComparison.result,
+                                                                            self.transformation
+                                                                        ))
         
 
 class CheckerboardParamsSection(QWidget):

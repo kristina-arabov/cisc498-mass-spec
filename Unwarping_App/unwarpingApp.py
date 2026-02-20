@@ -19,6 +19,8 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 import Unwarping_App.components.utils as utils
 from Unwarping_App.components.common import NavBar
 
+from services.calibration_service import Transformation
+
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):
     def __init__(self, camera, light_connection, printer):
@@ -36,41 +38,41 @@ class Main(QWidget):
         screen = QApplication.primaryScreen()
         screen_size = screen.size()
 
-        # Variables that are used within the application
-        # Easier to pass this to multiple pages as one dictionary
-        self.transformation_vars = {
-            "checkerboard": {
-                "mtx1": None,
-                "dist1": None,
+        # Object to store transformation variables
+        transformation = Transformation()
+        # self.transformation_vars = {
+        #     "checkerboard": {
+        #         "mtx1": None,
+        #         "dist1": None,
 
-                "mtx2": None,
-                "dist2": None,
+        #         "mtx2": None,
+        #         "dist2": None,
 
-                "size": None,
-                "location": None,
-                "image": None,
-            },
-            "tags": {
-                "loc0": None,
-                "loc1": None,
-                "loc2": None,
-                "loc3": None,
+        #         "size": None,
+        #         "location": None,
+        #         "image": None,
+        #     },
+        #     "tags": {
+        #         "loc0": None,
+        #         "loc1": None,
+        #         "loc2": None,
+        #         "loc3": None,
 
-                "img0": None,
-                "img1": None,
-                "img2": None,
-                "img3": None,
+        #         "img0": None,
+        #         "img1": None,
+        #         "img2": None,
+        #         "img3": None,
 
-                "bottom_left": None,
-                "top_right": None,
+        #         "bottom_left": None,
+        #         "top_right": None,
 
-                "size": None
-            },
-            "probe_offset": None
-        }
-        self.json_path = {
-            "json": None
-        }
+        #         "size": None
+        #     },
+        #     "probe_offset": None
+        # }
+        # self.json_path = {
+        #     "json": None
+        # }
 
         self.stacked = QStackedWidget()
 
@@ -81,7 +83,7 @@ class Main(QWidget):
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
-        self.page6 = CheckerboardDetection(self.camera, self.light_connection)
+        self.page6 = CheckerboardDetection(self.camera, self.light_connection, transformation)
         self.page7 = ProbeDetection(self.camera, self.light_connection)
         self.page8 = TransformationReview()
 
