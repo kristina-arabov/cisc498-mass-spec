@@ -483,3 +483,10 @@ def undoSecondUnwarp(point, mtx, dist):
     )[0]
 
     return tuple(previous[0, 0])
+
+def unwarpPhoto(img, transformation):
+
+    img = fisheyeUnwarp(img, transformation.mtx1, transformation.dist1)
+    img = secondUnwarp(img, transformation.mtx2, transformation.dist2)
+
+    return img

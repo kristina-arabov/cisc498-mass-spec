@@ -42,7 +42,7 @@ class ProbeDetection(QWidget):
         layout_left = QVBoxLayout(left)
 
         component_cameraFeed = CamFeed()
-        self.component_tag = TagInstructions()
+        self.component_tag = TagInstructions(self.camera, self.transformation)
 
         layout_left.addWidget(component_cameraFeed)
         layout_left.addStretch()
@@ -94,8 +94,11 @@ class ProbeDetection(QWidget):
 class TagInstructions(QWidget):
     offsetAvailable = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, camera, transformation):
         super().__init__()
+
+        self.camera = camera
+        self.transformation = transformation
 
         self.idx = 0
         self.corners_imaged = [False, False, False, False]
@@ -153,7 +156,7 @@ class TagInstructions(QWidget):
         ''' FUNCTIONS '''
         self.button_nextCorner.clicked.connect(lambda: self.handleCorners("next"))
         self.button_previousCorner.clicked.connect(lambda: self.handleCorners("back"))
-        self.button_probeLocation.clicked.connect(lambda: self.handleCornerConfirm())
+        self.button_probeLocation.clicked.connect(lambda: self.handleCornerConfirm(self.camera, self.transformation))
 
 
     # Function to properly colour the corners of the tag diagram
@@ -189,10 +192,10 @@ class TagInstructions(QWidget):
 
 
     # Function to acquire the probe's position in alignment with a specific tag corner
-    def handleCornerConfirm(self, transformation):
+    def handleCornerConfirm(self, camera, transformation):
 
         # Obtain values for location
-        img = self.camera.frame.copy()
+        img = camera.frame.copy()
         img = calibration_service.unwarpPhoto(img, transformation)
 
         position = calibration_service.getPrinterPosition(self.printer)
