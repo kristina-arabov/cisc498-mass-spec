@@ -4,15 +4,17 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 from Unwarping_App.components.common import CamFeed, LightingDropdown, TagOverlay, TagInformationSection
 from Unwarping_App.components.utils import addAllWidgets, updateFrame, unwarpPhoto, getPrinterPosition, setBrightness, updateDropdownIndex
-from Unwarping_App.services import device_service
+from Unwarping_App.services import device_service, calibration_service
 
 class ProbeDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera, lights):
+    def __init__(self, camera, lights, transformation):
         super().__init__()
         self.camera = camera
         self.lights = lights
+
+        self.transformation = transformation
 
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
@@ -84,9 +86,9 @@ class ProbeDetection(QWidget):
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
-
-        ''' FUNCTIONS '''
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
+        component_tagInformation.input_bottomLeftX.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_bottomLeftX.text(), "X"))
+        component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_bottomLeftY.text(), "Y"))
+        component_tagInformation.input_tagSize.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_tagSize.text(), "size"))
 
 
 class TagInstructions(QWidget):
@@ -185,31 +187,25 @@ class TagInstructions(QWidget):
 
 
     # Function to acquire the probe's position in alignment with a specific tag corner
-    def handleCornerConfirm(self):
-        # img = self.camera.frame.copy()
-        # img = unwarpPhoto(img, self.vars["checkerboard"])
+    def handleCornerConfirm(self, transformation):
 
-        # position = getPrinterPosition(self.printer)
+        # Obtain values for location
+        img = self.camera.frame.copy()
+        img = calibration_service.unwarpPhoto(img, transformation)
 
-        # self.vars["tags"]["loc" + str(self.idx)] = position
-        # self.vars["tags"]["img" + str(self.idx)] = img
+        position = calibration_service.getPrinterPosition(self.printer)
 
+        setattr(transformation, f"loc{self.idx}", position)
+        setattr(transformation, f"img{self.idx}", img)
+
+        # Update front-end
         self.label_instructions.setText("Corner aligned!")
         self.corners_imaged[self.idx] = True
 
-        # Update progress bar status
+        # Progress bar status
         corners_probed = int(((self.corners_imaged.count(True))/ len(self.corners_imaged)) * 100)
 
         self.line_progressBar.setValue(corners_probed)
-
-        # TODO set input of bottom/top-left rows
-        # if self.idx == 1:
-        #     self.probe_dropdown.bottom_left_X.setText(str(position[0]))
-        #     self.probe_dropdown.bottom_left_Y.setText(str(position[1]))
-        # elif self.idx == 3:
-        #     self.probe_dropdown.top_right_X.setText(str(position[0]))
-        #     self.probe_dropdown.top_right_Y.setText(str(position[1]))
-
 
     # Function to set colours to probed or not probed corners
     def setProbedColors(self):

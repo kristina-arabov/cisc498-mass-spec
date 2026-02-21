@@ -1,4 +1,7 @@
 import cv2
+import os
+import json
+from datetime import datetime
 import numpy as np
 import time
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
@@ -34,7 +37,7 @@ class Transformation():
         self.img3 = None
         self.img4 = None
 
-        self.tag_bottom_left = None
+        self.tag_bottom_left = [None, None]
         self.tag_size = None
 
 
@@ -307,3 +310,42 @@ def updateResult(img, result):
     q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
     scaled = q_img.scaled(result.feed_width, result.feed_height, Qt.KeepAspectRatio)
     result.image_label.setPixmap(QPixmap.fromImage(scaled))
+
+
+def updateTag(transformation, val, type):
+    # Update X coordinate
+    if type == "X":
+        transformation.tag_bottom_left[0] = val
+    
+    # Update Y coordinate
+    elif type == "Y":
+        transformation.tag_bottom_left[1] = val
+
+    # Update tag size (mm)
+    elif type == "size":
+        transformation.tag_size = val
+
+
+
+def createTransformationFile(transformation):
+    # Create a JSON file containing relevant transformation data
+    json_data = {
+        "unwarping": [{
+            "mtx1": transformation.mtx1.tolist(),
+            "dist1": transformation.dist1.tolist(),
+
+            "mtx2": transformation.mtx2.tolist(),
+            "dist2": transformation.dist2.tolist(), 
+
+            "loc": transformation.chessboard_loc,
+            "height": transformation.chessboard_height,
+        }],
+
+        "offset_X": transformation.offset_x,
+        "offset_Y": transformation.offset_y
+    }
+
+    timestamp = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+
+    with open(os.path.join(f"transformations/") + f"data_{timestamp}.json", "w") as json_file:
+        json.dump(json_data, json_file, indent=3)
