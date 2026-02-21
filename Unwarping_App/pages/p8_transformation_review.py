@@ -27,7 +27,7 @@ class TransformationReview(QWidget):
 
         label_review = QLabel("Review Transformation", objectName="page_title")
         label_estimate = QLabel("Estimated probe-to-camera offset:")
-        label_offset = QLabel("")
+        self.label_offset = QLabel("Unavailable due to incorrect or missing data.")
 
         # component_unwarpResult = CamFeed()
 
@@ -37,7 +37,7 @@ class TransformationReview(QWidget):
         layout.addWidget(label_review, alignment=Qt.AlignCenter)
         layout.addStretch()
         layout.addWidget(label_estimate, alignment=Qt.AlignCenter)
-        layout.addWidget(label_offset, alignment=Qt.AlignCenter)
+        layout.addWidget(self.label_offset, alignment=Qt.AlignCenter)
         layout.addStretch()
         # layout.addWidget(component_unwarpResult, alignment=Qt.AlignCenter)
         layout.addWidget(button_save, alignment=Qt.AlignCenter)
@@ -45,3 +45,8 @@ class TransformationReview(QWidget):
 
         ''' FUNCTIONS '''
         button_save.clicked.connect(lambda: calibration_service.createTransformationFile(self.transformation))
+
+
+    def calculateOffset(self):
+        msg = calibration_service.calculateOffset(self.transformation)
+        self.label_offset.setText(msg)

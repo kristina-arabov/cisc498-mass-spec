@@ -42,11 +42,11 @@ class ProbeDetection(QWidget):
         layout_left = QVBoxLayout(left)
 
         component_cameraFeed = CamFeed()
-        component_tagDiagram = TagInstructions()
+        self.component_tag = TagInstructions()
 
         layout_left.addWidget(component_cameraFeed)
         layout_left.addStretch()
-        layout_left.addWidget(component_tagDiagram)
+        layout_left.addWidget(self.component_tag)
 
 
         ''' RIGHT COLUMN '''
@@ -92,6 +92,8 @@ class ProbeDetection(QWidget):
 
 
 class TagInstructions(QWidget):
+    offsetAvailable = pyqtSignal()
+
     def __init__(self):
         super().__init__()
 
@@ -206,6 +208,11 @@ class TagInstructions(QWidget):
         corners_probed = int(((self.corners_imaged.count(True))/ len(self.corners_imaged)) * 100)
 
         self.line_progressBar.setValue(corners_probed)
+
+        # Send signal to calculate probe-to-camera offset with available values
+        if not False in self.corners_imaged:
+            self.offsetAvailable.emit()
+
 
     # Function to set colours to probed or not probed corners
     def setProbedColors(self):

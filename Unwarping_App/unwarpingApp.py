@@ -89,6 +89,7 @@ class Main(QWidget):
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
         self.page2.photo.roiSignal.connect(lambda dot, rect: self.page3.photo.setVals(dot, rect))
+        self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
 
         self.stacked.addWidget(self.page0)
         self.stacked.addWidget(self.page1)
