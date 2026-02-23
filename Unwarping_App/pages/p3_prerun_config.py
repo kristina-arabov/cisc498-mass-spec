@@ -161,11 +161,11 @@ class SamplingParameters(QWidget):
         self.row_3 = QWidget()
         layout_row_3 = QHBoxLayout(self.row_3)
 
-        label_contact = QLabel("Contact height (mm): ")
-        input_contact = QLineEdit()
+        label_transfer = QLabel("Transfer height (mm): ")
+        input_transfer = QLineEdit()
 
-        layout_row_3.addWidget(label_contact)
-        layout_row_3.addWidget(input_contact)
+        layout_row_3.addWidget(label_transfer)
+        layout_row_3.addWidget(input_transfer)
 
         ''' ROW 4 '''
         self.row_4 = QWidget()
