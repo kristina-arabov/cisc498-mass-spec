@@ -45,6 +45,8 @@ class ROISelection(QWidget):
         self.referencePoint = ReferencePointSection()
         self.ROI = DrawROISection()
 
+        button_clear = QPushButton("Clear all", objectName="headerBlue")
+
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
 
@@ -52,6 +54,7 @@ class ROISelection(QWidget):
         layout_right.addWidget(label_selectArea)
         layout_right.addWidget(self.referencePoint)
         layout_right.addWidget(self.ROI)
+        layout_right.addWidget(button_clear, alignment=Qt.AlignLeft)
         layout_right.addStretch()
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
@@ -67,6 +70,8 @@ class ROISelection(QWidget):
 
         self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
         self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
+
+        button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
 
 
 
@@ -100,6 +105,8 @@ class ROISelection(QWidget):
 
     ''' Function to handle when user selects a drawing type '''
     def ROIMode(self, type=None):
+        self.photo.type = None
+
         # Handle rectangle selections
         if type == "Rectangle":
             self.ROI.row_2.hide()
@@ -111,6 +118,22 @@ class ROISelection(QWidget):
             self.ROI.row_2.show()
             self.ROI.row_3.show()
             self.photo.type = "Draw"
+
+    
+    def clearDrawing(self, img):
+        img.rectangle = None
+        img.dot = None
+
+        # Reset buttons, user needs to select reference point again
+        self.ROI.button_draw.setEnabled(False)
+        self.ROI.button_rectangle.setEnabled(False)
+        self.ROI.row_2.hide()
+        self.ROI.row_3.hide()
+
+        self.referencePoint.button_action.setText("Select")
+
+        self.ROIMode()
+
 
 class ReferencePointSection(QWidget):
     def __init__(self):
