@@ -65,8 +65,10 @@ class PrerunConfig(QWidget):
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
 
+        self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("constant"))
 
-    def handleSamplingType(self, type=None):
+
+    def handleSamplingType(self, type=None, drag=False):
         # Show all on default
         self.component_samplingParams.row_1.show()
         self.component_samplingParams.row_2.show()
@@ -75,7 +77,10 @@ class PrerunConfig(QWidget):
 
         # Constant Z
         if type == "constant":
-            pass
+            # If drag sampling toggled, hide spatial res and dwell time
+            if self.component_samplingParams.button_dragSampling.isChecked():
+                self.component_samplingParams.row_1.hide()
+                self.component_samplingParams.row_2.hide()
 
         # Conductive
         elif type == "conductive":
@@ -156,21 +161,19 @@ class SamplingParameters(QWidget):
         self.row_3 = QWidget()
         layout_row_3 = QHBoxLayout(self.row_3)
 
-        label_transfer = QLabel("Transfer height (mm): ")
-        input_transfer = QLineEdit()
+        label_contact = QLabel("Contact height (mm): ")
+        input_contact = QLineEdit()
 
-        layout_row_3.addWidget(label_transfer)
-        layout_row_3.addWidget(input_transfer)
+        layout_row_3.addWidget(label_contact)
+        layout_row_3.addWidget(input_contact)
 
         ''' ROW 4 '''
         self.row_4 = QWidget()
         layout_row_4 = QHBoxLayout(self.row_4)
 
-        # TODO
-        label_drag = QLabel("Drag sampling?")
+        self.button_dragSampling = QRadioButton("Drag sampling")
 
-        layout_row_4.addWidget(label_drag)
-
+        layout_row_4.addWidget(self.button_dragSampling)
 
         layout_container.addWidget(label_samplingParameters)
         layout_container.addWidget(self.row_1)
