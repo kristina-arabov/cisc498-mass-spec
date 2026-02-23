@@ -17,6 +17,8 @@ class CheckerboardDetection(QWidget):
 
         self.transformation = transformation
 
+        self.transformation = transformation
+
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()

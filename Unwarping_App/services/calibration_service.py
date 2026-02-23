@@ -1,4 +1,7 @@
 import cv2
+import os
+import json
+from datetime import datetime
 import numpy as np
 import time
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
@@ -34,7 +37,7 @@ class Transformation():
         self.img3 = None
         self.img4 = None
 
-        self.tag_bottom_left = None
+        self.tag_bottom_left = [None, None]
         self.tag_size = None
 
 
@@ -308,3 +311,184 @@ def updateResult(img, result):
     q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
     scaled = q_img.scaled(result.feed_width, result.feed_height, Qt.KeepAspectRatio)
     result.image_label.setPixmap(QPixmap.fromImage(scaled))
+
+
+def updateTag(transformation, val, type):
+    print(val)
+    # Update X coordinate
+    if type == "X":
+        transformation.tag_bottom_left[0] = float(val)
+    
+    # Update Y coordinate
+    elif type == "Y":
+        transformation.tag_bottom_left[1] = float(val)
+
+    # Update tag size (mm)
+    elif type == "size":
+        transformation.tag_size = float(val)
+
+
+
+def createTransformationFile(transformation):
+    # Create a JSON file containing relevant transformation data
+    json_data = {
+        "unwarping": [{
+            "mtx1": transformation.mtx1.tolist(),
+            "dist1": transformation.dist1.tolist(),
+
+            "mtx2": transformation.mtx2.tolist(),
+            "dist2": transformation.dist2.tolist(), 
+
+            "loc": transformation.chessboard_loc,
+            "height": transformation.chessboard_height,
+        }],
+
+        "offset_X": transformation.offset_x,
+        "offset_Y": transformation.offset_y
+    }
+
+    timestamp = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+
+    with open(os.path.join(f"transformations/") + f"data_{timestamp}.json", "w") as json_file:
+        json.dump(json_data, json_file, indent=3)
+
+def calculateOffset(transformation):
+    mtx1 = transformation.mtx1
+    dist1 = np.array([[0, 0, 0, 0, 0]], dtype=np.float32)
+
+    mtx2 = transformation.mtx2
+    dist2 = transformation.dist2
+
+    dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+    parameters = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(dictionary, parameters)
+
+    tag_size = transformation.tag_size
+    
+    if not tag_size or tag_size <= 0:
+        msg = "Unavailable due to incorrect or missing data. (Tag size is invalid)"
+        return msg
+   
+    object_points = np.array([
+        [tag_size, 0, 0], 
+        [0, 0, 0],
+        [0, tag_size, 0],
+        [tag_size, tag_size, 0],
+        [tag_size/2, tag_size/2, 0]], dtype=np.float32)
+
+    corner_x = transformation.tag_bottom_left[0]
+    corner_y = transformation.tag_bottom_left[1]
+    known_tag_corner = np.array([corner_x, corner_y, 0], dtype=np.float32)
+
+    # Tag to Camera
+    R_tag2cam_all = []
+    t_tag2cam_all = []
+
+    # Store all calculations to be averaged later
+    probe_offset = []
+
+    # Process images with known coordinates
+    for i in range(4):
+        img = getattr(transformation, f"img{i}")
+        current_point = getattr(transformation, f"loc{i}")
+
+        current_point = np.array([current_point[0], current_point[1], current_point[2]], dtype=np.float32)
+
+        # Convert image to greyscale
+        image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Find tag in image
+        corners, ids, _ = detector.detectMarkers(image)
+        if corners:
+            corner_set = corners[0][0]
+            centre = np.array([(corner_set[0][0]+corner_set[1][0])/2, (corner_set[0][1]+corner_set[3][1])/2], dtype=np.float32)
+            corners = np.vstack([corners[0][0], centre])
+
+            for j in range(len(corners)):
+                corners[j] = undoSecondUnwarp(corners[j], mtx2, dist2)
+
+            image_points = corners
+
+            # Get extrinsic parameters for target to camera
+            retval, rvec, tvec = cv2.solvePnP(object_points, image_points, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)
+            rvec, tvec = cv2.solvePnPRefineLM(object_points, image_points, mtx1, dist1, rvec, tvec)
+            rvec, tvec = cv2.solvePnPRefineVVS(object_points, image_points, mtx1, dist1, rvec, tvec)
+
+            R_tag2cam, _ = cv2.Rodrigues(rvec) # Convert to matrix
+
+            # R_tag2cam = R, tvec = t for tag to camera
+            R_tag2cam_all.append(R_tag2cam)
+            t_tag2cam_all.append(tvec)
+
+            # Get camera to tag (invert transformation)
+            R_cam2tag = R_tag2cam.T
+            t_cam2tag = -R_tag2cam.T @ tvec
+
+            R_tag2base = np.eye(3) # No roation (move the same)
+            t_tag2base = known_tag_corner.reshape(-1, 1)
+
+            # Get camera to tag, tag to base = camera to base
+            R_cam2base = R_tag2base @ R_cam2tag
+            t_cam2base = R_tag2base @ t_cam2tag + t_tag2base
+
+            # Get base to camera
+            R_base2cam = R_cam2base.T
+            t_base2cam = -R_cam2base.T @ t_cam2base
+
+            # Get probe to base
+            R_probe2base = np.eye(3)
+            t_probe2base = current_point.reshape(-1, 1)
+
+            # Get probe to base, base to camera = probe to camera
+            R_probe2cam = R_base2cam @ R_probe2base
+            t_probe2cam = R_base2cam @ t_probe2base + t_base2cam
+
+
+            # Append calculated offset
+            probe_offset.append(t_probe2cam)
+
+
+    probe_locations_to_cam = np.array(probe_offset)
+    probe_locations_to_cam_mean = np.mean(probe_locations_to_cam, axis=0)
+
+    # Save output
+    output = probe_locations_to_cam_mean.reshape(1, -1)[0]
+    print(output)
+
+
+    # Update transformation object
+    transformation.offset_x = output[0]
+    transformation.offset_y = output[1]
+
+
+    # Update offset result in label
+    msg = f"X: {round(output[0], 3)} mm, Y: {round(output[1], 3)} mm"
+    return msg
+
+
+
+def undoSecondUnwarp(point, mtx, dist):
+    current = np.array(point, dtype=np.float32).reshape(1, 1, 2)
+
+    # Convert rectified pixel to normalized image coordinates
+    x = (current[0,0,0] - mtx[0,2]) / mtx[0,0]
+    y = (current[0,0,1] - mtx[1,2]) / mtx[1,1]
+    normalized = np.array([[[x, y, 1.0]]], dtype=np.float32)
+
+    # Apply distortion model to normalized point
+    previous = cv2.projectPoints(
+        normalized,
+        rvec=np.zeros(3),
+        tvec=np.zeros(3),
+        cameraMatrix=mtx,
+        distCoeffs=dist
+    )[0]
+
+    return tuple(previous[0, 0])
+
+def unwarpPhoto(img, transformation):
+
+    img = fisheyeUnwarp(img, transformation.mtx1, transformation.dist1)
+    img = secondUnwarp(img, transformation.mtx2, transformation.dist2)
+
+    return img

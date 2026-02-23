@@ -789,93 +789,93 @@ class LightingDropdown(QWidget):
             self.slider.setValue(self.slider.value() - int(value))
 
 
-class ProbeDropdown(QWidget):
-    def __init__(self):
-        super().__init__()
+# class ProbeDropdown(QWidget):
+#     def __init__(self):
+#         super().__init__()
 
-        # Put everything in one container
-        self.container = QWidget(objectName="light_blue_box")
-        self.container.setStyleSheet("QWidget { background-color: #C8D3F1; }")
-        self.container.setFixedSize(350, 150)
-        container_layout = QGridLayout()
+#         # Put everything in one container
+#         self.container = QWidget(objectName="light_blue_box")
+#         self.container.setStyleSheet("QWidget { background-color: #C8D3F1; }")
+#         self.container.setFixedSize(350, 150)
+#         container_layout = QGridLayout()
 
-        # Title
-        title = QLabel("Corner locations", objectName="larger")
-        title.setStyleSheet("font-weight: bold;")
+#         # Title
+#         title = QLabel("Corner locations", objectName="larger")
+#         title.setStyleSheet("font-weight: bold;")
 
-        # Toggle button to show/hide input fields
-        self.toggle = QToolButton(objectName="toggle")
-        self.toggle.setCheckable(True)
-        self.toggle.setArrowType(Qt.UpArrow)
-        self.toggle.clicked.connect(lambda: utils.controlToggle(self.toggle.isChecked(), self.toggle, self.input_section, self.container, 150)) 
+#         # Toggle button to show/hide input fields
+#         self.toggle = QToolButton(objectName="toggle")
+#         self.toggle.setCheckable(True)
+#         self.toggle.setArrowType(Qt.UpArrow)
+#         self.toggle.clicked.connect(lambda: utils.controlToggle(self.toggle.isChecked(), self.toggle, self.input_section, self.container, 150)) 
 
-        # specific container only for input sections
-        self.input_section = QWidget()
-        input_section_layout = QGridLayout()
+#         # specific container only for input sections
+#         self.input_section = QWidget()
+#         input_section_layout = QGridLayout()
 
-        # Bottom left corner
-        bottom_left_label = QLabel("Bottom-left corner: ( ")
+#         # Bottom left corner
+#         bottom_left_label = QLabel("Bottom-left corner: ( ")
 
-        self.bottom_left_X = QLineEdit()
-        self.bottom_left_Y = QLineEdit()
+#         self.bottom_left_X = QLineEdit()
+#         self.bottom_left_Y = QLineEdit()
 
-        self.bottom_left_X.setPlaceholderText("X")
-        self.bottom_left_Y.setPlaceholderText("Y")
+#         self.bottom_left_X.setPlaceholderText("X")
+#         self.bottom_left_Y.setPlaceholderText("Y")
 
-        self.bottom_left_X.setStyleSheet("background-color: #F0F0F0;")
-        self.bottom_left_Y.setStyleSheet("background-color: #F0F0F0;")
+#         self.bottom_left_X.setStyleSheet("background-color: #F0F0F0;")
+#         self.bottom_left_Y.setStyleSheet("background-color: #F0F0F0;")
 
-        # Top right corner
-        top_right_label = QLabel("Top-right corner:   ( ")
+#         # Top right corner
+#         top_right_label = QLabel("Top-right corner:   ( ")
 
-        self.top_right_X = QLineEdit()
-        self.top_right_Y = QLineEdit()
+#         self.top_right_X = QLineEdit()
+#         self.top_right_Y = QLineEdit()
 
-        self.top_right_X.setPlaceholderText("X")
-        self.top_right_Y.setPlaceholderText("Y")
+#         self.top_right_X.setPlaceholderText("X")
+#         self.top_right_Y.setPlaceholderText("Y")
 
-        self.top_right_X.setStyleSheet("background-color: #F0F0F0;")
-        self.top_right_Y.setStyleSheet("background-color: #F0F0F0;")
+#         self.top_right_X.setStyleSheet("background-color: #F0F0F0;")
+#         self.top_right_Y.setStyleSheet("background-color: #F0F0F0;")
 
-        # Tag size input
-        tag_size_label = QLabel("Tag size (mm): ")
-        self.tag_size_input = QLineEdit()
-        self.tag_size_input.setStyleSheet("background-color: #F0F0F0;")
+#         # Tag size input
+#         tag_size_label = QLabel("Tag size (mm): ")
+#         self.tag_size_input = QLineEdit()
+#         self.tag_size_input.setStyleSheet("background-color: #F0F0F0;")
 
-        space = QLabel(" , ")
-        space2 = QLabel(" , ")
-        end = QLabel(" )")
-        end2 = QLabel(" )")
+#         space = QLabel(" , ")
+#         space2 = QLabel(" , ")
+#         end = QLabel(" )")
+#         end2 = QLabel(" )")
 
-        input_section_layout.addWidget(bottom_left_label, 0, 0)
-        input_section_layout.addWidget(self.bottom_left_X, 0, 1, alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(space, 0, 2,alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(self.bottom_left_Y, 0, 3, alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(end, 0, 4, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(bottom_left_label, 0, 0)
+#         input_section_layout.addWidget(self.bottom_left_X, 0, 1, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(space, 0, 2,alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(self.bottom_left_Y, 0, 3, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(end, 0, 4, alignment=Qt.AlignLeft)
 
-        input_section_layout.addWidget(top_right_label, 1, 0)
-        input_section_layout.addWidget(self.top_right_X, 1, 1, alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(space2, 1, 2, alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(self.top_right_Y, 1, 3, alignment=Qt.AlignLeft)
-        input_section_layout.addWidget(end2, 1, 4,alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(top_right_label, 1, 0)
+#         input_section_layout.addWidget(self.top_right_X, 1, 1, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(space2, 1, 2, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(self.top_right_Y, 1, 3, alignment=Qt.AlignLeft)
+#         input_section_layout.addWidget(end2, 1, 4,alignment=Qt.AlignLeft)
 
-        input_section_layout.addWidget(tag_size_label, 2, 0)
-        input_section_layout.addWidget(self.tag_size_input, 2, 1)
+#         input_section_layout.addWidget(tag_size_label, 2, 0)
+#         input_section_layout.addWidget(self.tag_size_input, 2, 1)
 
-        self.input_section.setLayout(input_section_layout)
+#         self.input_section.setLayout(input_section_layout)
 
-        # Add to overall container
-        container_layout.addWidget(title, 0, 0, alignment=Qt.AlignLeft)
-        container_layout.addWidget(self.toggle, 0, 1, alignment=Qt.AlignRight)
-        container_layout.addWidget(self.input_section, 1, 0, 1, 2)
+#         # Add to overall container
+#         container_layout.addWidget(title, 0, 0, alignment=Qt.AlignLeft)
+#         container_layout.addWidget(self.toggle, 0, 1, alignment=Qt.AlignRight)
+#         container_layout.addWidget(self.input_section, 1, 0, 1, 2)
 
-        self.container.setLayout(container_layout)
+#         self.container.setLayout(container_layout)
 
-        # Show container
-        layout_final = QHBoxLayout()
-        layout_final.addWidget(self.container)
+#         # Show container
+#         layout_final = QHBoxLayout()
+#         layout_final.addWidget(self.container)
 
-        self.setLayout(layout_final)
+#         self.setLayout(layout_final)
         
 class CheckerboardDropdown(QWidget):
     def __init__(self):
@@ -989,17 +989,17 @@ class TagInformationSection(QWidget):
         label_bottomLeft = QLabel("Bottom-left corner")
 
         label_bottomLeftX = QLabel("X: ")
-        input_bottomLeftX = QLineEdit()
+        self.input_bottomLeftX = QLineEdit()
 
         label_bottomLeftY = QLabel("Y: ")
-        input_bottomLeftY = QLineEdit()
+        self.input_bottomLeftY = QLineEdit()
 
         layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
         layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(input_bottomLeftX, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(self.input_bottomLeftX, alignment=Qt.AlignRight)
         layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(input_bottomLeftY, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(self.input_bottomLeftY, alignment=Qt.AlignRight)
 
 
         ''' ROW 2 '''
@@ -1007,10 +1007,10 @@ class TagInformationSection(QWidget):
         layout_row_2 = QHBoxLayout(row_2)
 
         label_tagSize = QLabel("Tag size (mm): ")
-        input_tagSize = QLineEdit()
+        self.input_tagSize = QLineEdit()
 
         layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
-        layout_row_2.addWidget(input_tagSize)
+        layout_row_2.addWidget(self.input_tagSize)
 
 
         ''' COMPOSE '''

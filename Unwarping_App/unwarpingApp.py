@@ -84,11 +84,12 @@ class Main(QWidget):
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
-        self.page7 = ProbeDetection(self.camera, self.light_connection)
-        self.page8 = TransformationReview()
+        self.page7 = ProbeDetection(self.camera, self.light_connection, self.printer, transformation)
+        self.page8 = TransformationReview(transformation)
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
         self.page2.photo.roiSignal.connect(lambda dot, rect: self.page3.photo.setVals(dot, rect))
+        self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
 
         self.stacked.addWidget(self.page0)
         self.stacked.addWidget(self.page1)
