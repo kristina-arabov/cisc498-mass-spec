@@ -84,7 +84,7 @@ class Main(QWidget):
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
-        self.page7 = ProbeDetection(self.camera, self.light_connection, transformation)
+        self.page7 = ProbeDetection(self.camera, self.light_connection, self.printer, transformation)
         self.page8 = TransformationReview(transformation)
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
