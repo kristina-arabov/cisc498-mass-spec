@@ -200,9 +200,9 @@ class TagInstructions(QWidget):
     # Function to acquire the probe's position in alignment with a specific tag corner
     def handleCornerConfirm(self):
 
-        print("BEFORE")
-        print(self.transformation.mtx1, self.transformation.dist1)
-        print(self.transformation.mtx2, self.transformation.dist2)
+        # print("BEFORE")
+        # print(self.transformation.mtx1, self.transformation.dist1)
+        # print(self.transformation.mtx2, self.transformation.dist2)
 
         # Obtain values for location
         img = self.camera.frame.copy()
@@ -223,18 +223,16 @@ class TagInstructions(QWidget):
         self.line_progressBar.setValue(corners_probed)
 
         # Send signal to calculate probe-to-camera offset with available values
-        print(self.corners_imaged)
         if not False in self.corners_imaged:
-            print("this runs")
             self.offsetAvailable.emit()
 
-        print("AFTER")
-        print(getattr(self.transformation, f"loc{self.idx}"))
+        # print("AFTER")
+        # print(getattr(self.transformation, f"loc{self.idx}"))
 
-        # Show img REMOVE
-        cv2.imshow("Tag", getattr(self.transformation, f"img{self.idx}"))
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # # Show img REMOVE
+        # cv2.imshow("Tag", getattr(self.transformation, f"img{self.idx}"))
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
 
     # Function to set colours to probed or not probed corners
