@@ -124,6 +124,9 @@ class ROISelection(QWidget):
         img.rectangle = None
         img.dot = None
 
+        img.sample_overlay_x = None
+        img.sample_overlay_y = None
+
         # Reset buttons, user needs to select reference point again
         self.ROI.button_draw.setEnabled(False)
         self.ROI.button_rectangle.setEnabled(False)
