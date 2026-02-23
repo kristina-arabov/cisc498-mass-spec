@@ -40,7 +40,7 @@ class PrerunConfig(QWidget):
         component_samplingMode = ModeSelection()
 
         ''' PARAMETER INPUTS '''
-        component_samplingParams = SamplingParameters(self.photo)
+        self.component_samplingParams = SamplingParameters(self.photo)
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
         button_startRun.clicked.connect(self.next.emit)
@@ -49,7 +49,7 @@ class PrerunConfig(QWidget):
         layout_right.addStretch()
         layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_samplingMode, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_samplingParams, alignment=Qt.AlignLeft)
+        layout_right.addWidget(self.component_samplingParams, alignment=Qt.AlignLeft)
         layout_right.addStretch()
         layout_right.addWidget(button_startRun, alignment=Qt.AlignLeft)
         layout_right.addStretch()
@@ -59,8 +59,29 @@ class PrerunConfig(QWidget):
         layout.addWidget(right)
 
         layout.setContentsMargins(0, 0, 0, 0) 
-        layout.setSpacing(0)       
-        
+        layout.setSpacing(0)   
+
+        ''' FUNCTIONS '''   
+        component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
+        component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
+
+
+    def handleSamplingType(self, type=None):
+        # Show all on default
+        self.component_samplingParams.row_1.show()
+        self.component_samplingParams.row_2.show()
+        self.component_samplingParams.row_3.show()
+        self.component_samplingParams.row_4.show()
+
+        # Constant Z
+        if type == "constant":
+            pass
+
+        # Conductive
+        elif type == "conductive":
+            self.component_samplingParams.row_3.hide()
+            self.component_samplingParams.row_4.hide()
+
 
 
 class ModeSelection(QWidget):
@@ -75,18 +96,18 @@ class ModeSelection(QWidget):
         label_mode = QLabel("Sampling mode: ", objectName="larger")
         label_mode.setStyleSheet("font-weight: bold;")
 
-        button_constantZ = QRadioButton("Constant-Z")
-        button_conductive = QRadioButton("Conductive")
+        self.button_constantZ = QRadioButton("Constant-Z")
+        self.button_conductive = QRadioButton("Conductive")
 
         mode_group = QButtonGroup()
-        mode_group.addButton(button_constantZ, 0)
-        mode_group.addButton(button_conductive, 1)
+        mode_group.addButton(self.button_constantZ, 0)
+        mode_group.addButton(self.button_conductive, 1)
 
-        button_constantZ.setChecked(True)
+        self.button_constantZ.setChecked(True)
 
         layout_container.addWidget(label_mode)
-        layout_container.addWidget(button_constantZ)
-        layout_container.addWidget(button_conductive)
+        layout_container.addWidget(self.button_constantZ)
+        layout_container.addWidget(self.button_conductive)
 
         layout.addWidget(container)
 
@@ -109,8 +130,8 @@ class SamplingParameters(QWidget):
         label_samplingParameters.setStyleSheet("font-weight: bold;")
 
         ''' ROW 1 '''
-        row_1 = QWidget()
-        layout_row_1 = QHBoxLayout(row_1)
+        self.row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(self.row_1)
 
         label_spatialRes = QLabel("Spatial resolution (mm): ")
         input_spatialRes = QLineEdit()
@@ -121,8 +142,8 @@ class SamplingParameters(QWidget):
 
 
         ''' ROW 2 '''
-        row_2 = QWidget()
-        layout_row_2 = QHBoxLayout(row_2)
+        self.row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(self.row_2)
 
         label_dwell = QLabel("Dwell time (s): ")
         input_dwell = QLineEdit()
@@ -132,8 +153,8 @@ class SamplingParameters(QWidget):
 
 
         ''' ROW 3 '''
-        row_3 = QWidget()
-        layout_row_3 = QHBoxLayout(row_3)
+        self.row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(self.row_3)
 
         label_transfer = QLabel("Transfer height (mm): ")
         input_transfer = QLineEdit()
@@ -142,8 +163,8 @@ class SamplingParameters(QWidget):
         layout_row_3.addWidget(input_transfer)
 
         ''' ROW 4 '''
-        row_4 = QWidget()
-        layout_row_4 = QHBoxLayout(row_4)
+        self.row_4 = QWidget()
+        layout_row_4 = QHBoxLayout(self.row_4)
 
         # TODO
         label_drag = QLabel("Drag sampling?")
@@ -152,10 +173,10 @@ class SamplingParameters(QWidget):
 
 
         layout_container.addWidget(label_samplingParameters)
-        layout_container.addWidget(row_1)
-        layout_container.addWidget(row_2)
-        layout_container.addWidget(row_3)
-        layout_container.addWidget(row_4)
+        layout_container.addWidget(self.row_1)
+        layout_container.addWidget(self.row_2)
+        layout_container.addWidget(self.row_3)
+        layout_container.addWidget(self.row_4)
 
         layout.addWidget(container)
 
