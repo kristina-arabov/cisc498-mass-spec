@@ -77,3 +77,12 @@ def set_brightness(value, lights):
             lights.serial_conn.write(b'\n')
     except:
         pass
+
+def getPrinterPosition(printer):
+    while True:
+        if printer.line.find('Count') != -1:
+            line = printer.line.split()
+            pos = [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
+            break
+    
+    return pos
