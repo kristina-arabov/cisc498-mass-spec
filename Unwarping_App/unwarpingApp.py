@@ -83,7 +83,7 @@ class Main(QWidget):
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
-        self.page6 = CheckerboardDetection(self.camera, self.light_connection, transformation)
+        self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
         self.page7 = ProbeDetection(self.camera, self.light_connection)
         self.page8 = TransformationReview()
 

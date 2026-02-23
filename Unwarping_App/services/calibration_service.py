@@ -94,12 +94,12 @@ def checkFishReadability(img, checkerboard, objp, flags):
 
         stability_vals = poseStability(objpoints, imgpoints, K, D)   
 
-        # TODO is this super necessary?
-        if (stability_vals["translation_std"] > 0.0015 and 
-            stability_vals["translation_max"] > 0.005 and 
-            stability_vals["rotation_max_deg"] > 0.05):
-            msg = "?"
-            retval = False
+        # # TODO is this super necessary?
+        # if (stability_vals["translation_std"] > 0.0015 and 
+        #     stability_vals["translation_max"] > 0.005 and 
+        #     stability_vals["rotation_max_deg"] > 0.05):
+        #     msg = "?"
+        #     retval = False
 
     else:
         msg = "RMS error is too high to accurately calculate the probe-to-camera offset."
@@ -147,7 +147,7 @@ def secondUnwarp(image, mtx, dist):
 
 
 # Unwarp current view
-def getCheckerboardUnwarp(img, columns, rows, result, transformation, printer=None):
+def getCheckerboardUnwarp(camera, columns, rows, result, transformation, printer=None):
     # First check that dimensions are provided
     if not columns or not rows or int(columns) <= 1 or int(rows) <= 1:
         result.image_label.clear()
@@ -173,6 +173,7 @@ def getCheckerboardUnwarp(img, columns, rows, result, transformation, printer=No
     # Actual checking and unwarping
     # Loop here, run until end condition or until retval is true.
     while time.time() < end and not retval:
+        img = camera.frame.copy()
         retval, K, D, msg = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
         if retval:
             image = fisheyeUnwarp(img, K, D)
