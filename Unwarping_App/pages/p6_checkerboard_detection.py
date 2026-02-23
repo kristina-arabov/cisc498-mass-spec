@@ -1,18 +1,21 @@
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QScrollArea, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from Unwarping_App.components.utils import addAllWidgets, updateFrame, getCheckerboardUnwarp, saveUnwarping, setBrightness, updateDropdownIndex
+from Unwarping_App.components.utils import addAllWidgets, updateFrame, saveUnwarping, setBrightness, updateDropdownIndex
 from Unwarping_App.components.common import CamFeed, LightingDropdown, CheckerboardDropdown, PortControl, UnwarpComparison
 
-from Unwarping_App.services import device_service
+from Unwarping_App.services import calibration_service, device_service
 
 class CheckerboardDetection(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera, lights):
+    def __init__(self, camera, lights, printer, transformation):
         super().__init__()
         self.camera = camera
         self.lights = lights
+        self.printer = printer
+
+        self.transformation = transformation
 
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
@@ -76,7 +79,16 @@ class CheckerboardDetection(QWidget):
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
-
+        
+        component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
+                                                                            self.camera, 
+                                                                            component_checkerboardParams.input_columns.text(), 
+                                                                            component_checkerboardParams.input_rows.text(), 
+                                                                            component_unwarpComparison.result,
+                                                                            self.transformation,
+                                                                            self.printer
+                                                                        ))
+        
 
 class CheckerboardParamsSection(QWidget):
     def __init__(self):
@@ -95,10 +107,10 @@ class CheckerboardParamsSection(QWidget):
         layout_row_1 = QHBoxLayout(row_1)
 
         label_rows = QLabel("Rows: ")
-        input_rows = QLineEdit()
+        self.input_rows = QLineEdit()
 
         layout_row_1.addWidget(label_rows)
-        layout_row_1.addWidget(input_rows)
+        layout_row_1.addWidget(self.input_rows)
 
 
         ''' ROW 2 '''
@@ -106,10 +118,10 @@ class CheckerboardParamsSection(QWidget):
         layout_row_2 = QHBoxLayout(row_2)
 
         label_columns = QLabel("Columns: ")
-        input_columns = QLineEdit()
+        self.input_columns = QLineEdit()
 
         layout_row_2.addWidget(label_columns)
-        layout_row_2.addWidget(input_columns)
+        layout_row_2.addWidget(self.input_columns)
 
 
         ''' COMPOSE ALL '''

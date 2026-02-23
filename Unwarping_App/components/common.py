@@ -19,6 +19,7 @@ import numpy as np
 from Unwarping_App.components import utils
 
 from Unwarping_App.services import device_service
+from Unwarping_App.services import calibration_service
 
 class DevicesButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
@@ -1309,11 +1310,11 @@ class UnwarpComparison(QWidget):
         layout = QVBoxLayout(self)
 
         self.feed = CamFeed(scale=0.42)
-        unwarp_component = ArrowButton()
+        self.arrow = ArrowButton()
         self.result = CamFeed(scale=0.42)
 
         layout.addWidget(self.feed)
-        layout.addWidget(unwarp_component)
+        layout.addWidget(self.arrow)
         layout.addWidget(self.result)
 
         layout.setContentsMargins(0, 0, 0, 0) 
