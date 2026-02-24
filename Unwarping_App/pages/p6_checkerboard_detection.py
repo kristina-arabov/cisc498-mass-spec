@@ -40,7 +40,7 @@ class CheckerboardDetection(QWidget):
         layout = QHBoxLayout(self)
 
         ''' LEFT COLUMN '''
-        component_unwarpComparison = UnwarpComparison()
+        self.component_unwarpComparison = UnwarpComparison()
 
         ''' RIGHT COLUMN '''
         right = QWidget()
@@ -49,7 +49,7 @@ class CheckerboardDetection(QWidget):
         label_checkerboard = QLabel("Checkerboard Detection", objectName="page_title")
 
         component_lightControl = LightingDropdown()
-        component_checkerboardParams = CheckerboardParamsSection()
+        self.component_checkerboardParams = CheckerboardParamsSection()
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
@@ -58,7 +58,7 @@ class CheckerboardDetection(QWidget):
         layout_right.addStretch()
         layout_right.addWidget(label_checkerboard, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(self.component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
@@ -73,23 +73,32 @@ class CheckerboardDetection(QWidget):
 
 
         ''' COMPOSE '''
-        layout.addWidget(component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(self.component_unwarpComparison, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(right, alignment=Qt.AlignCenter)
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
 
         ''' FUNCTIONS '''
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.component_unwarpComparison.feed, frame))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
         
-        component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
+        self.component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
                                                                             self.camera, 
-                                                                            component_checkerboardParams.input_columns.text(), 
-                                                                            component_checkerboardParams.input_rows.text(), 
-                                                                            component_unwarpComparison.result,
+                                                                            self.component_checkerboardParams.input_columns.text(), 
+                                                                            self.component_checkerboardParams.input_rows.text(), 
+                                                                            self.component_unwarpComparison.result,
                                                                             self.transformation,
                                                                             self.printer
                                                                         ))
+    
+    # Function to reset front-end
+    def clearAll(self):
+        # Clear cols and rows
+        self.component_checkerboardParams.input_columns.clear()
+        self.component_checkerboardParams.input_rows.clear()
+
+        # Clear result image
+        self.component_unwarpComparison.result.image_label.clear()
         
 
 class CheckerboardParamsSection(QWidget):

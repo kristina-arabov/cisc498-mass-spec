@@ -63,7 +63,7 @@ class ProbeDetection(QWidget):
         component_lightControl = LightingDropdown()
 
         # Tag information
-        component_tagInformation = TagInformationSection()
+        self.component_tagInformation = TagInformationSection()
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
@@ -71,7 +71,7 @@ class ProbeDetection(QWidget):
         layout_right.addStretch()
         layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_tagInformation, alignment=Qt.AlignLeft)
+        layout_right.addWidget(self.component_tagInformation, alignment=Qt.AlignLeft)
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
@@ -89,11 +89,32 @@ class ProbeDetection(QWidget):
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
-        component_tagInformation.input_bottomLeftX.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_bottomLeftX.text(), "X"))
-        component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_bottomLeftY.text(), "Y"))
-        component_tagInformation.input_tagSize.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, component_tagInformation.input_tagSize.text(), "size"))
+        # Update X coordinate
+        self.component_tagInformation.input_bottomLeftX.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, 
+                                                                                                                  self.component_tagInformation.input_bottomLeftX.text(), 
+                                                                                                                  "X"))
+        
+        # Update Y coordinate
+        self.component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, 
+                                                                                                                  self.component_tagInformation.input_bottomLeftY.text(), 
+                                                                                                                  "Y"))
+        
+        # Update tag size
+        self.component_tagInformation.input_tagSize.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, 
+                                                                                                              self.component_tagInformation.input_tagSize.text(), 
+                                                                                                              "size"))
+    
 
-        # if not False in self.component_tag.corners_imaged and 
+    # Function to reset front-end
+    def clearAll(self):
+        # Reset tag diagram and progress bar
+        self.component_tag.corners_imaged = [False, False, False, False]
+        self.component_tag.line_progressBar.setValue(0)
+
+        # Reset tag inputs
+        self.component_tagInformation.input_bottomLeftX.clear()
+        self.component_tagInformation.input_bottomLeftY.clear()
+        self.component_tagInformation.input_tagSize.clear()
 
 
 class TagInstructions(QWidget):

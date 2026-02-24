@@ -7,6 +7,8 @@ class LandingPage(QWidget):
     provideTransformation = pyqtSignal()
     createTransformation = pyqtSignal()
 
+    clearVals = pyqtSignal()
+
     def __init__(self, transformation):
         super().__init__()
 
@@ -62,7 +64,7 @@ class LandingPage(QWidget):
             elif val is not None:
                 in_progress = True
             
-
+        # Display popup options if transformation is in progress
         if in_progress:
             dialog = ProgressDialog(self, self.transformation)
             pos = self.create_transformation.mapToGlobal(QPoint(-480, self.create_transformation.height()))
@@ -71,14 +73,25 @@ class LandingPage(QWidget):
             dialog.show()
             dialog.raise_() 
             
-            if dialog.button_clear.clicked:
-                pass
-
-            elif dialog.button_resume.clicked:
-                pass
+            dialog.button_clear.clicked.connect(lambda: self.handleSelection(dialog, "clear"))
+            dialog.button_resume.clicked.connect(lambda: self.handleSelection(dialog))
         
+        # Proceed to transformation workflow
         else:
             self.createTransformation.emit()
+
+    # Handle the user's selection for progressing to the transformatio workflow
+    def handleSelection(self, dialog, type=None):
+        if type == "clear":
+            # Clear all
+            self.transformation.resetVals()
+            
+            # Emit signal to clear inputs
+            self.clearVals.emit()
+
+        # Proceed to transformation flow
+        dialog.hide()
+        self.createTransformation.emit()
     
 
 class ProgressDialog(QWidget):

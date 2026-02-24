@@ -109,6 +109,11 @@ class Main(QWidget):
         self.page0.provideTransformation.connect(lambda: self.stacked.setCurrentIndex(1))
         self.page0.createTransformation.connect(lambda: self.stacked.setCurrentIndex(6))
 
+        # Reset front-end inputs if user clears a transformation in progress
+        self.page0.clearVals.connect(lambda: self.page6.clearAll())
+        self.page0.clearVals.connect(lambda: self.page7.clearAll())
+        self.page0.clearVals.connect(lambda: self.page8.clearAll())
+
         # Sampling workflow
         self.page1.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
         self.page2.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))

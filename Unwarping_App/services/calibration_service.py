@@ -46,6 +46,15 @@ class Transformation():
         self.offset_y = None
 
 
+    # Function to reset all properties if cleared
+    def resetVals(self):
+        for attr in self.__dict__:
+            if attr == "tag_bottom_left":
+                setattr(self, attr, [None, None])
+            else:
+                setattr(self, attr, None)
+
+
 # Function to check chessboard readability for initial unwarp
 def checkFishReadability(img, checkerboard, objp, flags):
     msg = None
