@@ -77,7 +77,7 @@ class Main(QWidget):
         self.stacked = QStackedWidget()
 
         # connect pages for application
-        self.page0 = LandingPage()
+        self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
