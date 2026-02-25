@@ -77,7 +77,7 @@ class Main(QWidget):
         self.stacked = QStackedWidget()
 
         # connect pages for application
-        self.page0 = LandingPage()
+        self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
@@ -111,6 +111,11 @@ class Main(QWidget):
         # Landing page, manually change stack index for specific workflow
         self.page0.provideTransformation.connect(lambda: self.stacked.setCurrentIndex(1))
         self.page0.createTransformation.connect(lambda: self.stacked.setCurrentIndex(6))
+
+        # Reset front-end inputs if user clears a transformation in progress
+        self.page0.clearVals.connect(lambda: self.page6.clearAll())
+        self.page0.clearVals.connect(lambda: self.page7.clearAll())
+        self.page0.clearVals.connect(lambda: self.page8.clearAll())
 
         # Sampling workflow
         self.page1.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))

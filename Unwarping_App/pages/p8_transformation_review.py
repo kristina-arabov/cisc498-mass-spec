@@ -50,3 +50,7 @@ class TransformationReview(QWidget):
     def calculateOffset(self):
         msg = calibration_service.calculateOffset(self.transformation)
         self.label_offset.setText(msg)
+
+    # Function to reset front-end
+    def clearAll(self):
+        self.label_offset.setText("Unavailable due to incorrect or missing data.")
