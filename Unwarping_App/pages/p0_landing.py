@@ -67,9 +67,9 @@ class LandingPage(QWidget):
         # Display popup options if transformation is in progress
         if in_progress:
             dialog = ProgressDialog(self, self.transformation)
-            pos = self.create_transformation.mapToGlobal(QPoint(-480, self.create_transformation.height()))
+            pos = self.create_transformation.mapToGlobal(self.create_transformation.rect().center())
             
-            dialog.move(pos)
+            dialog.move(pos.x() - (dialog.width() * 2), pos.y() - dialog.height() // 2)
             dialog.show()
             dialog.raise_() 
             
@@ -99,12 +99,7 @@ class ProgressDialog(QWidget):
 
         super().__init__(parent)
 
-        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setAttribute(Qt.WA_StyledBackground, True)
-        self.setAttribute(Qt.WA_NoSystemBackground, True)
-
-        self.setFixedSize(550, 300)
+        self.setWindowFlags(Qt.Popup | Qt.NoDropShadowWindowHint)
 
         layout = QVBoxLayout(self)
 
@@ -129,3 +124,5 @@ class ProgressDialog(QWidget):
         layout.addWidget(label_warn, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(label_msg, alignment=Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(buttons_row, alignment=Qt.AlignCenter)
+
+        

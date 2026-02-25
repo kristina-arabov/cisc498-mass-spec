@@ -110,6 +110,7 @@ class ProbeDetection(QWidget):
         # Reset tag diagram and progress bar
         self.component_tag.corners_imaged = [False, False, False, False]
         self.component_tag.line_progressBar.setValue(0)
+        self.component_tag.update()
 
         # Reset tag inputs
         self.component_tagInformation.input_bottomLeftX.clear()
