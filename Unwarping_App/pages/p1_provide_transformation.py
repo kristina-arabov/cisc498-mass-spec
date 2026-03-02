@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton, QFileDialog
 from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
@@ -27,6 +27,8 @@ class ProvideTransformation(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
+        
+        self.transformation = None  # Transformation file
         layout = QHBoxLayout(self)
 
         ''' LEFT COLUMN '''
@@ -39,7 +41,7 @@ class ProvideTransformation(QWidget):
         label = QLabel("Provide a Transformation", objectName="page_title")
 
         # Selection box
-        select_box = FileSelection()
+        self.file_box = FileSelection()
 
         # Tag inputs
         component_tagInfo = TagInformationSection()
@@ -50,7 +52,7 @@ class ProvideTransformation(QWidget):
 
         right_layout.addStretch()
         right_layout.addWidget(label, alignment=Qt.AlignLeft | Qt.AlignTop)
-        right_layout.addWidget(select_box, alignment=Qt.AlignLeft | Qt.AlignTop)
+        right_layout.addWidget(self.file_box, alignment=Qt.AlignLeft | Qt.AlignTop)
         right_layout.addWidget(component_tagInfo, alignment=Qt.AlignLeft | Qt.AlignTop)
         right_layout.addStretch()
         right_layout.addWidget(button_next, alignment=Qt.AlignRight)
@@ -64,6 +66,13 @@ class ProvideTransformation(QWidget):
 
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
+
+    def selectFile(self):
+        path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
+        self.file_box.path.setText(path)
+        self.transformation = path
+
 
 class FileSelection(QWidget):
     def __init__(self):
@@ -72,17 +81,17 @@ class FileSelection(QWidget):
         layout = QVBoxLayout(self)
 
         container = QWidget(objectName="light_blue_box")
-        select_box_layout = QVBoxLayout(container)
+        file_box_layout = QVBoxLayout(container)
 
-        folder_path = QLabel("", objectName="path_label")
-        folder_select_btn = QPushButton("Select file", objectName="blue")
+        self.path = QLabel("", objectName="path_label")
+        self.btn_select = QPushButton("Select file", objectName="blue")
         
         self.label_error = QLabel("", objectName="light_blue_box")
         self.label_error.hide()
 
-        select_box_layout.addWidget(folder_path)
-        select_box_layout.addWidget(folder_select_btn, alignment=Qt.AlignCenter)
-        select_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
+        file_box_layout.addWidget(self.path)
+        file_box_layout.addWidget(self.btn_select, alignment=Qt.AlignCenter)
+        file_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
 
         container.setFixedWidth(475)
 
