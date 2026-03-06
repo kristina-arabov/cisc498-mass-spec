@@ -11,6 +11,7 @@ from Unwarping_App.components.utils import addAllWidgets, updateFrame, setBright
 class ROISelection(QWidget):
     next = pyqtSignal()
     resultAvailable = pyqtSignal(object)
+    clearSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -124,6 +125,9 @@ class ROISelection(QWidget):
         img.rectangle = None
         img.dot = None
 
+        img.sample_overlay_x = None
+        img.sample_overlay_y = None
+
         # Reset buttons, user needs to select reference point again
         self.ROI.button_draw.setEnabled(False)
         self.ROI.button_rectangle.setEnabled(False)
@@ -133,6 +137,7 @@ class ROISelection(QWidget):
         self.referencePoint.button_action.setText("Select")
 
         self.ROIMode()
+        self.clearSignal.emit()
 
 
 class ReferencePointSection(QWidget):
