@@ -210,6 +210,7 @@ class DeviceRow(QWidget):
                 font-size: 12px;
             }
             QComboBox::drop-down { border: 0px; width: 26px; }
+            QComboBox::disabled { background-color: #C0C0C0; }
         """)
 
         # toggle
@@ -239,6 +240,9 @@ class DeviceRow(QWidget):
         self.status_lbl.setPixmap(pm)
 
     def populate_ports(self):
+        previous_data = self.port_combo.currentData()
+
+
         self.port_combo.clear()
         self.port_combo.addItem("Select port...")
 
@@ -267,6 +271,15 @@ class DeviceRow(QWidget):
                 label = f"{dev} — {desc}" if desc else dev
                 self.port_combo.addItem(label, dev)
 
+        if previous_data is not None:
+            index = self.port_combo.findData(previous_data)
+            if index != -1:
+                self.port_combo.setEnabled(False) if self.toggle.isChecked() else self.port_combo.setEnabled(True)
+                self.port_combo.setCurrentIndex(index)
+            else:
+                self.set_connected(False)
+                self.toggle.setChecked(False)
+
 
 
 
@@ -282,7 +295,7 @@ class DevicesDropdown(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
-        self.setFixedSize(550, 325)
+        self.setFixedHeight(325)
         self.setObjectName("devicesDropdown")
 
         self.setStyleSheet("""
@@ -317,7 +330,7 @@ class DevicesDropdown(QWidget):
         refresh_btn = IconButton("Refresh", "Unwarping_App/components/images/refresh.svg")
 
         # 4 rows
-        self.row_camera = DeviceRow("Camera", kind="camera", include_eye=True)
+        self.row_camera = DeviceRow("Camera", kind="camera")
         self.row_printer = DeviceRow("3D Printer", kind="printer")
         self.row_cond = DeviceRow("Conductance", kind="conductance")
         self.row_lights = DeviceRow("Lights", kind="lights")
@@ -393,7 +406,7 @@ class Header(QWidget):
         if self.devices_dropdown is None:
             self.devices_dropdown = DevicesDropdown(self, self.camera, self.lights)
         
-        button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
+        button_pos = self.devices_btn.mapToGlobal(QPoint((self.devices_btn.width() - self.devices_dropdown.sizeHint().width()), self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)
         self.devices_dropdown.show()
         self.devices_dropdown.raise_() 

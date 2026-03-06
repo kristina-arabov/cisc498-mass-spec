@@ -1,31 +1,39 @@
 
 # Toggle handling for devices
 def toggle(row, device):
-    match row.kind:
-        # Camera
-        case "camera":
-            connect_camera(row, device) if row.toggle.isChecked() else disconnect_camera(row, device)
-        # Printer
-        case "printer":
-            pass
-        # Conductance
-        case "conductance":
-            pass
-        # Lights
-        case "lights":
-            connect_lights(row, device) if row.toggle.isChecked() else disconnect_lights(row, device)
+
+    # Camera
+    if row.kind == "camera":
+        connect_camera(row, device) if row.toggle.isChecked() else disconnect_camera(row, device)
+    
+    # Printer
+    elif row.kind == "printer":
+        pass # TODO signal?
+
+    # Conductance
+    elif row.kind == "conductance":
+        pass # TODO signal?
+
+    # Lights
+    elif row.kind == "light":
+        connect_lights(row, device) if row.toggle.isChecked() else disconnect_lights(row, device)
+    
+    else:
+        pass
 
 
 ''' CAMERA '''
 # Connect camera
-def connect_camera(row, camera, deviceIndex=0, resolution=(1280, 720), fps=None, name=None):
-    camera.idx = deviceIndex
+def connect_camera(row, camera, resolution=(1280, 720), fps=None, name=None):
+    idx = row.port_combo.currentIndex() - 1
+    camera.idx = idx if idx >= 0 else None
     camera.resolution = resolution
     
-    if not camera.running:
+    if not camera.running and idx >= 0:
         try:
             camera.start()
             row.set_connected(True)
+            row.port_combo.setEnabled(False)
         except:
             pass
     
@@ -39,8 +47,7 @@ def disconnect_camera(row, camera):
         camera.stop()
 
     row.set_connected(False)
-
-    success = True if not camera.capture.isOpened() else False
+    row.port_combo.setEnabled(True)
 
 
 ''' LIGHTS '''
