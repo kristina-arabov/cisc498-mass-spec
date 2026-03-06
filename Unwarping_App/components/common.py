@@ -25,21 +25,32 @@ class IconButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
         super().__init__(parent)
 
-        self.setObjectName("headerBlue")
         self.setFixedWidth(115)
 
         icon_label = QLabel()
         icon_label.setPixmap(QPixmap(icon_path).scaled(
             20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
         ))
-        icon_label.setStyleSheet("background-color: #132C49;")
 
         text_label = QLabel(text)
-        text_label.setStyleSheet("""
-            background-color: #132C49;
-            color: white;
-            font-weight: bold;
-        """)
+
+        if text=="Refresh":
+            self.setObjectName("blue")
+            icon_label.setStyleSheet("background-color: transparent;")
+            text_label.setStyleSheet("""
+                background-color: transparent;
+                color: white;
+                font-weight: bold;
+            """)
+        else:
+            self.setObjectName("headerBlue")
+            icon_label.setStyleSheet("background-color: #132C49;")
+            text_label.setStyleSheet("""
+                background-color: #132C49;
+                color: white;
+                font-weight: bold;
+            """)
+
 
 
         layout = QHBoxLayout(self)
@@ -271,7 +282,7 @@ class DevicesDropdown(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
-        self.setFixedSize(550, 300)
+        self.setFixedSize(550, 325)
         self.setObjectName("devicesDropdown")
 
         self.setStyleSheet("""
@@ -311,11 +322,11 @@ class DevicesDropdown(QWidget):
         self.row_cond = DeviceRow("Conductance", kind="conductance")
         self.row_lights = DeviceRow("Lights", kind="lights")
         
-        inner_layout.addWidget(refresh_btn, alignment=Qt.AlignLeft)
         inner_layout.addWidget(self.row_camera)
         inner_layout.addWidget(self.row_printer)
         inner_layout.addWidget(self.row_cond)
         inner_layout.addWidget(self.row_lights)
+        inner_layout.addWidget(refresh_btn, alignment=Qt.AlignCenter)
         inner_layout.addStretch(1)
 
         outer.addWidget(inner)
