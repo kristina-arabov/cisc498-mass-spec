@@ -295,7 +295,7 @@ class DevicesDropdown(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
-        self.setFixedSize(550, 325)
+        self.setFixedHeight(325)
         self.setObjectName("devicesDropdown")
 
         self.setStyleSheet("""
@@ -330,7 +330,7 @@ class DevicesDropdown(QWidget):
         refresh_btn = IconButton("Refresh", "Unwarping_App/components/images/refresh.svg")
 
         # 4 rows
-        self.row_camera = DeviceRow("Camera", kind="camera", include_eye=True)
+        self.row_camera = DeviceRow("Camera", kind="camera")
         self.row_printer = DeviceRow("3D Printer", kind="printer")
         self.row_cond = DeviceRow("Conductance", kind="conductance")
         self.row_lights = DeviceRow("Lights", kind="lights")
@@ -406,7 +406,7 @@ class Header(QWidget):
         if self.devices_dropdown is None:
             self.devices_dropdown = DevicesDropdown(self, self.camera, self.lights)
         
-        button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
+        button_pos = self.devices_btn.mapToGlobal(QPoint((self.devices_btn.width() - self.devices_dropdown.sizeHint().width()), self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)
         self.devices_dropdown.show()
         self.devices_dropdown.raise_() 
