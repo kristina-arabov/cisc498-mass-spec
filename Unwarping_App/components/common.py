@@ -21,7 +21,7 @@ from Unwarping_App.components import utils
 from Unwarping_App.services import device_service
 from Unwarping_App.services import calibration_service
 
-class DevicesButton(QPushButton):
+class IconButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
         super().__init__(parent)
 
@@ -303,12 +303,15 @@ class DevicesDropdown(QWidget):
         inner_layout.setContentsMargins(0, 0, 0, 0)
         inner_layout.setSpacing(0)
 
+        refresh_btn = IconButton("Refresh", "Unwarping_App/components/images/refresh.svg")
+
         # 4 rows
         self.row_camera = DeviceRow("Camera", kind="camera", include_eye=True)
         self.row_printer = DeviceRow("3D Printer", kind="printer")
         self.row_cond = DeviceRow("Conductance", kind="conductance")
         self.row_lights = DeviceRow("Lights", kind="lights")
-
+        
+        inner_layout.addWidget(refresh_btn, alignment=Qt.AlignLeft)
         inner_layout.addWidget(self.row_camera)
         inner_layout.addWidget(self.row_printer)
         inner_layout.addWidget(self.row_cond)
@@ -322,6 +325,15 @@ class DevicesDropdown(QWidget):
         # Function calls
         self.row_camera.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_camera, self.camera))
         self.row_lights.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_lights, self.lights))
+
+        refresh_btn.clicked.connect(lambda: self.update_ports())
+
+    def update_ports(self):
+        # Update ports for all rows
+        self.row_camera.populate_ports()
+        self.row_printer.populate_ports()
+        self.row_cond.populate_ports()
+        self.row_lights.populate_ports()
 
 ######### End of Devices Dropdown #######################################################################################
 
@@ -346,7 +358,7 @@ class Header(QWidget):
         credits_btn = QPushButton("Credits", objectName="headerBlue")
         help_btn = QPushButton("Help", objectName="headerBlue")
 
-        self.devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+        self.devices_btn = IconButton("Devices", "Unwarping_App/components/images/Gear.svg")
         self.devices_btn.clicked.connect(self.showDevicesDropdown)
         self.devices_dropdown = None
 
