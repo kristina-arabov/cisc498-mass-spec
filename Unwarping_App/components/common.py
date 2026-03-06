@@ -21,25 +21,36 @@ from Unwarping_App.components import utils
 from Unwarping_App.services import device_service
 from Unwarping_App.services import calibration_service
 
-class DevicesButton(QPushButton):
+class IconButton(QPushButton):
     def __init__(self, text, icon_path, parent=None):
         super().__init__(parent)
 
-        self.setObjectName("headerBlue")
         self.setFixedWidth(115)
 
         icon_label = QLabel()
         icon_label.setPixmap(QPixmap(icon_path).scaled(
             20, 20, Qt.KeepAspectRatio, Qt.SmoothTransformation
         ))
-        icon_label.setStyleSheet("background-color: #132C49;")
 
         text_label = QLabel(text)
-        text_label.setStyleSheet("""
-            background-color: #132C49;
-            color: white;
-            font-weight: bold;
-        """)
+
+        if text=="Refresh":
+            self.setObjectName("blue")
+            icon_label.setStyleSheet("background-color: transparent;")
+            text_label.setStyleSheet("""
+                background-color: transparent;
+                color: white;
+                font-weight: bold;
+            """)
+        else:
+            self.setObjectName("headerBlue")
+            icon_label.setStyleSheet("background-color: #132C49;")
+            text_label.setStyleSheet("""
+                background-color: #132C49;
+                color: white;
+                font-weight: bold;
+            """)
+
 
 
         layout = QHBoxLayout(self)
@@ -199,6 +210,7 @@ class DeviceRow(QWidget):
                 font-size: 12px;
             }
             QComboBox::drop-down { border: 0px; width: 26px; }
+            QComboBox::disabled { background-color: #C0C0C0; }
         """)
 
         # toggle
@@ -228,6 +240,9 @@ class DeviceRow(QWidget):
         self.status_lbl.setPixmap(pm)
 
     def populate_ports(self):
+        previous_data = self.port_combo.currentData()
+
+
         self.port_combo.clear()
         self.port_combo.addItem("Select port...")
 
@@ -256,6 +271,15 @@ class DeviceRow(QWidget):
                 label = f"{dev} — {desc}" if desc else dev
                 self.port_combo.addItem(label, dev)
 
+        if previous_data is not None:
+            index = self.port_combo.findData(previous_data)
+            if index != -1:
+                self.port_combo.setEnabled(False) if self.toggle.isChecked() else self.port_combo.setEnabled(True)
+                self.port_combo.setCurrentIndex(index)
+            else:
+                self.set_connected(False)
+                self.toggle.setChecked(False)
+
 
 
 
@@ -271,7 +295,7 @@ class DevicesDropdown(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
-        self.setFixedSize(550, 300)
+        self.setFixedHeight(325)
         self.setObjectName("devicesDropdown")
 
         self.setStyleSheet("""
@@ -303,16 +327,19 @@ class DevicesDropdown(QWidget):
         inner_layout.setContentsMargins(0, 0, 0, 0)
         inner_layout.setSpacing(0)
 
+        refresh_btn = IconButton("Refresh", "Unwarping_App/components/images/refresh.svg")
+
         # 4 rows
-        self.row_camera = DeviceRow("Camera", kind="camera", include_eye=True)
+        self.row_camera = DeviceRow("Camera", kind="camera")
         self.row_printer = DeviceRow("3D Printer", kind="printer")
         self.row_cond = DeviceRow("Conductance", kind="conductance")
         self.row_lights = DeviceRow("Lights", kind="lights")
-
+        
         inner_layout.addWidget(self.row_camera)
         inner_layout.addWidget(self.row_printer)
         inner_layout.addWidget(self.row_cond)
         inner_layout.addWidget(self.row_lights)
+        inner_layout.addWidget(refresh_btn, alignment=Qt.AlignCenter)
         inner_layout.addStretch(1)
 
         outer.addWidget(inner)
@@ -322,6 +349,15 @@ class DevicesDropdown(QWidget):
         # Function calls
         self.row_camera.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_camera, self.camera))
         self.row_lights.toggle.stateChanged.connect(lambda: device_service.toggle(self.row_lights, self.lights))
+
+        refresh_btn.clicked.connect(lambda: self.update_ports())
+
+    def update_ports(self):
+        # Update ports for all rows
+        self.row_camera.populate_ports()
+        self.row_printer.populate_ports()
+        self.row_cond.populate_ports()
+        self.row_lights.populate_ports()
 
 ######### End of Devices Dropdown #######################################################################################
 
@@ -346,7 +382,7 @@ class Header(QWidget):
         credits_btn = QPushButton("Credits", objectName="headerBlue")
         help_btn = QPushButton("Help", objectName="headerBlue")
 
-        self.devices_btn = DevicesButton("Devices", "Unwarping_App/components/images/Gear.svg")
+        self.devices_btn = IconButton("Devices", "Unwarping_App/components/images/Gear.svg")
         self.devices_btn.clicked.connect(self.showDevicesDropdown)
         self.devices_dropdown = None
 
@@ -370,7 +406,7 @@ class Header(QWidget):
         if self.devices_dropdown is None:
             self.devices_dropdown = DevicesDropdown(self, self.camera, self.lights)
         
-        button_pos = self.devices_btn.mapToGlobal(QPoint(-480, self.devices_btn.height()))
+        button_pos = self.devices_btn.mapToGlobal(QPoint((self.devices_btn.width() - self.devices_dropdown.sizeHint().width()), self.devices_btn.height()))
         self.devices_dropdown.move(button_pos)
         self.devices_dropdown.show()
         self.devices_dropdown.raise_() 
@@ -1077,7 +1113,7 @@ class TagOverlay(QWidget):
             painter.drawEllipse(x, y, diameter, diameter)
 
 class ClickableImage(QLabel):
-    roiSignal = pyqtSignal(object, object)
+    roiSignal = pyqtSignal(object, object, object, object)
 
     # Overlay with unwarped image, else black screen
     def __init__(self):
@@ -1139,69 +1175,75 @@ class ClickableImage(QLabel):
         painter = QPainter(self)
         # painter.setRenderHint(QPainter.Antialiasing)
 
-        # Draw full rectangle
-        if self.rectangle:
-            painter.setPen(QPen(QColor("#BBFF00"), 3))
-            painter.drawRect(self.rectangle)
+        try:
+            # Draw full rectangle
+            if self.rectangle:
+                painter.setPen(QPen(QColor("#BBFF00"), 3))
+                painter.drawRect(self.rectangle)
 
-        # If rectangle is still being drawn, update so the user sees
-        if self.drawing and self.start_point and self.end_point:
-            painter.setPen(QPen(QColor("#BBFF00"), 3, Qt.DashLine)) # looks cool
-            painter.drawRect(QRect(self.start_point, self.end_point).normalized())
+            # If rectangle is still being drawn, update so the user sees
+            if self.drawing and self.start_point and self.end_point:
+                painter.setPen(QPen(QColor("#BBFF00"), 3, Qt.DashLine)) # looks cool
+                painter.drawRect(QRect(self.start_point, self.end_point).normalized())
 
-        # Draw dot
-        if self.dot:
-            painter.setPen(QPen(QColor("#16FFFF"), 4))
-            painter.drawPoint(self.dot)
+            # Draw dot
+            if self.dot:
+                painter.setPen(QPen(QColor("#16FFFF"), 4))
+                painter.drawPoint(self.dot)
 
-        # Pixel overlay
-        if self.sample_overlay_x and self.sample_overlay_y:
-            painter.setPen(QPen(QColor("#EAFFC2"), 2))
-            painter.setOpacity(0.6)
+            # Pixel overlay
+            if self.sample_overlay_x and self.sample_overlay_y:
+                painter.setPen(QPen(QColor("#EAFFC2"), 2))
+                painter.setOpacity(0.6)
 
-            # Get drawing coordinates
-            start_x = self.rectangle.left()
-            start_y = self.rectangle.top()
+                # Get drawing coordinates
+                start_x = self.rectangle.left()
+                start_y = self.rectangle.top()
 
-            end_x = self.rectangle.right()
-            end_y = self.rectangle.bottom()
+                end_x = self.rectangle.right()
+                end_y = self.rectangle.bottom()
 
-            width  = end_x - start_x
-            height = end_y - start_y
+                width  = end_x - start_x
+                height = end_y - start_y
 
-            step_x = width  / self.sample_overlay_x
-            step_y = height / self.sample_overlay_y
+                step_x = width  / self.sample_overlay_x
+                step_y = height / self.sample_overlay_y
 
-            # Vertical lines
-            for i in range(self.sample_overlay_x + 1):
-                x = int(start_x + i * step_x)
-                painter.drawLine(
-                    x, start_y,
-                    x, end_y
-                )
+                # Vertical lines
+                for i in range(self.sample_overlay_x + 1):
+                    x = int(start_x + i * step_x)
+                    painter.drawLine(
+                        x, start_y,
+                        x, end_y
+                    )
 
-            # Horizontal lines
-            for j in range(self.sample_overlay_y + 1):
-                y = int(start_y + j * step_y)
-                painter.drawLine(
-                    start_x, y,
-                    end_x, y
-                )
+                # Horizontal lines
+                for j in range(self.sample_overlay_y + 1):
+                    y = int(start_y + j * step_y)
+                    painter.drawLine(
+                        start_x, y,
+                        end_x, y
+                    )
 
-            # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
-            painter.setPen(QPen(QColor("#EAFFC2"), 3))
-            painter.setOpacity(1.0)
-            
-            for j in range(self.sample_overlay_y):
-                for i in range(self.sample_overlay_x):
-                    mid_x = start_x + (i + 0.5) * step_x
-                    mid_y = start_y + (j + 0.5) * step_y
+                # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
+                painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                painter.setOpacity(1.0)
+                
+                for j in range(self.sample_overlay_y):
+                    for i in range(self.sample_overlay_x):
+                        mid_x = start_x + (i + 0.5) * step_x
+                        mid_y = start_y + (j + 0.5) * step_y
 
-                    painter.drawPoint(int(mid_x), int(mid_y))
+                        painter.drawPoint(int(mid_x), int(mid_y))
 
-        self.update()
-        self.roiSignal.emit(self.dot, self.rectangle)
-    
+            painter.end()
+            self.update()
+
+            self.roiSignal.emit(self.dot, self.rectangle, self.sample_overlay_x, self.sample_overlay_y)
+        
+        except:
+            pass
+        
     def setNewPixmap(self, pixmap):
         rgb_img = cv2.cvtColor(pixmap, cv2.COLOR_BGR2RGB)
         self.original_pixmap = rgb_img
@@ -1213,26 +1255,31 @@ class ClickableImage(QLabel):
         self.scaled = QPixmap.fromImage(self.scaled)
         self.setPixmap(self.scaled)
 
-    def setVals(self, pt, rect=None):
+    def setVals(self, pt=None, rect=None, x=None, y=None):
         self.dot = pt
         self.rectangle = rect
+
+        if x and y:
+            self.sample_overlay_x = x
+            self.sample_overlay_y = y
 
         self.update()
 
     def updateOverlay(self, resolution):
         # let be 15 * 10 mm
-        # bug, greater to smaller val range thing
+
         try:
-            self.probe_rectangle = [100, 40, 115, 50]
-            x0, y0, x1, y1 = self.probe_rectangle
+            if self.rectangle:
+                self.probe_rectangle = [100, 40, 115, 50]
+                x0, y0, x1, y1 = self.probe_rectangle
 
-            x_range = np.arange(x0, x1, float(resolution))
-            y_range = np.arange(y0, y1, float(resolution))
+                x_range = np.arange(x0, x1, float(resolution))
+                y_range = np.arange(y0, y1, float(resolution))
 
-            self.sample_overlay_x = len(x_range)
-            self.sample_overlay_y = len(y_range)
+                self.sample_overlay_x = len(x_range)
+                self.sample_overlay_y = len(y_range)
 
-            self.update()
+                self.update()
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None

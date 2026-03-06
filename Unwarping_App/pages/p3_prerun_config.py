@@ -87,6 +87,10 @@ class PrerunConfig(QWidget):
             self.component_samplingParams.row_3.hide()
             self.component_samplingParams.row_4.hide()
 
+    def clearInputs(self):
+        self.component_samplingParams.input_spatialRes.clear()
+        self.component_samplingParams.input_dwell.clear()
+        self.component_samplingParams.input_transfer.clear()
 
 
 class ModeSelection(QWidget):
@@ -139,11 +143,11 @@ class SamplingParameters(QWidget):
         layout_row_1 = QHBoxLayout(self.row_1)
 
         label_spatialRes = QLabel("Spatial resolution (mm): ")
-        input_spatialRes = QLineEdit()
-        input_spatialRes.setValidator(QDoubleValidator())
+        self.input_spatialRes = QLineEdit()
+        self.input_spatialRes.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_spatialRes)
-        layout_row_1.addWidget(input_spatialRes)   
+        layout_row_1.addWidget(self.input_spatialRes)   
 
 
         ''' ROW 2 '''
@@ -151,10 +155,10 @@ class SamplingParameters(QWidget):
         layout_row_2 = QHBoxLayout(self.row_2)
 
         label_dwell = QLabel("Dwell time (s): ")
-        input_dwell = QLineEdit()
+        self.input_dwell = QLineEdit()
 
         layout_row_2.addWidget(label_dwell)
-        layout_row_2.addWidget(input_dwell)
+        layout_row_2.addWidget(self.input_dwell)
 
 
         ''' ROW 3 '''
@@ -162,10 +166,10 @@ class SamplingParameters(QWidget):
         layout_row_3 = QHBoxLayout(self.row_3)
 
         label_transfer = QLabel("Transfer height (mm): ")
-        input_transfer = QLineEdit()
+        self.input_transfer = QLineEdit()
 
         layout_row_3.addWidget(label_transfer)
-        layout_row_3.addWidget(input_transfer)
+        layout_row_3.addWidget(self.input_transfer)
 
         ''' ROW 4 '''
         self.row_4 = QWidget()
@@ -192,7 +196,7 @@ class SamplingParameters(QWidget):
         """)
 
         ''' FUNCTIONS '''
-        input_spatialRes.textChanged.connect(lambda: photo.updateOverlay(input_spatialRes.text()))
+        self.input_spatialRes.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes.text()))
 
 
     #     widgets = []

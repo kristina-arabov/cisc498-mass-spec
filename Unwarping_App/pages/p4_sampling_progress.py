@@ -28,7 +28,7 @@ class SamplingProgress(QWidget):
         layout = QHBoxLayout(self)
         gif = QMovie("Unwarping_App\components\images\Loading.gif")
 
-        component_resultImg = CamFeed()
+        self.photo = ClickableImage()
 
         right = QWidget()
         layout_right = QVBoxLayout(right)
@@ -57,7 +57,7 @@ class SamplingProgress(QWidget):
         layout_right.addStretch()
 
 
-        layout.addWidget(component_resultImg)
+        layout.addWidget(self.photo)
         layout.addWidget(right)
 
         layout.setContentsMargins(0, 0, 0, 0) 
