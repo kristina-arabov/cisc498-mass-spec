@@ -210,6 +210,7 @@ class DeviceRow(QWidget):
                 font-size: 12px;
             }
             QComboBox::drop-down { border: 0px; width: 26px; }
+            QComboBox::disabled { background-color: #C0C0C0; }
         """)
 
         # toggle
@@ -239,6 +240,9 @@ class DeviceRow(QWidget):
         self.status_lbl.setPixmap(pm)
 
     def populate_ports(self):
+        previous_data = self.port_combo.currentData()
+
+
         self.port_combo.clear()
         self.port_combo.addItem("Select port...")
 
@@ -266,6 +270,15 @@ class DeviceRow(QWidget):
                 desc = getattr(p, "description", "")
                 label = f"{dev} — {desc}" if desc else dev
                 self.port_combo.addItem(label, dev)
+
+        if previous_data is not None:
+            index = self.port_combo.findData(previous_data)
+            if index != -1:
+                self.port_combo.setEnabled(False) if self.toggle.isChecked() else self.port_combo.setEnabled(True)
+                self.port_combo.setCurrentIndex(index)
+            else:
+                self.set_connected(False)
+                self.toggle.setChecked(False)
 
 
 
