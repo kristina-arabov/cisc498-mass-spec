@@ -88,7 +88,12 @@ class Main(QWidget):
         self.page8 = TransformationReview(transformation)
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
-        self.page2.photo.roiSignal.connect(lambda dot, rect: self.page3.photo.setVals(dot, rect))
+        # Persist reference point and ROI to other pages
+        self.page2.photo.roiSignal.connect(lambda dot, rect, x, y: self.page3.photo.setVals(dot, rect))
+        self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
+
+        self.page3.photo.roiSignal.connect(lambda dot, rect, x, y: self.page4.photo.setVals(dot, rect, x, y))
+
         self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
 
         self.stacked.addWidget(self.page0)
