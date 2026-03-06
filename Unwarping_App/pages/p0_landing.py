@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy, QDialog, QDialogButtonBox
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy, QDialog, QDialogButtonBox, QGraphicsDropShadowEffect
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
+from PyQt5.QtGui import QColor
 
 import Unwarping_App.components.utils as utils
 
@@ -67,9 +68,14 @@ class LandingPage(QWidget):
         # Display popup options if transformation is in progress
         if in_progress:
             dialog = ProgressDialog(self, self.transformation)
+
             pos = self.create_transformation.mapToGlobal(self.create_transformation.rect().center())
-            
-            dialog.move(pos.x() - (dialog.width() * 2), pos.y() - dialog.height() // 2)
+
+            # move dialog so its center aligns with the button center
+            dialog.move(
+                pos.x() - dialog.sizeHint().width() // 2,
+                pos.y() - dialog.sizeHint().height() // 6
+            )
             dialog.show()
             dialog.raise_() 
             
@@ -96,18 +102,18 @@ class LandingPage(QWidget):
 
 class ProgressDialog(QWidget):
     def __init__(self, parent=None, transformation=None):
-
         super().__init__(parent)
 
-        self.setWindowFlags(Qt.Popup | Qt.NoDropShadowWindowHint)
+        self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_StyledBackground, True)
 
         layout = QVBoxLayout(self)
 
-        # TODO create a border?
         label_warn = QLabel("Warning!")
         label_warn.setStyleSheet("""
-            font-size: 18px;
-            font-weight: bold;                     
+            font-size: 20px;
+            font-weight: bold;
+            color: #AD1B1B;                     
         """)
 
         label_msg = QLabel("A transformation is currently in progress. You may continue the current transformation workflow,\nor create a new transformation.")
