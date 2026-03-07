@@ -46,7 +46,7 @@ class Main(QWidget):
 
         # connect pages for application
         self.page0 = LandingPage(transformation)
-        self.page1 = ProvideTransformation(self.camera,self.light_connection, sampling_transformation)
+        self.page1 = ProvideTransformation(self.camera,self.light_connection, self.printer, sampling_transformation)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()

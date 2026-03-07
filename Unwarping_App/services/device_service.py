@@ -86,6 +86,8 @@ def set_brightness(value, lights):
         pass
 
 def getPrinterPosition(printer):
+    pos = None
+
     while True:
         if printer.line.find('Count') != -1:
             line = printer.line.split()

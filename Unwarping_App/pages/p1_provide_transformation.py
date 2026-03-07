@@ -4,7 +4,7 @@ from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets, updateFrame
-from Unwarping_App.services import calibration_service, sampling_service
+from Unwarping_App.services import calibration_service, sampling_service, device_service
 
 
 ''' This page handles any existing transformations the user provides'''
@@ -12,10 +12,11 @@ class ProvideTransformation(QWidget):
     next = pyqtSignal()
     resultAvailable = pyqtSignal(object)
 
-    def __init__(self, camera, lights, transformation):
+    def __init__(self, camera, lights, printer, transformation):
         super().__init__()
         self.camera = camera
         self.lights = lights
+        self.printer = printer
         self.transformation = transformation
 
         self.initUI()
@@ -30,8 +31,6 @@ class ProvideTransformation(QWidget):
 
         ''' LEFT COLUMN '''
         self.component_unwarpComparison = UnwarpComparison()
-        # TODO will uncomment after testing
-        self.component_unwarpComparison.arrow.button.setEnabled(False)
 
         ''' RIGHT COLUMN '''
         right = QWidget()
@@ -88,20 +87,59 @@ class ProvideTransformation(QWidget):
 
 
     def applyTransformation(self):
-        img = self.camera.frame.copy()
-        unwarped = calibration_service.unwarpPhoto(img, self.transformation)
-
-        # Show unwarped img in result container
-        calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
-
-        # Send signal to other pages in sampling workflow
-        self.resultAvailable.emit(unwarped)
-        self.checkAllowNext()
+        try:
+            img = self.camera.frame.copy()
+            unwarped = calibration_service.unwarpPhoto(img, self.transformation)
 
 
-    def checkAllowUnwarp(self):
-        # if file box not empty and cam + printer connected
-        pass
+            # TODO uncomment after testing
+            # pos = device_service.getPrinterPosition(self.printer)
+
+            # if pos[2] != self.transformation.height:
+            #     print("height not same")
+            #     return
+
+            # Show unwarped img in result container
+            calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
+
+            # Send signal to other pages in sampling workflow
+            self.resultAvailable.emit(unwarped)
+            self.checkAllowNext()
+        except:
+            print("doesnt run!")
+            pass
+
+
+    # TODO may be removed later
+    # # Function to check if the user can unwarp a photo
+    # def checkAllowUnwarp(self):
+    #     # if file box not empty and cam + printer connected
+    #     btn = self.component_unwarpComparison.arrow.button
+
+    #     allow_unwarp = True
+    #     btn.setEnabled(True)
+       
+    #     # Check if transformation file is valid
+    #     if not self.valid_transformation:
+    #         allow_unwarp = False
+        
+    #     # Check if camera is connected
+    #     if not self.camera.running or not self.camera.capture.isOpened():
+    #         allow_unwarp = False
+
+        
+    #     # Check if printer is connected and is at the same height as transformation
+    #     pos = device_service.getPrinterPosition(self.printer)
+    #     if not pos:
+    #         allow_unwarp = False
+    #     elif pos:
+    #         if pos[2] != self.transformation.height:
+    #             allow_unwarp = False
+
+
+    #     if not allow_unwarp:
+    #         btn.setEnabled(False)
+        
 
 
     # Function to check if the user has provided the necessary information to proceed
