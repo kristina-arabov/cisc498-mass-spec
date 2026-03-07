@@ -187,6 +187,7 @@ class App(QWidget):
 
         screen = QApplication.primaryScreen()
         self.screen_size = screen.size()
+        self.available = screen.availableGeometry()
 
         self.camera_feed = CameraThread()
         self.lighting_control = LightingThread()
@@ -197,8 +198,13 @@ class App(QWidget):
         self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
 
         # Set size
-        self.width = int(self.screen_size.width() * 0.75)
-        self.height = int(self.screen_size.height() * 0.75)
+        self.width = min(1400, int(self.available.width() * 0.75))
+        self.height = min(900, int(self.available.height() * 0.85))
+
+        if self.available.width() < 1400 and self.available.height() < 900:
+            self.width = self.available.width() - 50
+            self.height = self.available.height() - 50
+            
         self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
@@ -219,13 +225,21 @@ class App(QWidget):
     
     # Handle resizing between unwarping and printer control apps
     def on_tab_changed(self, index):
-        # print(f"Tab changed to index: {index}")  # Debug print
         if index == 0:  # unwarpingApp tab
-            new_width = int(self.screen_size.width() * 0.75)
-            new_height = int(self.screen_size.height() * 0.75)
-            self.setFixedSize(new_width, new_height)
+            width = min(1400, int(self.available.width() * 0.75))
+            height = min(900, int(self.available.height() * 0.85))
+
+            if self.available.width() < 1400 and self.available.height() < 900:
+                width = self.available.width() - 50
+                height = self.available.height() - 50
+    
+            self.setFixedSize(width, height)
+        
         elif index == 1:  # oppscan2 tab
-            self.setFixedSize(1400, 900)
+            width = min(1400, self.available.width())
+            height = min(900, self.available.height() - 50)
+
+            self.setFixedSize(width, height)
 
 
 if __name__ == "__main__":
