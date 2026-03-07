@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton, QFileDialog
-from PyQt5.QtGui import QPainter, QPen, QPolygon, QColor
+from PyQt5.QtGui import  QValidator
 from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
@@ -26,9 +26,12 @@ class ProvideTransformation(QWidget):
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
+        self.valid_transformation = False
 
         ''' LEFT COLUMN '''
         self.component_unwarpComparison = UnwarpComparison()
+        # TODO will uncomment after testing
+        self.component_unwarpComparison.arrow.button.setEnabled(False)
 
         ''' RIGHT COLUMN '''
         right = QWidget()
@@ -40,18 +43,20 @@ class ProvideTransformation(QWidget):
         self.file_box = FileSelection()
 
         # Tag inputs
-        component_tagInfo = TagInformationSection()
-        component_tagInfo.label_msg.show()
+        self.component_tagInfo = TagInformationSection()
+        self.component_tagInfo.label_msg.show()
 
-        button_next = QPushButton("Next", objectName="blue")
-        button_next.clicked.connect(self.next.emit)
+        self.button_next = QPushButton("Next", objectName="blue")
+        self.button_next.clicked.connect(self.next.emit)
+        # TODO will uncomment after testing
+        self.button_next.setEnabled(False) 
 
         right_layout.addStretch()
         right_layout.addWidget(label, alignment=Qt.AlignLeft | Qt.AlignTop)
         right_layout.addWidget(self.file_box, alignment=Qt.AlignLeft | Qt.AlignTop)
-        right_layout.addWidget(component_tagInfo, alignment=Qt.AlignLeft | Qt.AlignTop)
+        right_layout.addWidget(self.component_tagInfo, alignment=Qt.AlignLeft | Qt.AlignTop)
         right_layout.addStretch()
-        right_layout.addWidget(button_next, alignment=Qt.AlignRight)
+        right_layout.addWidget(self.button_next, alignment=Qt.AlignRight)
 
         ''' COMPOSE '''
         layout.addWidget(self.component_unwarpComparison)
@@ -66,12 +71,20 @@ class ProvideTransformation(QWidget):
         
         self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
 
+
+        self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
+        self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
+        self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
+
+
     def selectFile(self):
         path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
         self.file_box.path.setText(path)
 
         # Update transformation vars  
-        sampling_service.setTransformation(self.transformation, path)
+        self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
+        
+        self.checkAllowNext()
 
 
     def applyTransformation(self):
@@ -83,6 +96,47 @@ class ProvideTransformation(QWidget):
 
         # Send signal to other pages in sampling workflow
         self.resultAvailable.emit(unwarped)
+        self.checkAllowNext()
+
+
+    def checkAllowUnwarp(self):
+        # if file box not empty and cam + printer connected
+        pass
+
+
+    # Function to check if the user has provided the necessary information to proceed
+    def checkAllowNext(self):
+        allow_next = True
+        self.button_next.setEnabled(True)
+    
+
+        img = self.component_unwarpComparison.result.image_label.pixmap()
+
+        tag_X = self.component_tagInfo.input_bottomLeftX.text()
+        tag_Y = self.component_tagInfo.input_bottomLeftY.text()
+        tag_size = self.component_tagInfo.input_tagSize.text()
+
+        # Check if image is not empty
+        if img is None or img.isNull():
+            allow_next = False
+
+        # Check if transformation file is valid
+        if not self.valid_transformation:
+            allow_next = False
+
+        # Check if tag inputs are valid
+        try:
+            tag_X = float(tag_X)
+            tag_Y = float(tag_Y)
+            tag_size = float(tag_size)
+
+        except:
+            allow_next = False
+
+        # Disable next button if any issues
+        if not allow_next:
+            self.button_next.setEnabled(False)
+
 
 
 class FileSelection(QWidget):
