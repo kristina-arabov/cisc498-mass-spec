@@ -184,7 +184,8 @@ class SamplingParameters(QWidget):
         self.row_5 = QWidget()
         layout_row_5 = QHBoxLayout(self.row_5)
 
-        more_options = QLabel("Specific sampling options available in \"Legacy\" mode")
+        more_options = QLabel("Specific sampling options available\nin \"Legacy\" mode")
+        more_options.setWordWrap(True)
         more_options.setStyleSheet("font-weight: bold;")
 
         layout_row_5.addWidget(more_options)
