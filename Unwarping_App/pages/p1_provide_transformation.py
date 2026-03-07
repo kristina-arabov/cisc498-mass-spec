@@ -73,7 +73,6 @@ class ProvideTransformation(QWidget):
         # Update transformation vars  
         sampling_service.setTransformation(self.transformation, path)
 
-        # TODO print all vars
 
     def applyTransformation(self):
         img = self.camera.frame.copy()
