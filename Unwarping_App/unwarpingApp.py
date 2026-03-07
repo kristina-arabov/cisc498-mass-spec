@@ -89,12 +89,6 @@ class Main(QWidget):
 
         # self.page2.resultAvailable.connect(lambda img: self.page3.receiveResult(img))
         # Persist reference point and ROI to other pages
-        self.page2.photo.roiSignal.connect(lambda dot, rect, x, y: self.page3.photo.setVals(dot, rect))
-        self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
-
-        self.page3.photo.roiSignal.connect(lambda dot, rect, x, y: self.page4.photo.setVals(dot, rect, x, y))
-
-        self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
 
         self.stacked.addWidget(self.page0)
         self.stacked.addWidget(self.page1)
@@ -120,14 +114,24 @@ class Main(QWidget):
         self.page0.clearVals.connect(lambda: self.page8.clearAll())
 
         # Sampling workflow
-        self.page1.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
-        self.page2.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
-        self.page3.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
-        self.page4.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page1.next.connect(lambda: self.stacked.setCurrentIndex(2))
+        self.page2.next.connect(lambda: self.stacked.setCurrentIndex(3))
+        self.page3.next.connect(lambda: self.stacked.setCurrentIndex(4))
+        self.page4.next.connect(lambda: self.stacked.setCurrentIndex(5))
 
         # Transformation creation workflow
-        self.page6.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
-        self.page7.next.connect(lambda: self.stacked.setCurrentIndex(self.stacked.currentIndex() + 1))
+        self.page6.next.connect(lambda: self.stacked.setCurrentIndex(7))
+        self.page7.next.connect(lambda: self.stacked.setCurrentIndex(8))
+
+        ''' OTHER CONNECTIONS '''
+        self.page2.photo.roiSignal.connect(lambda dot, rect, x, y: self.page3.photo.setVals(dot, rect))
+        self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
+
+        self.page3.photo.roiSignal.connect(lambda dot, rect, x, y: self.page4.photo.setVals(dot, rect, x, y))
+
+        self.page4.returnToConfig.connect(lambda: self.stacked.setCurrentIndex(3))
+
+        self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
         
 
         self.nav = NavBar(self.stacked)
