@@ -4,35 +4,30 @@ from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets, updateFrame
+from Unwarping_App.services import calibration_service, sampling_service
 
 
 ''' This page handles any existing transformations the user provides'''
 class ProvideTransformation(QWidget):
     next = pyqtSignal()
 
-    def __init__(self, camera, lights):
+    def __init__(self, camera, lights, transformation):
         super().__init__()
         self.camera = camera
         self.lights = lights
+        self.transformation = transformation
 
         self.initUI()
         
-    # def __init__(self, json_path):
-    #     super().__init__()
-    #     self.json_path = json_path
-    #     self.initUI()
-    
     def initUI(self):
         styling = "Unwarping_App/components/style.css"
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
-        
-        self.transformation = None  # Transformation file
         layout = QHBoxLayout(self)
 
         ''' LEFT COLUMN '''
-        component_unwarpComparison = UnwarpComparison()
+        self.component_unwarpComparison = UnwarpComparison()
 
         ''' RIGHT COLUMN '''
         right = QWidget()
@@ -58,20 +53,32 @@ class ProvideTransformation(QWidget):
         right_layout.addWidget(button_next, alignment=Qt.AlignRight)
 
         ''' COMPOSE '''
-        layout.addWidget(component_unwarpComparison)
+        layout.addWidget(self.component_unwarpComparison)
         layout.addWidget(right)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
 
         ''' FUNCTIONS '''
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_unwarpComparison.feed, frame))
+        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.component_unwarpComparison.feed, frame))
+        self.component_unwarpComparison.arrow.button.clicked.connect(lambda: self.applyTransformation())
+        
         self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
 
     def selectFile(self):
         path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
         self.file_box.path.setText(path)
-        self.transformation = path
+
+        # Update transformation vars  
+        sampling_service.setTransformation(self.transformation, path)
+
+        # TODO print all vars
+
+    def applyTransformation(self):
+        img = self.camera.frame.copy()
+        unwarped = calibration_service.unwarpPhoto(img, self.transformation)
+
+        calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
 
 
 class FileSelection(QWidget):
