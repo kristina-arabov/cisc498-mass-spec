@@ -24,7 +24,7 @@ class Transformation():
         self.chessboard_img = None
         self.chessboard_loc = None
         self.chessboard_size = None
-        self.chessboard_height = None
+        self.height = None
 
         # AprilTags
         self.loc1 = None
@@ -202,7 +202,7 @@ def getCheckerboardUnwarp(camera, columns, rows, result, transformation, printer
                 transformation.dist2 = dist
 
                 transformation.chessboard_loc = device_service.getPrinterPosition(printer)
-                transformation.chessboard_height = transformation.chessboard_loc[2]
+                transformation.height = transformation.chessboard_loc[2]
                 transformation.chessboard_size = CHECKERBOARD
                 transformation.chessboard_img = img
 
@@ -349,7 +349,7 @@ def createTransformationFile(transformation):
             "dist2": transformation.dist2.tolist(), 
 
             "loc": transformation.chessboard_loc,
-            "height": transformation.chessboard_height,
+            "height": transformation.height,
         }],
 
         "offset_X": transformation.offset_x,
