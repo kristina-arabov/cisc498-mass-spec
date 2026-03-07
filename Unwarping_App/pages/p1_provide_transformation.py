@@ -84,7 +84,7 @@ class ProvideTransformation(QWidget):
         # Update transformation vars  
         self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
         
-        self.checkAllowNext()
+        # self.checkAllowNext()
 
 
     def applyTransformation(self):
@@ -105,7 +105,7 @@ class ProvideTransformation(QWidget):
 
             # Send signal to other pages in sampling workflow
             self.resultAvailable.emit(unwarped)
-            self.checkAllowNext()
+            # self.checkAllowNext()
         except:
             print("doesnt run!")
             pass
