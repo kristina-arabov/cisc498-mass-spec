@@ -179,11 +179,23 @@ class SamplingParameters(QWidget):
 
         layout_row_4.addWidget(self.button_dragSampling)
 
+
+        ''' ROW 5 '''
+        self.row_5 = QWidget()
+        layout_row_5 = QHBoxLayout(self.row_5)
+
+        more_options = QLabel("Specific sampling options available\nin \"Legacy\" mode")
+        more_options.setWordWrap(True)
+        more_options.setStyleSheet("font-weight: bold;")
+
+        layout_row_5.addWidget(more_options)
+
         layout_container.addWidget(label_samplingParameters)
         layout_container.addWidget(self.row_1)
         layout_container.addWidget(self.row_2)
         layout_container.addWidget(self.row_3)
         layout_container.addWidget(self.row_4)
+        layout_container.addWidget(self.row_5)
 
         layout.addWidget(container)
 
