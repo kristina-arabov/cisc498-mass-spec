@@ -38,47 +38,15 @@ class Main(QWidget):
         screen = QApplication.primaryScreen()
         screen_size = screen.size()
 
-        # Object to store transformation variables
+        # Objects to store transformation variables
         transformation = Transformation()
-        # self.transformation_vars = {
-        #     "checkerboard": {
-        #         "mtx1": None,
-        #         "dist1": None,
-
-        #         "mtx2": None,
-        #         "dist2": None,
-
-        #         "size": None,
-        #         "location": None,
-        #         "image": None,
-        #     },
-        #     "tags": {
-        #         "loc0": None,
-        #         "loc1": None,
-        #         "loc2": None,
-        #         "loc3": None,
-
-        #         "img0": None,
-        #         "img1": None,
-        #         "img2": None,
-        #         "img3": None,
-
-        #         "bottom_left": None,
-        #         "top_right": None,
-
-        #         "size": None
-        #     },
-        #     "probe_offset": None
-        # }
-        # self.json_path = {
-        #     "json": None
-        # }
+        sampling_transformation = Transformation()
 
         self.stacked = QStackedWidget()
 
         # connect pages for application
         self.page0 = LandingPage(transformation)
-        self.page1 = ProvideTransformation(self.camera,self.light_connection)
+        self.page1 = ProvideTransformation(self.camera,self.light_connection, sampling_transformation)
         self.page2 = ROISelection()
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
