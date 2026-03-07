@@ -10,6 +10,7 @@ from Unwarping_App.services import calibration_service, sampling_service
 ''' This page handles any existing transformations the user provides'''
 class ProvideTransformation(QWidget):
     next = pyqtSignal()
+    resultAvailable = pyqtSignal(object)
 
     def __init__(self, camera, lights, transformation):
         super().__init__()
@@ -78,7 +79,11 @@ class ProvideTransformation(QWidget):
         img = self.camera.frame.copy()
         unwarped = calibration_service.unwarpPhoto(img, self.transformation)
 
+        # Show unwarped img in result container
         calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
+
+        # Send signal to other pages in sampling workflow
+        self.resultAvailable.emit(unwarped)
 
 
 class FileSelection(QWidget):

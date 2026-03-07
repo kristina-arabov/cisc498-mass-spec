@@ -92,6 +92,10 @@ class Main(QWidget):
         self.page7.next.connect(lambda: self.stacked.setCurrentIndex(8))
 
         ''' OTHER CONNECTIONS '''
+        self.page1.resultAvailable.connect(lambda img: self.page2.photo.setNewPixmap(img))
+        self.page1.resultAvailable.connect(lambda img: self.page3.photo.setNewPixmap(img))
+        self.page1.resultAvailable.connect(lambda img: self.page4.photo.setNewPixmap(img))
+
         self.page2.photo.roiSignal.connect(lambda dot, rect, x, y: self.page3.photo.setVals(dot, rect))
         self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
 
