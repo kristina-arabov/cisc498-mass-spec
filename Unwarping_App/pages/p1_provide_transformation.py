@@ -48,7 +48,7 @@ class ProvideTransformation(QWidget):
         self.button_next = QPushButton("Next", objectName="blue")
         self.button_next.clicked.connect(self.next.emit)
         # TODO will uncomment after testing
-        self.button_next.setEnabled(False) 
+        # self.button_next.setEnabled(False) 
 
         right_layout.addStretch()
         right_layout.addWidget(label, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -72,9 +72,9 @@ class ProvideTransformation(QWidget):
 
 
         # TODO will uncomment after testing
-        self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
-        self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
-        self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
+        # self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
+        # self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
+        # self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
 
 
     # Function to handle file selection
@@ -85,7 +85,7 @@ class ProvideTransformation(QWidget):
         # Update transformation vars  
         self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
         
-        self.checkAllowNext()
+        # self.checkAllowNext()
 
 
     # Apply a selected transformation on the current camera frame
