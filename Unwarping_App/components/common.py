@@ -811,6 +811,9 @@ class LightingDropdown(QWidget):
         layout_final = QHBoxLayout()
         layout_final.addWidget(self.container)
 
+        layout_final.setContentsMargins(0, 0, 0, 0)
+        layout_final.setSpacing(0)
+
         self.setLayout(layout_final)
 
         ''' Functions '''
