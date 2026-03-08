@@ -19,6 +19,7 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 import Unwarping_App.components.utils as utils
 from Unwarping_App.components.common import NavBar
 
+from Unwarping_App.services.sampling_service import SamplingItem
 from Unwarping_App.services.calibration_service import Transformation
 
 ''' Main window for the unwarping section of the application'''
@@ -41,13 +42,14 @@ class Main(QWidget):
         # Objects to store transformation variables
         transformation = Transformation()
         sampling_transformation = Transformation()
+        sampling_item = SamplingItem()
 
         self.stacked = QStackedWidget()
 
         # connect pages for application
         self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection, self.printer, sampling_transformation)
-        self.page2 = ROISelection()
+        self.page2 = ROISelection(sampling_transformation, sampling_item)
         self.page3 = PrerunConfig()
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()

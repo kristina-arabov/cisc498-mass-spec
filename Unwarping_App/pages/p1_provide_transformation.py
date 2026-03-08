@@ -71,7 +71,14 @@ class ProvideTransformation(QWidget):
         self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
 
 
+        self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.updateTransformation("x"))
+        self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.updateTransformation("y"))
+        self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.updateTransformation("size"))
+
+
+
         # TODO will uncomment after testing
+        # Check allow next
         # self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
         # self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
         # self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
@@ -91,16 +98,19 @@ class ProvideTransformation(QWidget):
     # Apply a selected transformation on the current camera frame
     def applyTransformation(self):
         try:
-            img = self.camera.frame.copy()
-            unwarped = calibration_service.unwarpPhoto(img, self.transformation)
-
-
             # TODO uncomment after testing
             # pos = device_service.getPrinterPosition(self.printer)
 
             # if pos[2] != self.transformation.height:
             #     print("height not same")
             #     return
+
+            # self.transformation.photo_loc = pos
+
+            # Unwarp photo if printer is at the same height as calibration
+            img = self.camera.frame.copy()
+            unwarped = calibration_service.unwarpPhoto(img, self.transformation)
+
 
             # Show unwarped img in result container
             calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
@@ -178,6 +188,21 @@ class ProvideTransformation(QWidget):
         if not allow_next:
             self.button_next.setEnabled(False)
 
+
+    # Update transformation variables on input
+    def updateTransformation(self, type=None):
+        if type == "x":
+            val = self.component_tagInfo.input_bottomLeftX.text()
+            self.transformation.tag_bottom_left[0] = float(val)
+
+        elif type == "y":
+            val = self.component_tagInfo.input_bottomLeftY.text()
+            self.transformation.tag_bottom_left[1] = float(val)
+
+        elif type == "size":
+            val = self.component_tagInfo.input_tagSize.text()
+            self.transformation.tag_size = float(val)
+        
 
 
 # File selection component
