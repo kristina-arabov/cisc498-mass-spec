@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QFrame, QLabel, QGridLayout, 
     QHBoxLayout, QPushButton, QSizePolicy, QToolButton,
     QScrollArea, QComboBox, QSlider, QVBoxLayout,
-    QLineEdit, QGraphicsDropShadowEffect, QCheckBox, QStyle
+    QLineEdit, QGraphicsDropShadowEffect, QCheckBox, QStyle, QApplication
 )
 
 
@@ -1313,9 +1313,15 @@ class InputField(QWidget):
 class ArrowButton(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        screen = QApplication.instance().primaryScreen()
+        current_height = screen.size().height()
+
+        base_screen_height = 1117
+        scale = current_height / base_screen_height
+        length = min(int(65 * scale), 75)
 
         layout = QVBoxLayout(self)
-        self.setFixedHeight(100)
+        self.setFixedHeight(length)
 
         self.button = QPushButton("Unwarp", objectName="clear")
         # self.button.setEnabled(False)
@@ -1355,10 +1361,11 @@ class UnwarpComparison(QWidget):
         super().__init__()
 
         layout = QVBoxLayout(self)
+        val = self.compute_scale()
 
-        self.feed = CamFeed(scale=0.42)
+        self.feed = CamFeed(scale=val)
         self.arrow = ArrowButton()
-        self.result = CamFeed(scale=0.42)
+        self.result = CamFeed(scale=val)
 
         layout.addWidget(self.feed)
         layout.addWidget(self.arrow)
@@ -1366,3 +1373,18 @@ class UnwarpComparison(QWidget):
 
         layout.setContentsMargins(0, 0, 0, 0) 
         layout.setSpacing(0)  
+
+
+    # Function to handle scaling of the image feeds
+    def compute_scale(self):
+        screen = QApplication.instance().primaryScreen()
+        available = screen.size()
+
+        base_screen_height = 1117
+        base_scale = 0.42
+
+        scale = base_scale * (available.height() / base_screen_height)
+
+        scale = min(scale, base_scale)
+
+        return scale
