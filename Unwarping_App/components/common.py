@@ -1087,6 +1087,8 @@ class TagOverlay(QWidget):
             QColor("#C5C5C5"),  # top right
         ]
 
+        self.setContentsMargins(0,0,0,0)
+
     # function to set corner colour based on action
     def set_colour(self, i, colour):
         self.corner_colours[i] = QColor(colour)

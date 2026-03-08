@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox
+from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox, QApplication
 from PyQt5.QtGui import QColor, QIcon
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -33,12 +33,19 @@ class ProbeDetection(QWidget):
         left = QWidget()
         layout_left = QVBoxLayout(left)
 
-        component_cameraFeed = CamFeed()
+
+        
         self.component_tag = TagInstructions(self.camera, self.printer, self.transformation)
 
+        val = self.compute_scale()
+        component_cameraFeed = CamFeed(scale=val)
+
+
         layout_left.addWidget(component_cameraFeed)
-        layout_left.addStretch()
         layout_left.addWidget(self.component_tag)
+
+        layout_left.setContentsMargins(0, 0, 0, 0)
+        layout_left.setSpacing(0)
 
 
         # RIGHT COLUMN ----------------------------------------
@@ -52,24 +59,25 @@ class ProbeDetection(QWidget):
 
         # Tag information
         self.component_tagInformation = TagInformationSection()
+        self.component_tagInformation.setFixedWidth(component_lightControl.sizeHint().width())
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
 
         layout_right.addStretch()
-        layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
-        layout_right.addWidget(self.component_tagInformation, alignment=Qt.AlignLeft)
+        layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(self.component_tagInformation, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addStretch()
-        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addWidget(button_next, alignment=Qt.AlignCenter | Qt.AlignRight)
         layout_right.addStretch()
 
-        layout_right.setContentsMargins(0, 0, 0, 0)
+        layout_right.setContentsMargins(10, 0, 0, 0)
         layout_right.setSpacing(10)
 
         # COMPOSE ----------------------------------------
         layout.addWidget(left)
-        layout.addWidget(right)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0) 
@@ -105,6 +113,24 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_bottomLeftX.clear()
         self.component_tagInformation.input_bottomLeftY.clear()
         self.component_tagInformation.input_tagSize.clear()
+
+
+    # Function to handle scaling of image feed
+    def compute_scale(self):
+        screen = QApplication.instance().primaryScreen()
+        available = screen.size().height()
+
+        base_screen_height = 1117
+        tag_component_height = self.component_tag.sizeHint().height()
+
+        available = available - tag_component_height
+
+        base_scale = 0.7
+
+        scale = base_scale * (available / base_screen_height)
+        scale = min(scale, base_scale)
+
+        return scale
 
 
 class TagInstructions(QWidget):
@@ -153,9 +179,11 @@ class TagInstructions(QWidget):
 
         self.button_probeLocation = QPushButton("Probe at location", objectName="blue")
 
+        layout_column_2.addStretch()
         layout_column_2.addWidget(self.button_nextCorner)
         layout_column_2.addWidget(self.button_previousCorner)
         layout_column_2.addWidget(self.button_probeLocation)
+        layout_column_2.addStretch()
 
         layout_column_2.setContentsMargins(0,0,0,0)
         layout_column_2.setSpacing(5)
