@@ -14,6 +14,10 @@ class SamplingItem():
         self.dot = None
 
 
+        self.total_points = None
+        self.sampled_points = None
+        
+        self.estimated_time = None
 
 
 
