@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QFrame, QLabel, QGridLayout, 
     QHBoxLayout, QPushButton, QSizePolicy, QToolButton,
     QScrollArea, QComboBox, QSlider, QVBoxLayout,
-    QLineEdit, QGraphicsDropShadowEffect, QCheckBox, QStyle
+    QLineEdit, QGraphicsDropShadowEffect, QCheckBox, QStyle, QApplication
 )
 
 
@@ -1012,17 +1012,17 @@ class TagInformationSection(QWidget):
         container = QWidget(objectName="light_blue_box")
         layout_container = QVBoxLayout(container)
 
-        label_tagInformation = QLabel("Tag Information", objectName="larger")
+        label_tagInformation = QLabel("Probe-to-Tag Information", objectName="larger")
         label_tagInformation.setStyleSheet("font-weight: bold;")
 
         self.label_msg = QLabel("An AprilTag must be clearly visible in the image.")
-        self.label_msg.hide()
 
         ''' ROW 1 '''
         row_1 = QWidget()
         layout_row_1 = QHBoxLayout(row_1)
 
         label_bottomLeft = QLabel("Bottom-left corner")
+        label_bottomLeft.setStyleSheet("font-weight: bold;")
 
         label_bottomLeftX = QLabel("X: ")
         self.input_bottomLeftX = QLineEdit()
@@ -1043,6 +1043,8 @@ class TagInformationSection(QWidget):
         layout_row_2 = QHBoxLayout(row_2)
 
         label_tagSize = QLabel("Tag size (mm): ")
+        label_tagSize.setStyleSheet("font-weight: bold;")
+        
         self.input_tagSize = QLineEdit()
 
         layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
@@ -1313,9 +1315,15 @@ class InputField(QWidget):
 class ArrowButton(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        screen = QApplication.instance().primaryScreen()
+        current_height = screen.size().height()
+
+        base_screen_height = 1117
+        scale = current_height / base_screen_height
+        length = min(int(65 * scale), 75)
 
         layout = QVBoxLayout(self)
-        self.setFixedHeight(100)
+        self.setFixedHeight(length)
 
         self.button = QPushButton("Unwarp", objectName="clear")
         # self.button.setEnabled(False)
@@ -1355,10 +1363,11 @@ class UnwarpComparison(QWidget):
         super().__init__()
 
         layout = QVBoxLayout(self)
+        val = self.compute_scale()
 
-        self.feed = CamFeed(scale=0.42)
+        self.feed = CamFeed(scale=val)
         self.arrow = ArrowButton()
-        self.result = CamFeed(scale=0.42)
+        self.result = CamFeed(scale=val)
 
         layout.addWidget(self.feed)
         layout.addWidget(self.arrow)
@@ -1366,3 +1375,18 @@ class UnwarpComparison(QWidget):
 
         layout.setContentsMargins(0, 0, 0, 0) 
         layout.setSpacing(0)  
+
+
+    # Function to handle scaling of the image feeds
+    def compute_scale(self):
+        screen = QApplication.instance().primaryScreen()
+        available = screen.size()
+
+        base_screen_height = 1117
+        base_scale = 0.42
+
+        scale = base_scale * (available.height() / base_screen_height)
+
+        scale = min(scale, base_scale)
+
+        return scale

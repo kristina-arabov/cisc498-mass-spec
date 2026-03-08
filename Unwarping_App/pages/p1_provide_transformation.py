@@ -27,21 +27,21 @@ class ProvideTransformation(QWidget):
 
         layout = QHBoxLayout(self)
 
-        ''' LEFT COLUMN '''
+        # LEFT COLUMN ----------------------------------------
         self.component_unwarpComparison = UnwarpComparison()
 
-        ''' RIGHT COLUMN '''
+        # RIGHT COLUMN ----------------------------------------
         right = QWidget()
         right_layout = QVBoxLayout(right)
 
         label = QLabel("Provide a Transformation", objectName="page_title")
 
-        # Selection box
-        self.file_box = FileSelection()
-
         # Tag inputs
         component_tagInfo = TagInformationSection()
-        component_tagInfo.label_msg.show()
+
+        # Selection box
+        self.file_box = FileSelection()
+        self.file_box.setFixedWidth(component_tagInfo.sizeHint().width())
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
@@ -53,19 +53,21 @@ class ProvideTransformation(QWidget):
         right_layout.addStretch()
         right_layout.addWidget(button_next, alignment=Qt.AlignRight)
 
-        ''' COMPOSE '''
+        # COMPOSE ----------------------------------------
         layout.addWidget(self.component_unwarpComparison)
         layout.addWidget(right)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
 
-        ''' FUNCTIONS '''
+        # FUNCTIONS --------------------------------------
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.component_unwarpComparison.feed, frame))
         self.component_unwarpComparison.arrow.button.clicked.connect(lambda: self.applyTransformation())
         
         self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
 
+
+    # Handle file selection
     def selectFile(self):
         path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
         self.file_box.path.setText(path)
@@ -74,6 +76,7 @@ class ProvideTransformation(QWidget):
         sampling_service.setTransformation(self.transformation, path)
 
 
+    # Apply a selected transformation on the current camera frame
     def applyTransformation(self):
         img = self.camera.frame.copy()
         unwarped = calibration_service.unwarpPhoto(img, self.transformation)
@@ -85,6 +88,7 @@ class ProvideTransformation(QWidget):
         self.resultAvailable.emit(unwarped)
 
 
+# File selection component
 class FileSelection(QWidget):
     def __init__(self):
         super().__init__()
@@ -104,6 +108,6 @@ class FileSelection(QWidget):
         file_box_layout.addWidget(self.btn_select, alignment=Qt.AlignCenter)
         file_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
 
-        container.setFixedWidth(475)
-
         layout.addWidget(container)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
