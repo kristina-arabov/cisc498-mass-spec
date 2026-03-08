@@ -1093,8 +1093,18 @@ class TagOverlay(QWidget):
         self.update()
     
     def paintEvent(self, event):
-        self.setFixedSize(100, 100) # TODO dynamic?
-        square = QRect(15, 15, 75, 75)
+        screen = QApplication.instance().primaryScreen()
+        current_height = screen.size().height()
+
+        base_screen_height = 1117
+        scale = current_height / base_screen_height
+        size = min(int(100 * scale), 100)
+
+        self.setFixedSize(size, size)
+        square_l = min(int(15 * scale), 15)
+        square_r = min(int(75 * scale), 75)
+
+        square = QRect(square_l, square_l, square_r, square_r)
         image = QPixmap("Unwarping_App/components/images/tag.svg") # set tag image as background
         image = image.scaled(square.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
         

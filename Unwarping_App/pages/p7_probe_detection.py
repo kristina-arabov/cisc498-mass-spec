@@ -20,18 +20,7 @@ class ProbeDetection(QWidget):
         self.transformation = transformation
 
         self.initUI()
-    # def __init__(self, camera, light_connection, printer, vars):
-    #     super().__init__()
-    #     self.camera = camera
-    #     self.camera.enable_buttons.connect(self.camConnection)
-        
-    #     self.light_connection = light_connection
-    #     self.light_connection.enable_buttons.connect(self.lightConnection)
-        
-    #     self.printer = printer
-    #     self.vars = vars
 
-    #     self.initUI()
     
     def initUI(self):
         styling = "Unwarping_App/components/style.css"
@@ -40,7 +29,7 @@ class ProbeDetection(QWidget):
 
         layout = QHBoxLayout(self)
 
-        ''' LEFT COLUMN '''
+        # LEFT COLUMN ----------------------------------------
         left = QWidget()
         layout_left = QVBoxLayout(left)
 
@@ -52,12 +41,11 @@ class ProbeDetection(QWidget):
         layout_left.addWidget(self.component_tag)
 
 
-        ''' RIGHT COLUMN '''
+        # RIGHT COLUMN ----------------------------------------
         right = QWidget()
         layout_right = QVBoxLayout(right)
 
         label_probeDetection = QLabel("Probe Detection", objectName="page_title")
-        # TODO symbol?
 
         # Lighting control
         component_lightControl = LightingDropdown()
@@ -72,20 +60,21 @@ class ProbeDetection(QWidget):
         layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_lightControl, alignment=Qt.AlignLeft)
         layout_right.addWidget(self.component_tagInformation, alignment=Qt.AlignLeft)
+        layout_right.addStretch()
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
-        layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(0) 
+        layout_right.setContentsMargins(0, 0, 0, 0)
+        layout_right.setSpacing(10)
 
-        ''' COMPOSE '''
+        # COMPOSE ----------------------------------------
         layout.addWidget(left)
         layout.addWidget(right)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0) 
 
-        ''' FUNCTIONS '''
+        # FUNCTIONS --------------------------------------
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
 
@@ -136,13 +125,13 @@ class TagInstructions(QWidget):
         self.component_tagOverlay = TagOverlay()
         self.component_tagOverlay.corner_colours[self.idx] = QColor("#212D99")
 
-        ''' COLUMN 1 '''
+        # COLUMN 1 --------------------------------------
         column_1 = QWidget()
         layout_column_1 = QVBoxLayout(column_1)
 
         self.label_instructions = QLabel("Please manually align the highlighted blue corner with the crosshair.")
+        self.label_instructions.setWordWrap(True)
         self.label_instructions.adjustSize()
-        self.label_instructions.setFixedSize(self.label_instructions.size())
 
         self.line_progressBar = QProgressBar()
         self.line_progressBar.setRange(0, 100)
@@ -154,7 +143,7 @@ class TagInstructions(QWidget):
         layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
 
 
-        ''' COLUMN 2 '''
+        # COLUMN 2 --------------------------------------
         column_2 = QWidget()
         layout_column_2 = QVBoxLayout(column_2)
 
@@ -172,7 +161,7 @@ class TagInstructions(QWidget):
         layout_column_2.setSpacing(5)
 
 
-        ''' COMPOSE '''
+        # COMPOSE --------------------------------------
         layout.addWidget(self.component_tagOverlay)
         layout.addWidget(column_1)
         layout.addWidget(column_2)
@@ -181,7 +170,7 @@ class TagInstructions(QWidget):
         layout.setSpacing(0)
 
 
-        ''' FUNCTIONS '''
+        # FUNCTIONS --------------------------------------
         self.button_nextCorner.clicked.connect(lambda: self.handleCorners("next"))
         self.button_previousCorner.clicked.connect(lambda: self.handleCorners("back"))
         self.button_probeLocation.clicked.connect(lambda: self.handleCornerConfirm())
@@ -221,11 +210,6 @@ class TagInstructions(QWidget):
 
     # Function to acquire the probe's position in alignment with a specific tag corner
     def handleCornerConfirm(self):
-
-        # print("BEFORE")
-        # print(self.transformation.mtx1, self.transformation.dist1)
-        # print(self.transformation.mtx2, self.transformation.dist2)
-
         # Obtain values for location
         img = self.camera.frame.copy()
         img = calibration_service.unwarpPhoto(img, self.transformation)
@@ -248,14 +232,6 @@ class TagInstructions(QWidget):
         if not False in self.corners_imaged:
             self.offsetAvailable.emit()
 
-        # print("AFTER")
-        # print(getattr(self.transformation, f"loc{self.idx}"))
-
-        # # Show img REMOVE
-        # cv2.imshow("Tag", getattr(self.transformation, f"img{self.idx}"))
-        # cv2.waitKey(0)
-        # cv2.destroyAllWindows()
-
 
     # Function to set colours to probed or not probed corners
     def setProbedColors(self):
@@ -263,141 +239,3 @@ class TagInstructions(QWidget):
             self.component_tagOverlay.corner_colours[i] = QColor("#4FC46E") if self.corners_imaged[i] else QColor("#C5C5C5")
 
     
-
-
-''' OLD CODE BELOW '''
-    #     widgets = []
-    #     layout = QGridLayout()
-
-    #     control_col = QWidget()
-    #     control_col_layout = QVBoxLayout()
-
-    #     # Image feed
-    #     self.feed = CamFeed("")
-    #     self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.feed, frame))
-
-    #     # corner buttons
-    #     self.button_nextCorner = QPushButton("Next corner", objectName="blue")
-    #     self.button_nextCorner.clicked.connect(lambda: self.handleCorners("next"))
-
-    #     self.button_previousCorner = QPushButton("Previous corner", objectName="blue")
-    #     self.button_previousCorner.clicked.connect(lambda: self.handleCorners("previous"))
-    #     self.button_previousCorner.setEnabled(False)
-
-    #     # april tag overlay
-    #     self.tag_overlay = TagOverlay()
-    #     self.idx = 0
-    #     self.corners_imaged = [False, False, False, False]
-    #     self.tag_overlay.corner_colours[self.idx] = QColor("#212D99")
-
-    #     # instructions text
-    #     self.instructions = QLabel("Please move the probe to the highlighted blue corner.", objectName="larger")
-
-    #     # Ports
-    #     self.camera_connection = PortControl("Camera: ")
-    #     self.camera_connection.connect_btn.clicked.connect(lambda: self.camConnection(True))
-    #     self.camera_connection.disconnect_btn.clicked.connect(lambda: self.camConnection(False))
-    #     self.camera_connection.update_btn.clicked.connect(lambda: self.camera_connection.updatePorts(self.camera))
-    #     self.camera_connection.dropdown.currentIndexChanged.connect(lambda: updateDropdownIndex(self.camera, self.camera_connection.dropdown.currentData()))
-
-    #     self.lighting_control = PortControl("Lighting: ")
-    #     self.lighting_control.connect_btn.clicked.connect(lambda: self.lightConnection(True))
-    #     self.lighting_control.disconnect_btn.clicked.connect(lambda: self.lightConnection(False))
-    #     self.lighting_control.update_btn.clicked.connect(lambda: self.lighting_control.updatePorts(self.light_connection))
-    #     self.lighting_control.dropdown.currentIndexChanged.connect(lambda: updateDropdownIndex(self.light_connection, self.lighting_control.dropdown.currentData()))
-
-    #     # lighting adjustment
-    #     lighting = LightingDropdown()
-    #     lighting.slider.valueChanged.connect(lambda: setBrightness(lighting, self.light_connection))
-
-    #     # corner stuff + tag
-    #     self.probe_dropdown = ProbeDropdown()
-    #     self.probe_dropdown.tag_size_input.textChanged.connect(lambda: self.saveTagSize(self.vars, self.probe_dropdown.tag_size_input.text()))
-
-    #     self.probe_dropdown.bottom_left_X.textChanged.connect(lambda: self.cornerOnChange("bottom_left"))
-    #     self.probe_dropdown.bottom_left_Y.textChanged.connect(lambda: self.cornerOnChange("bottom_left"))
-
-    #     self.probe_dropdown.top_right_X.textChanged.connect(lambda: self.cornerOnChange("top_right"))
-    #     self.probe_dropdown.top_right_Y.textChanged.connect(lambda: self.cornerOnChange("top_right"))
-
-    #     # done + capture buttons
-    #     self.done_button = QPushButton("Probe at location", objectName="dark_blue")
-    #     self.done_button.clicked.connect(lambda: self.handleCornerConfirm())
-
-    #     self.capture_button = QPushButton("Capture photo", objectName="dark_blue")
-    #     self.capture_button.clicked.connect(lambda: self.saveTagPhoto())
-    #     self.capture_button.hide() # hide for now
-
-    #     widgets.append(self.camera_connection)
-    #     widgets.append(self.lighting_control)
-    #     widgets.append(lighting)
-    #     widgets.append(self.probe_dropdown)
-    #     widgets.append(self.done_button)
-    #     widgets.append(self.capture_button)
-
-    #     control_col_layout = addAllWidgets(control_col_layout, widgets)
-    #     control_col_layout.setAlignment(self.done_button, Qt.Alignment(0))
-    #     control_col_layout.setAlignment(self.capture_button, Qt.Alignment(0))
-    #     control_col.setLayout(control_col_layout)
-
-    #     layout.addWidget(self.feed, 0, 0, 1, 4, alignment=Qt.AlignLeft)
-    #     layout.addWidget(self.button_nextCorner, 1, 0)
-    #     layout.addWidget(self.tag_overlay, 1, 1, 2, 1)
-    #     layout.addWidget(self.instructions, 1, 2, 2, 1)
-    #     layout.addWidget(self.button_previousCorner, 2, 0)
-    #     layout.addWidget(control_col, 0, 3, 3, 1)
-
-
-    #     self.setLayout(layout)
-
-
-
-
-    # def saveTagSize(self, vars, value):
-    #     # Save as float, in case the tag has some mm measurement
-    #     vars["tags"]["size"] = float(value)
-    
-    # def cornerOnChange(self, type):
-    #     if type == "bottom_left":
-    #         x = float(self.probe_dropdown.bottom_left_X.text())
-    #         y = float(self.probe_dropdown.bottom_left_Y.text())
-    #         self.vars["tags"]["bottom_left"] = (x, y)
-        
-    #     elif type == "top_right":
-    #         x = float(self.probe_dropdown.top_right_X.text())
-    #         y = float(self.probe_dropdown.top_right_Y.text())
-    #         self.vars["tags"]["top_right"] = (x, y)
-    
-    # def camConnection(self, connected):
-    #     if connected:
-    #         if not self.camera.running:
-    #             try:
-    #                 self.camera.start()
-    #             except:
-    #                 pass
-            
-    #         if self.camera.running and self.camera.capture.isOpened():
-    #             self.camera_connection.icon.setIcon(QIcon("Unwarping_App/components/images/checkmark.svg"))
-        
-    #     elif not connected:
-    #         if self.camera.running:
-    #             self.camera.stop()
-        
-    #         self.camera_connection.icon.setIcon(QIcon("Unwarping_App/components/images/red_x.svg"))
-    
-    # def lightConnection(self, connected):
-    #     if connected:
-    #         if not self.light_connection.running:
-    #             try:
-    #                 self.light_connection.start()
-    #             except:
-    #                 pass
-        
-    #         if self.light_connection.running:
-    #             self.lighting_control.icon.setIcon(QIcon("Unwarping_App/components/images/checkmark.svg"))
-    
-    #     elif not connected:
-    #         if self.light_connection.running:
-    #             self.light_connection.stop()
-            
-    #         self.lighting_control.icon.setIcon(QIcon("Unwarping_App/components/images/red_x.svg"))
