@@ -361,6 +361,10 @@ def createTransformationFile(transformation):
     with open(os.path.join(f"transformations/") + f"data_{timestamp}.json", "w") as json_file:
         json.dump(json_data, json_file, indent=3)
 
+    # Return name for user to see
+    name = f"data_{timestamp}.json"
+    return name
+
 def calculateOffset(transformation):
     mtx1 = transformation.mtx1
     dist1 = np.array([[0, 0, 0, 0, 0]], dtype=np.float32)

@@ -49,7 +49,9 @@ class CheckerboardDetection(QWidget):
         label_checkerboard = QLabel("Checkerboard Detection", objectName="page_title")
 
         component_lightControl = LightingDropdown()
+
         self.component_checkerboardParams = CheckerboardParamsSection()
+        self.component_checkerboardParams.setFixedWidth(component_lightControl.sizeHint().width())
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
@@ -146,8 +148,9 @@ class CheckerboardParamsSection(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
         """)
-        self.setFixedWidth(375)
 
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
 
 
