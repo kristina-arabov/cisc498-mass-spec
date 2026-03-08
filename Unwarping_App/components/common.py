@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 
 
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon, QFont
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon, QFont, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QSize, QParallelAnimationGroup, QPropertyAnimation, QAbstractAnimation
 from PyQt5 import QtSvg
 
@@ -1029,9 +1029,11 @@ class TagInformationSection(QWidget):
 
         label_bottomLeftX = QLabel("X: ")
         self.input_bottomLeftX = QLineEdit()
+        self.input_bottomLeftX.setValidator(QDoubleValidator())
 
         label_bottomLeftY = QLabel("Y: ")
         self.input_bottomLeftY = QLineEdit()
+        self.input_bottomLeftY.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
@@ -1049,6 +1051,7 @@ class TagInformationSection(QWidget):
         label_tagSize.setStyleSheet("font-weight: bold;")
         
         self.input_tagSize = QLineEdit()
+        self.input_tagSize.setValidator(QDoubleValidator())
 
         layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
         layout_row_2.addWidget(self.input_tagSize)
