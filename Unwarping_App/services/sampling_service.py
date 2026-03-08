@@ -181,14 +181,14 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base):
     start_point_in_base = cam2base @ start_point_from_cam_principal
     end_point_in_base = cam2base @ end_point_from_cam_principal
 
-
+    # 3D start position
     start_x = pos[0] + (start_point_in_base[0] * 10)
     start_y = pos[1] + (start_point_in_base[1] * 10)
 
     start_x += transformation.offset_x
     start_y += transformation.offset_y
 
-
+    # 3D end position
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
