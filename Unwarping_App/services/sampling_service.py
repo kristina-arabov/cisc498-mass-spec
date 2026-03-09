@@ -1,6 +1,9 @@
 import json
 import numpy as np
 import cv2
+from collections import defaultdict
+
+import time
 
 from Unwarping_App.services import calibration_service
 
@@ -19,6 +22,11 @@ class SamplingItem():
         
         self.estimated_time = None
 
+        self.gcodes = []
+        self.timestamps = []
+        self.readable_timestamps = []
+        self.completed_gcodes = 0
+        
 
 
 def setTransformation(transformation, path, valid):
@@ -50,6 +58,8 @@ def setTransformation(transformation, path, valid):
     return valid
 
 
+
+# TODO fix bugginess ? why not working properly
 def findLocations(transformation, sampling, img):
     print("working!")
 
@@ -219,6 +229,59 @@ def getDirectionFromPixel(u, v, mtx):
 
     direction = np.array([x, y, z])
     return direction
+
+
+
+def getSampling(sampling):
+    # All sampling points + reference
+
+    # Convert to serpentine pattern
+    locations = [(100, 5), (110, 5), (120, 5), (100, 0), (110, 0), (120, 0), (100, -5), (110, -5), (120, -5)]
+    locations = serpentinePath(locations)
+    
+
+    sampling.gcodes.append("G90")
+
+    for i in locations:
+        # Command: Go to (X, Y) location
+        sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+        
+        # Command: Go to Z sampling height
+        sampling.gcodes.append("G0 Z"+ str(-5)) # TODO temp height
+
+        # Command: Dwell for __ milliseconds
+        dwell_time = int(6) * 1000 # TODO temp time
+        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+        # Command: Return to Z ransit height
+        sampling.gcodes.append("G0 Z"+ str(0)) # TODO temp height
+
+
+    sampling.completed_gcodes = 0
+    sampling.timestamps = []
+    sampling.readable_timestamps = [0]
+
+    # Start timer
+    sampling.timestamps.append(time.time())
+
+    # print(sampling.gcodes)
+
+
+# Function to sort 3D sampling locations into a serpentine pattern
+def serpentinePath(locations):
+    rows = defaultdict(list)
+
+    for x, y in locations:
+        rows[y].append((x, y))
+
+    serpentine = []
+
+    # Move down on Y and reverse X (alternating)
+    for i, y in enumerate(sorted(rows, reverse=True)):
+        row = sorted(rows[y])
+        serpentine.extend(row if i % 2 == 0 else row[::-1])
+
+    return serpentine
 
 
     # start_point = rectangle.topLeft()

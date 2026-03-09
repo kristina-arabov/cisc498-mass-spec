@@ -21,6 +21,7 @@ from Unwarping_App.components.common import NavBar
 
 from Unwarping_App.services.sampling_service import SamplingItem
 from Unwarping_App.services.calibration_service import Transformation
+from Unwarping_App.services import sampling_service
 
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):
@@ -124,6 +125,9 @@ class Main(QWidget):
 
         self.setMaximumSize(1440, 851)
         self.setWindowTitle("Unwarping Application")
+
+        sampling_service.getSampling(sampling_item)
+
         self.show()
     
 
