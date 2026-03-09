@@ -156,7 +156,12 @@ class ReferencePointSection(QWidget):
         container = QWidget(objectName="light_blue_box")
         layout_container = QHBoxLayout(container)
 
-        icon_number = QLabel("1")
+        icon_number = QLabel("1) ")
+        icon_number.setStyleSheet("""
+            color: #10164D;
+            font-weight: bold;
+        """)
+
         label_title = QLabel("Reference Point", objectName="larger")
         label_title.setStyleSheet("font-weight: bold;")
 
@@ -188,7 +193,12 @@ class DrawROISection(QWidget):
         row_1 = QWidget()
         layout_row_1 = QHBoxLayout(row_1)
 
-        icon_number = QLabel("2")
+        icon_number = QLabel("2) ")
+        icon_number.setStyleSheet("""
+            color: #10164D;
+            font-weight: bold;
+        """)
+
         label_selection = QLabel("Sampling Region", objectName="larger")
         label_selection.setStyleSheet("font-weight: bold;")
 
@@ -206,6 +216,8 @@ class DrawROISection(QWidget):
         layout_row_1.addStretch()
         layout_row_1.addWidget(self.button_draw)
         layout_row_1.addWidget(self.button_rectangle)
+
+        layout_row_1.setContentsMargins(0,0,0,0)
 
 
         # ROW 2 --------------------------------------
@@ -231,7 +243,7 @@ class DrawROISection(QWidget):
 
 
         # COMPOSE --------------------------------------
-        layout_container.addWidget(row_1)
+        layout_container.addWidget(row_1, alignment=Qt.AlignLeft)
         layout_container.addWidget(self.row_2)
         layout_container.addWidget(self.row_3)
 
