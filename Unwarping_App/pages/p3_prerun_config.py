@@ -49,7 +49,7 @@ class PrerunConfig(QWidget):
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(10)
+        layout_right.setSpacing(15)
 
         self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 10)
 

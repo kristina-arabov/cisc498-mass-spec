@@ -56,7 +56,7 @@ class ROISelection(QWidget):
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(10)
+        layout_right.setSpacing(15)
 
         
         # COMPOSE --------------------------------------
