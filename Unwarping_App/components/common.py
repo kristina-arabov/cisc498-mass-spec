@@ -1155,14 +1155,34 @@ class ClickableImage(QLabel):
         self.sample_overlay_y = None
         # self.sample_overlay = None
 
-        # positions + flag
+        # Positions + flag
         self.start_point = None
         self.end_point = None
         self.drawing = False
 
-        self.feed_width = int(1280 * 0.7)
-        self.feed_height = int(720 * 0.7)
+
+        # Scaling factor (for different monitor sizes)
+        self.scale_val = self.compute_scale()
+
+        self.feed_width = int(1280 * self.scale_val)
+        self.feed_height = int(720 * self.scale_val)
+
         self.setFixedSize(self.feed_width, self.feed_height)
+
+
+    # Function to handle scaling of image feed
+    def compute_scale(self):
+        screen = QApplication.instance().primaryScreen()
+        available = screen.size().height()
+
+        base_screen_height = 1117
+        base_scale = 0.7
+
+        scale = base_scale * (available / base_screen_height)
+        scale = min(scale, base_scale)
+
+        return scale
+
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1271,7 +1291,8 @@ class ClickableImage(QLabel):
         h, w, ch = rgb_img.shape
         bytes_per_line = ch * w
         q_img = QImage(rgb_img.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        self.scaled = q_img.scaled(int(1280 * 0.7), int(720 * 0.7), Qt.KeepAspectRatio)
+
+        self.scaled = q_img.scaled(int(1280 * self.scale_val), int(720 * self.scale_val), Qt.KeepAspectRatio)
         self.scaled = QPixmap.fromImage(self.scaled)
         self.setPixmap(self.scaled)
 

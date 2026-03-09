@@ -58,8 +58,8 @@ class ProvideTransformation(QWidget):
         right_layout.addWidget(self.button_next, alignment=Qt.AlignRight)
 
         # COMPOSE ----------------------------------------
-        layout.addWidget(self.component_unwarpComparison)
-        layout.addWidget(right)
+        layout.addWidget(self.component_unwarpComparison, alignment=Qt.AlignCenter)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
