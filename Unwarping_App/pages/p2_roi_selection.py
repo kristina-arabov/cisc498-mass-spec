@@ -39,7 +39,8 @@ class ROISelection(QWidget):
         label_selectArea = QLabel("Select sampling area", objectName="page_title")
 
         self.referencePoint = ReferencePointSection()
-        self.ROI = DrawROISection()
+        
+        self.ROI = DrawROISection()    
 
         button_clear = QPushButton("Clear all", objectName="headerBlue")
 
@@ -54,13 +55,20 @@ class ROISelection(QWidget):
         layout_right.addWidget(button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
+        layout_right.setContentsMargins(0,0,0,0)
+        layout_right.setSpacing(10)
+
         
         # COMPOSE --------------------------------------
         layout.addWidget(self.photo)
-        layout.addWidget(right)
+        layout.addWidget(right, alignment=Qt.AlignCenter)
         
         layout.setContentsMargins(0, 0, 0, 0) 
-        layout.setSpacing(0)  
+
+
+        self.ROI.setFixedWidth(self.ROI.sizeHint().width())
+        self.referencePoint.setFixedWidth(self.ROI.width())
+        
 
         
         # FUNCTIONS --------------------------------------
@@ -149,7 +157,7 @@ class ReferencePointSection(QWidget):
         layout_container = QHBoxLayout(container)
 
         icon_number = QLabel("1")
-        label_title = QLabel("Reference Point selection", objectName="larger")
+        label_title = QLabel("Reference Point", objectName="larger")
         label_title.setStyleSheet("font-weight: bold;")
 
         self.button_action = QPushButton("Select", objectName="blue")
@@ -160,6 +168,8 @@ class ReferencePointSection(QWidget):
         layout_container.addWidget(self.button_action)
 
         layout.addWidget(container)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
         self.setStyleSheet("""
             QWidget#light_blue_box, QLabel { background-color: #C8D3F1; }
@@ -179,7 +189,7 @@ class DrawROISection(QWidget):
         layout_row_1 = QHBoxLayout(row_1)
 
         icon_number = QLabel("2")
-        label_selection = QLabel("ROI selection", objectName="larger")
+        label_selection = QLabel("Sampling Region", objectName="larger")
         label_selection.setStyleSheet("font-weight: bold;")
 
         self.button_draw = QRadioButton("Draw")
@@ -226,6 +236,8 @@ class DrawROISection(QWidget):
         layout_container.addWidget(self.row_3)
 
         layout.addWidget(container)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
