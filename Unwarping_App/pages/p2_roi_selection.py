@@ -68,6 +68,12 @@ class ROISelection(QWidget):
         self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
         self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
 
+        self.ROI.button_pencil.clicked.connect(lambda: self.setDrawTool("pencil"))
+        self.ROI.button_eraser.clicked.connect(lambda: self.setDrawTool("eraser"))
+
+        self.ROI.button_convert.clicked.connect(self.photo.convertToPolygon)
+        self.ROI.button_reset.clicked.connect(self.photo.resetROI)
+
 
 
     ''' Function to handle setting a reference point '''
@@ -93,10 +99,18 @@ class ROISelection(QWidget):
                 self.ROI.button_rectangle.setEnabled(True)
 
                 if self.ROI.button_draw.isChecked():
-                    self.ROI.row_2.show()
-                    self.ROI.row_3.show()
+                    self.ROIMode("Draw")
+                elif self.ROI.button_rectangle.isChecked():
+                    self.ROIMode("Rectangle")
 
     
+
+    ''' Function to set the active draw tool (pencil or eraser) '''
+    def setDrawTool(self, tool):
+        self.photo.draw_mode = tool
+        # Keep buttons in sync as a toggle pair
+        self.ROI.button_pencil.setChecked(tool == "pencil")
+        self.ROI.button_eraser.setChecked(tool == "eraser")
 
     ''' Function to handle when user selects a drawing type '''
     def ROIMode(self, type=None):
@@ -105,12 +119,52 @@ class ROISelection(QWidget):
             self.ROI.row_2.hide()
             self.ROI.row_3.hide()
             self.photo.type = "Rectangle"
+            self.photo.draw_mode = None
+            # Clear any draw history when switching to Rectangle
+            self.photo.draw_strokes = []
+            self.photo.current_stroke = []
+            self.photo.roi_closed = False
+            self.photo.update()
 
         # Handle hand-drawn selections
         elif type == "Draw":
             self.ROI.row_2.show()
             self.ROI.row_3.show()
             self.photo.type = "Draw"
+            # Clear any rectangle when switching to Draw
+            self.photo.rectangle = None
+            # Default to pencil when entering draw mode
+            self.photo.draw_mode = "pencil"
+            self.ROI.button_pencil.setChecked(True)
+            self.ROI.button_eraser.setChecked(False)
+            self.photo.update()
+
+    ''' Reset the entire page back to its initial state '''
+    def resetAll(self):
+        # Reset canvas
+        self.photo.dot = None
+        self.photo.rectangle = None
+        self.photo.draw_strokes = []
+        self.photo.current_stroke = []
+        self.photo.roi_closed = False
+        self.photo.polygon_points = []
+        self.photo.polygon_active = False
+        self.photo.type = None
+        self.photo.draw_mode = None
+        self.photo.update()
+
+        # Reset reference point section
+        self.referencePoint.button_action.setText("Select")
+
+        # Reset ROI section — disable buttons, hide tool rows, default to Draw
+        self.ROI.button_draw.setEnabled(False)
+        self.ROI.button_rectangle.setEnabled(False)
+        self.ROI.button_draw.setChecked(True)
+        self.ROI.button_rectangle.setChecked(False)
+        self.ROI.button_pencil.setChecked(True)
+        self.ROI.button_eraser.setChecked(False)
+        self.ROI.row_2.hide()
+        self.ROI.row_3.hide()
 
 class ReferencePointSection(QWidget):
     def __init__(self):
@@ -170,26 +224,33 @@ class DrawROISection(QWidget):
         layout_row_1.addWidget(self.button_rectangle)
 
 
-        ''' ROW 2 '''
+        ''' ROW 2 - pencil / eraser tools '''
         self.row_2 = QWidget()
         layout_row_2 = QHBoxLayout(self.row_2)
 
-        # TODO icons?
-        button_pencil = QPushButton("Pencil tool", objectName="blue")
-        button_eraser = QPushButton("Eraser tool", objectName="clear")
+        self.button_pencil = QPushButton("✏  Pencil", objectName="blue")
+        self.button_pencil.setCheckable(True)
+        self.button_pencil.setChecked(True)
 
-        layout_row_2.addWidget(button_pencil)
-        layout_row_2.addWidget(button_eraser)
+        self.button_eraser = QPushButton("◯  Eraser", objectName="clear")
+        self.button_eraser.setCheckable(True)
+
+        layout_row_2.addWidget(self.button_pencil)
+        layout_row_2.addWidget(self.button_eraser)
 
 
-        ''' ROW 3 '''
+        ''' ROW 3 - convert / reset + instructions '''
         self.row_3 = QWidget()
         layout_row_3 = QHBoxLayout(self.row_3)
 
-        # TODO slider here too maybe?
-        label_instructions = QLabel("Draw a single enclosed shape to continue")
+        self.button_convert = QPushButton("⬡  Convert to Polygon", objectName="blue")
+        self.button_reset = QPushButton("Reset", objectName="clear")
+        label_instructions = QLabel("Draw an enclosed shape to continue")
 
-        layout_row_3.addWidget(label_instructions, alignment=Qt.AlignCenter)
+        layout_row_3.addWidget(self.button_convert)
+        layout_row_3.addWidget(self.button_reset)
+        layout_row_3.addStretch()
+        layout_row_3.addWidget(label_instructions, alignment=Qt.AlignRight)
 
 
         ''' COMPOSE ALL '''

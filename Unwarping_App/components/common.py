@@ -1030,9 +1030,20 @@ class ClickableImage(QLabel):
         self.end_point = None
         self.drawing = False
 
+        # Draw mode state
+        self.draw_mode = None       # "pencil" or "eraser"
+        self.draw_strokes = []      # list of completed strokes (each stroke = list of QPoint)
+        self.current_stroke = []    # stroke currently being drawn
+        self.cursor_pos = None      # cursor position for indicator
+        self.roi_closed = False     # True after "Done" is clicked
+        self.eraser_radius = 15
+        self.polygon_points = []    # simplified polygon from convertToPolygon()
+        self.polygon_active = False # True when polygon has been computed
+
         self.feed_width = int(1280 * 0.7)
         self.feed_height = int(720 * 0.7)
         self.setFixedSize(self.feed_width, self.feed_height)
+        self.setMouseTracking(True)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -1042,13 +1053,30 @@ class ClickableImage(QLabel):
             elif self.type == "Dot":
                 self.dot = event.pos() # grab the (x, y) for the dot
                 self.update()
+            elif self.type == "Draw":
+                if self.draw_mode == "pencil":
+                    self.roi_closed = False
+                    self.polygon_active = False
+                    self.current_stroke = [event.pos()]
+                    self.drawing = True
+                elif self.draw_mode == "eraser":
+                    self.drawing = True
+                    self._eraseAt(event.pos())
 
     def mouseMoveEvent(self, event):
         # keep grabbing end point until user stops moving mouse
         if self.type == "Rectangle" and self.drawing:
-            self.end_point = event.pos() 
+            self.end_point = event.pos()
             self.sample_overlay_x = None
             self.sample_overlay_y = None
+            self.update()
+        elif self.type == "Draw":
+            self.cursor_pos = event.pos()
+            if self.drawing:
+                if self.draw_mode == "pencil":
+                    self.current_stroke.append(event.pos())
+                elif self.draw_mode == "eraser":
+                    self._eraseAt(event.pos())
             self.update()
 
     def mouseReleaseEvent(self, event):
@@ -1059,11 +1087,91 @@ class ClickableImage(QLabel):
             # draw the entire rectangle
             self.rectangle = QRect(self.start_point, self.end_point).normalized()
             self.update()
+        elif event.button() == Qt.LeftButton and self.type == "Draw":
+            if self.draw_mode == "pencil" and self.current_stroke:
+                self.draw_strokes.append(self.current_stroke)
+                self.current_stroke = []
+            self.drawing = False
+            self.update()
+
+    def leaveEvent(self, event):
+        self.cursor_pos = None
+        self.update()
+
+    def _eraseAt(self, pos):
+        r2 = self.eraser_radius ** 2
+        new_strokes = []
+        for stroke in self.draw_strokes:
+            # Split stroke into segments at erased gaps
+            segment = []
+            for p in stroke:
+                dx, dy = p.x() - pos.x(), p.y() - pos.y()
+                if dx * dx + dy * dy > r2:
+                    segment.append(p)
+                else:
+                    if len(segment) > 1:
+                        new_strokes.append(segment)
+                    segment = []
+            if len(segment) > 1:
+                new_strokes.append(segment)
+        self.draw_strokes = new_strokes
+        self.update()
+
+    def closeROI(self):
+        """Fill the drawn shape with a semi-transparent overlay."""
+        self.roi_closed = True
+        self.update()
+
+    def resetROI(self):
+        """Clear all drawn strokes, polygon, and fill."""
+        self.draw_strokes = []
+        self.current_stroke = []
+        self.roi_closed = False
+        self.polygon_points = []
+        self.polygon_active = False
+        self.update()
+
+    def convertToPolygon(self):
+        """Rasterize strokes → find contour → simplify to a polygon with approxPolyDP."""
+        import numpy as np
+
+        all_strokes = self.draw_strokes + (
+            [self.current_stroke] if len(self.current_stroke) > 1 else []
+        )
+        if not any(len(s) > 1 for s in all_strokes):
+            return
+
+        # Rasterize strokes onto a binary mask
+        mask = np.zeros((self.feed_height, self.feed_width), dtype=np.uint8)
+        for stroke in all_strokes:
+            if len(stroke) > 1:
+                pts = np.array([[p.x(), p.y()] for p in stroke], dtype=np.int32)
+                cv2.polylines(mask, [pts], isClosed=False, color=255, thickness=3)
+
+        # Dilate to bridge small gaps between strokes
+        kernel = np.ones((9, 9), np.uint8)
+        mask = cv2.dilate(mask, kernel, iterations=2)
+
+        # Find the outermost contour
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return
+
+        contour = max(contours, key=cv2.contourArea)
+
+        # Simplify with Douglas-Peucker (0.3 % of perimeter — more points, finer shape)
+        epsilon = 0.003 * cv2.arcLength(contour, closed=True)
+        approx = cv2.approxPolyDP(contour, epsilon, closed=True)
+
+        self.polygon_points = [QPoint(int(p[0][0]), int(p[0][1])) for p in approx]
+        self.polygon_active = True
+        self.roi_closed = False  # switch from simple fill to polygon fill
+        self.update()
 
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QPainter(self)
-        # painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.Antialiasing)
 
         # Draw full rectangle
         if self.rectangle:
@@ -1071,7 +1179,7 @@ class ClickableImage(QLabel):
             painter.drawRect(self.rectangle)
 
         # If rectangle is still being drawn, update so the user sees
-        if self.drawing and self.start_point and self.end_point:
+        if self.type == "Rectangle" and self.drawing and self.start_point and self.end_point:
             painter.setPen(QPen(QColor("#BBFF00"), 3, Qt.DashLine)) # looks cool
             painter.drawRect(QRect(self.start_point, self.end_point).normalized())
 
@@ -1094,11 +1202,67 @@ class ClickableImage(QLabel):
                 for j in range(self.sample_overlay_x + 1):
                     painter.drawPoint(QPoint(x, y))
                     x += pixels_x
-                    
+
                 x = self.start_point.x()
                 y += pixels_y
-            
+
             painter.end()
+            return
+
+        # ── Draw mode rendering ──────────────────────────────────────────────
+
+        stroke_color = QColor("#FF6B35")
+        pen_stroke = QPen(stroke_color, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+
+        # Computed polygon (shown after "Convert to Polygon")
+        if self.polygon_active and self.polygon_points:
+            poly = QPolygon(self.polygon_points)
+            painter.setPen(QPen(QColor("#BBFF00"), 2))
+            painter.setBrush(QBrush(QColor(187, 255, 0, 70)))
+            painter.drawPolygon(poly)
+            painter.setBrush(Qt.NoBrush)
+            # Also draw the raw strokes dimly so the user can still see what they drew
+            dim_pen = QPen(QColor(255, 107, 53, 80), 1, Qt.DotLine)
+            painter.setPen(dim_pen)
+            for stroke in self.draw_strokes:
+                for i in range(1, len(stroke)):
+                    painter.drawLine(stroke[i - 1], stroke[i])
+
+        # Filled ROI overlay (shown after "Done")
+        elif self.roi_closed:
+            all_points = []
+            for stroke in self.draw_strokes:
+                all_points.extend(stroke)
+            if all_points:
+                polygon = QPolygon(all_points)
+                painter.setPen(QPen(stroke_color, 2))
+                painter.setBrush(QBrush(QColor(255, 107, 53, 70)))
+                painter.drawPolygon(polygon)
+                painter.setBrush(Qt.NoBrush)
+
+        else:
+            # Completed strokes
+            painter.setPen(pen_stroke)
+            for stroke in self.draw_strokes:
+                for i in range(1, len(stroke)):
+                    painter.drawLine(stroke[i - 1], stroke[i])
+
+            # Stroke currently being drawn
+            if self.current_stroke:
+                painter.setPen(pen_stroke)
+                for i in range(1, len(self.current_stroke)):
+                    painter.drawLine(self.current_stroke[i - 1], self.current_stroke[i])
+
+        # Cursor indicator
+        if self.cursor_pos and self.type == "Draw":
+            if self.draw_mode == "pencil":
+                painter.setPen(QPen(stroke_color, 2))
+                painter.setBrush(Qt.NoBrush)
+                painter.drawEllipse(self.cursor_pos, 5, 5)
+            elif self.draw_mode == "eraser":
+                painter.setPen(QPen(QColor("#FFFFFF"), 2, Qt.DashLine))
+                painter.setBrush(Qt.NoBrush)
+                painter.drawEllipse(self.cursor_pos, self.eraser_radius, self.eraser_radius)
 
         self.update()
     
