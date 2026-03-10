@@ -82,6 +82,9 @@ class PrerunConfig(QWidget):
         self.component_samplingParams.row_2.show()
         self.component_samplingParams.row_3.show()
         self.component_samplingParams.row_4.show()
+        self.component_samplingParams.row_5.show()
+        self.component_samplingParams.row_6.show()
+        self.component_samplingParams.row_7.show()
 
         # Constant Z
         if type == "constant":
@@ -89,11 +92,12 @@ class PrerunConfig(QWidget):
             if self.component_samplingParams.button_dragSampling.isChecked():
                 self.component_samplingParams.row_1.hide()
                 self.component_samplingParams.row_2.hide()
+                self.component_samplingParams.row_3.hide()
 
         # Conductive
         elif type == "conductive":
-            self.component_samplingParams.row_3.hide()
-            self.component_samplingParams.row_4.hide()
+            self.component_samplingParams.row_5.hide()
+            self.component_samplingParams.row_6.hide()
 
     def clearInputs(self):
         self.component_samplingParams.input_spatialRes.clear()
