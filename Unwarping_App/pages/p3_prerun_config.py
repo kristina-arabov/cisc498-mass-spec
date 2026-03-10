@@ -7,12 +7,16 @@ import cv2
 
 from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
 from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
+from Unwarping_App.services import sampling_service
 
 class PrerunConfig(QWidget):
     next = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, sampling):
         super().__init__()
+
+        self.sampling = sampling
+
         self.initUI()
         
     
@@ -34,10 +38,10 @@ class PrerunConfig(QWidget):
         component_samplingMode = ModeSelection()
 
         # PARAMETER INPUTS  -----------------------------------
-        self.component_samplingParams = SamplingParameters(self.photo)
+        self.component_samplingParams = SamplingParameters(self.photo, self.sampling)
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
-        button_startRun.clicked.connect(self.next.emit)
+        
 
         # RIGHT COLUMN ----------------------------------------
         layout_right.addStretch()
@@ -62,6 +66,9 @@ class PrerunConfig(QWidget):
 
 
         # FUNCTIONS ----------------------------------------
+        button_startRun.clicked.connect(self.next.emit)
+        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
+
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
 
@@ -75,6 +82,9 @@ class PrerunConfig(QWidget):
         self.component_samplingParams.row_2.show()
         self.component_samplingParams.row_3.show()
         self.component_samplingParams.row_4.show()
+        self.component_samplingParams.row_5.show()
+        self.component_samplingParams.row_6.show()
+        self.component_samplingParams.row_7.show()
 
         # Constant Z
         if type == "constant":
@@ -82,11 +92,12 @@ class PrerunConfig(QWidget):
             if self.component_samplingParams.button_dragSampling.isChecked():
                 self.component_samplingParams.row_1.hide()
                 self.component_samplingParams.row_2.hide()
+                self.component_samplingParams.row_3.hide()
 
         # Conductive
         elif type == "conductive":
-            self.component_samplingParams.row_3.hide()
-            self.component_samplingParams.row_4.hide()
+            self.component_samplingParams.row_5.hide()
+            self.component_samplingParams.row_6.hide()
 
     def clearInputs(self):
         self.component_samplingParams.input_spatialRes.clear()
@@ -128,7 +139,7 @@ class ModeSelection(QWidget):
 
 
 class SamplingParameters(QWidget):
-    def __init__(self, photo):
+    def __init__(self, photo, sampling_item):
         super().__init__()
         
         layout = QVBoxLayout(self)
@@ -144,13 +155,25 @@ class SamplingParameters(QWidget):
         self.row_1 = QWidget()
         layout_row_1 = QHBoxLayout(self.row_1)
 
-        label_spatialRes = QLabel("Spatial resolution (mm): ")
+        label_spatialRes = QLabel("Spatial resolution (mm) ")
 
-        self.input_spatialRes = QLineEdit()
-        self.input_spatialRes.setValidator(QDoubleValidator())
+        label_spatialRes_X = QLabel("X: ")
+
+        self.input_spatialRes_X = QLineEdit()
+        self.input_spatialRes_X.setValidator(QDoubleValidator())
+
+        label_spatialRes_Y = QLabel("Y: ")
+
+        self.input_spatialRes_Y = QLineEdit()
+        self.input_spatialRes_Y.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_spatialRes, alignment=Qt.AlignLeft)
-        layout_row_1.addWidget(self.input_spatialRes, alignment=Qt.AlignRight)  
+
+        layout_row_1.addWidget(label_spatialRes_X, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_spatialRes_X, alignment=Qt.AlignRight)
+
+        layout_row_1.addWidget(label_spatialRes_Y, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_spatialRes_Y, alignment=Qt.AlignLeft)
         layout_row_1.setContentsMargins(0, 5, 0,0)
 
 
@@ -159,7 +182,6 @@ class SamplingParameters(QWidget):
         layout_row_2 = QHBoxLayout(self.row_2)
 
         label_dwell = QLabel("Dwell time (s): ")
-        
         self.input_dwell = QLineEdit()
 
         layout_row_2.addWidget(label_dwell, alignment=Qt.AlignLeft)
@@ -171,12 +193,11 @@ class SamplingParameters(QWidget):
         self.row_3 = QWidget()
         layout_row_3 = QHBoxLayout(self.row_3)
 
-        label_transfer = QLabel("Transfer height (mm): ")
-        
-        self.input_transfer = QLineEdit()
+        label_sampleTime = QLabel("Sample time (s): ")
+        self.input_sampleTime = QLineEdit()
 
-        layout_row_3.addWidget(label_transfer, alignment=Qt.AlignLeft)
-        layout_row_3.addWidget(self.input_transfer, alignment=Qt.AlignRight)
+        layout_row_3.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
+        layout_row_3.addWidget(self.input_sampleTime, alignment=Qt.AlignRight)
         layout_row_3.setContentsMargins(0, 5, 0, 0)
 
 
@@ -184,9 +205,11 @@ class SamplingParameters(QWidget):
         self.row_4 = QWidget()
         layout_row_4 = QHBoxLayout(self.row_4)
 
-        self.button_dragSampling = QRadioButton("Drag sampling")
+        label_transit = QLabel("Transit height (mm): ")
+        self.input_transit = QLineEdit()
 
-        layout_row_4.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
+        layout_row_4.addWidget(label_transit, alignment=Qt.AlignLeft)
+        layout_row_4.addWidget(self.input_transit, alignment=Qt.AlignRight)
         layout_row_4.setContentsMargins(0, 5, 0, 0)
 
 
@@ -194,12 +217,33 @@ class SamplingParameters(QWidget):
         self.row_5 = QWidget()
         layout_row_5 = QHBoxLayout(self.row_5)
 
-        more_options = QLabel("More sampling options available in \"Legacy\" mode.")
+        label_sampleHeight = QLabel("Sample height (mm): ")
+        self.input_sampleHeight = QLineEdit()
+
+        layout_row_5.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
+        layout_row_5.addWidget(self.input_sampleHeight, alignment=Qt.AlignRight)
+        layout_row_5.setContentsMargins(0, 5, 0, 0)
+
+        # ROW 6 ----------------------------------------
+        self.row_6 = QWidget()
+        layout_row_6 = QHBoxLayout(self.row_6)
+
+        self.button_dragSampling = QRadioButton("Drag sampling")
+
+        layout_row_6.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
+        layout_row_6.setContentsMargins(0, 5, 0, 0)
+        
+
+        # ROW 7 ----------------------------------------
+        self.row_7 = QWidget()
+        layout_row_7 = QHBoxLayout(self.row_7)
+
+        more_options = QLabel("More options available in \"Legacy\" mode.")
         more_options.setWordWrap(True)
         more_options.setStyleSheet("font-weight: bold;")
 
-        layout_row_5.addWidget(more_options)
-        layout_row_5.setContentsMargins(0, 15, 0, 0)
+        layout_row_7.addWidget(more_options)
+        layout_row_7.setContentsMargins(0, 10, 0, 0)
 
 
         # COMPOSE ----------------------------------------
@@ -208,8 +252,10 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_2)
         layout_container.addWidget(self.row_3)
         layout_container.addWidget(self.row_4)
-        layout_container.addStretch()
         layout_container.addWidget(self.row_5)
+        layout_container.addWidget(self.row_6)
+        layout_container.addStretch()
+        layout_container.addWidget(self.row_7)
 
         layout.addWidget(container)
 
@@ -222,5 +268,43 @@ class SamplingParameters(QWidget):
         """)
 
         # FUNCTIONS ----------------------------------------
-        self.input_spatialRes.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes.text()))
+        # Resolution
+        self.input_spatialRes_X.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text()))
+
+        self.input_spatialRes_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_X.text(), "res_X"))
+        self.input_spatialRes_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_Y.text(), "res_Y"))
+
+        # Time
+        self.input_dwell.textChanged.connect(lambda: self.setVars(sampling_item, self.input_dwell.text(), "dwell_time"))
+        self.input_sampleTime.textChanged.connect(lambda: self.setVars(sampling_item, self.input_sampleTime.text(), "sample_time"))
+
+        # Height
+        self.input_transit.textChanged.connect(lambda: self.setVars(sampling_item, self.input_transit.text(), "transit_height"))
+        self.input_sampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_sampleHeight.text(), "sample_height"))
+
+
+    def setVars(self, sampling, val, type):
+        # Resolution
+        if type == "res_X":
+            sampling.spatialRes_X = float(val)
+
+        elif type == "res_Y":
+            sampling.spatialRes_Y = float(val)
+
+        # Time
+        elif type == "dwell_time":
+            sampling.dwellTime = float(val)
+
+        elif type == "sample_time":
+            sampling.sampleTime = float(val)
+
+        # Height
+        elif type == "transit_height":
+            sampling.transitHeight = float(val)
+
+        elif type == "sample_height":
+            sampling.sampleHeight = float(val)
+    
+        else:
+            pass
 

@@ -50,7 +50,7 @@ class Main(QWidget):
         self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection, self.printer, sampling_transformation)
         self.page2 = ROISelection(sampling_transformation, sampling_item)
-        self.page3 = PrerunConfig()
+        self.page3 = PrerunConfig(sampling_item)
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
@@ -124,6 +124,7 @@ class Main(QWidget):
 
         self.setMaximumSize(1440, 851)
         self.setWindowTitle("Unwarping Application")
+
         self.show()
     
 

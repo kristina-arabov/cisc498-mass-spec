@@ -1,6 +1,9 @@
 import json
 import numpy as np
 import cv2
+from collections import defaultdict
+
+import time
 
 from Unwarping_App.services import calibration_service
 
@@ -13,12 +16,28 @@ class SamplingItem():
         self.drawn = None
         self.dot = None
 
-
         self.total_points = None
         self.sampled_points = None
-        
+
+        # Sampling parameters
+        self.spatialRes_X = None
+        self.spatialRes_Y = None
+
+        self.dwellTime = None
+        self.sampleTime = None
+
+        self.transitHeight = None
+        self.sampleHeight = None
+
+
+        # Gcode stuff
         self.estimated_time = None
 
+        self.gcodes = []
+        self.timestamps = []
+        self.readable_timestamps = []
+        self.completed_gcodes = 0
+        
 
 
 def setTransformation(transformation, path, valid):
@@ -50,6 +69,8 @@ def setTransformation(transformation, path, valid):
     return valid
 
 
+
+# TODO fix bugginess ? why not working properly
 def findLocations(transformation, sampling, img):
     print("working!")
 
@@ -219,6 +240,69 @@ def getDirectionFromPixel(u, v, mtx):
 
     direction = np.array([x, y, z])
     return direction
+
+
+
+def getSampling(sampling):
+    # All sampling points + reference
+    # TODO actually read inputs from config page
+    # make modifications to inputs if needed
+
+    # Convert to serpentine pattern
+    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
+    locations = serpentinePath(locations)
+
+    
+    print(f"path: {locations}")
+    
+
+    sampling.gcodes.append("G90")
+
+    for i in locations:
+        # Command: Go to (X, Y) location
+        sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+        
+        # Command: Go to Z sampling height
+        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+
+        # Command: Sample for __ milliseconds
+        sample_time = int(sampling.sampleTime) * 1000 
+        sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
+        # Command: Return to Z ransit height
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+
+        # Command: Dwell for __ milliseconds
+        dwell_time = int(sampling.dwellTime) * 1000
+        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+        # Repeat...
+
+    sampling.completed_gcodes = 0
+    sampling.timestamps = []
+    sampling.readable_timestamps = [0]
+
+    # Start timer
+    sampling.timestamps.append(time.time())
+
+    # print(sampling.gcodes)
+
+
+# Function to sort 3D sampling locations into a serpentine pattern
+def serpentinePath(locations):
+    rows = defaultdict(list)
+
+    for x, y in locations:
+        rows[y].append((x, y))
+
+    serpentine = []
+
+    # Move down on Y and reverse X (alternating)
+    for i, y in enumerate(sorted(rows, reverse=True)):
+        row = sorted(rows[y])
+        serpentine.extend(row if i % 2 == 0 else row[::-1])
+
+    return serpentine
 
 
     # start_point = rectangle.topLeft()
