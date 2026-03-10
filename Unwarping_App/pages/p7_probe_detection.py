@@ -114,11 +114,6 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_bottomLeftY.clear()
         self.component_tagInformation.input_tagSize.clear()
 
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0) 
-
-        ''' FUNCTIONS '''
-        self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(component_cameraFeed, frame, crosshair=True))
 
 
     # Function to handle scaling of image feed
