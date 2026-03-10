@@ -21,7 +21,6 @@ from Unwarping_App.components.common import NavBar
 
 from Unwarping_App.services.sampling_service import SamplingItem
 from Unwarping_App.services.calibration_service import Transformation
-from Unwarping_App.services import sampling_service
 
 ''' Main window for the unwarping section of the application'''
 class Main(QWidget):
@@ -51,7 +50,7 @@ class Main(QWidget):
         self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection, self.printer, sampling_transformation)
         self.page2 = ROISelection(sampling_transformation, sampling_item)
-        self.page3 = PrerunConfig()
+        self.page3 = PrerunConfig(sampling_item)
         self.page4 = SamplingProgress()
         self.page5 = SamplingComplete()
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
@@ -125,8 +124,6 @@ class Main(QWidget):
 
         self.setMaximumSize(1440, 851)
         self.setWindowTitle("Unwarping Application")
-
-        sampling_service.getSampling(sampling_item)
 
         self.show()
     

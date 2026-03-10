@@ -16,10 +16,21 @@ class SamplingItem():
         self.drawn = None
         self.dot = None
 
-
         self.total_points = None
         self.sampled_points = None
-        
+
+        # Sampling parameters
+        self.spatialRes_X = None
+        self.spatialRes_Y = None
+
+        self.dwellTime = None
+        self.sampleTime = None
+
+        self.transitHeight = None
+        self.sampleHeight = None
+
+
+        # Gcode stuff
         self.estimated_time = None
 
         self.gcodes = []
@@ -234,10 +245,15 @@ def getDirectionFromPixel(u, v, mtx):
 
 def getSampling(sampling):
     # All sampling points + reference
+    # TODO actually read inputs from config page
+    # make modifications to inputs if needed
 
     # Convert to serpentine pattern
-    locations = [(100, 5), (110, 5), (120, 5), (100, 0), (110, 0), (120, 0), (100, -5), (110, -5), (120, -5)]
+    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     locations = serpentinePath(locations)
+
+    
+    print(f"path: {locations}")
     
 
     sampling.gcodes.append("G90")
@@ -247,15 +263,20 @@ def getSampling(sampling):
         sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
         
         # Command: Go to Z sampling height
-        sampling.gcodes.append("G0 Z"+ str(-5)) # TODO temp height
+        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
 
-        # Command: Dwell for __ milliseconds
-        dwell_time = int(6) * 1000 # TODO temp time
-        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+        # Command: Sample for __ milliseconds
+        sample_time = int(sampling.sampleTime) * 1000 
+        sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
         # Command: Return to Z ransit height
-        sampling.gcodes.append("G0 Z"+ str(0)) # TODO temp height
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
+        # Command: Dwell for __ milliseconds
+        dwell_time = int(sampling.dwellTime) * 1000
+        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+        # Repeat...
 
     sampling.completed_gcodes = 0
     sampling.timestamps = []
