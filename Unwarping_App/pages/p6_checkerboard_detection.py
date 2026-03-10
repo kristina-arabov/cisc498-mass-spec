@@ -17,8 +17,6 @@ class CheckerboardDetection(QWidget):
 
         self.transformation = transformation
 
-        self.transformation = transformation
-
         self.initUI()
     # def __init__(self, camera, light_connection, printer, vars):
     #     super().__init__()
@@ -41,6 +39,7 @@ class CheckerboardDetection(QWidget):
 
         ''' LEFT COLUMN '''
         self.component_unwarpComparison = UnwarpComparison()
+
 
         ''' RIGHT COLUMN '''
         right = QWidget()
@@ -83,16 +82,16 @@ class CheckerboardDetection(QWidget):
         ''' FUNCTIONS '''
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.component_unwarpComparison.feed, frame))
         component_lightControl.slider.valueChanged.connect(lambda: device_service.set_brightness(component_lightControl.slider.value(), self.lights))
-        
+
         self.component_unwarpComparison.arrow.button.clicked.connect(lambda: calibration_service.getCheckerboardUnwarp(
-                                                                            self.camera, 
-                                                                            self.component_checkerboardParams.input_columns.text(), 
-                                                                            self.component_checkerboardParams.input_rows.text(), 
+                                                                            self.camera,
+                                                                            self.component_checkerboardParams.input_columns.text(),
+                                                                            self.component_checkerboardParams.input_rows.text(),
                                                                             self.component_unwarpComparison.result,
                                                                             self.transformation,
                                                                             self.printer
                                                                         ))
-    
+
     # Function to reset front-end
     def clearAll(self):
         # Clear cols and rows
@@ -101,7 +100,8 @@ class CheckerboardDetection(QWidget):
 
         # Clear result image
         self.component_unwarpComparison.result.image_label.clear()
-        
+
+
 
 class CheckerboardParamsSection(QWidget):
     def __init__(self):
