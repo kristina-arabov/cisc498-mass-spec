@@ -1330,10 +1330,10 @@ class ClickableImage(QLabel):
                 painter.setPen(QPen(QColor("#BBFF00"), 3))
                 painter.drawRect(self.rectangle)
 
-        # If rectangle is still being drawn, update so the user sees
-        if self.type == "Rectangle" and self.drawing and self.start_point and self.end_point:
-            painter.setPen(QPen(QColor("#BBFF00"), 3, Qt.DashLine)) # looks cool
-            painter.drawRect(QRect(self.start_point, self.end_point).normalized())
+            # If rectangle is still being drawn, update so the user sees
+            if self.type == "Rectangle" and self.drawing and self.start_point and self.end_point:
+                painter.setPen(QPen(QColor("#BBFF00"), 3, Qt.DashLine)) # looks cool
+                painter.drawRect(QRect(self.start_point, self.end_point).normalized())
 
             # Draw dot
             if self.dot:
@@ -1377,7 +1377,7 @@ class ClickableImage(QLabel):
                 # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
-                
+
                 for j in range(self.sample_overlay_y):
                     for i in range(self.sample_overlay_x):
                         mid_x = start_x + (i + 0.5) * step_x
@@ -1385,74 +1385,63 @@ class ClickableImage(QLabel):
 
                         painter.drawPoint(int(mid_x), int(mid_y))
 
-            for i in range(self.sample_overlay_y + 1):
-                for j in range(self.sample_overlay_x + 1):
-                    painter.drawPoint(QPoint(x, y))
-                    x += pixels_x
+            # ── Draw mode rendering ──────────────────────────────────────────────
 
-                x = self.start_point.x()
-                y += pixels_y
+            stroke_color = QColor("#FF6B35")
+            pen_stroke = QPen(stroke_color, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
 
-            painter.end()
-            return
-
-        # ── Draw mode rendering ──────────────────────────────────────────────
-
-        stroke_color = QColor("#FF6B35")
-        pen_stroke = QPen(stroke_color, 2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
-
-        # Computed polygon (shown after "Convert to Polygon")
-        if self.polygon_active and self.polygon_points:
-            poly = QPolygon(self.polygon_points)
-            painter.setPen(QPen(QColor("#BBFF00"), 2))
-            painter.setBrush(QBrush(QColor(187, 255, 0, 70)))
-            painter.drawPolygon(poly)
-            painter.setBrush(Qt.NoBrush)
-            # Also draw the raw strokes dimly so the user can still see what they drew
-            dim_pen = QPen(QColor(255, 107, 53, 80), 1, Qt.DotLine)
-            painter.setPen(dim_pen)
-            for stroke in self.draw_strokes:
-                for i in range(1, len(stroke)):
-                    painter.drawLine(stroke[i - 1], stroke[i])
-
-        # Filled ROI overlay (shown after "Done")
-        elif self.roi_closed:
-            all_points = []
-            for stroke in self.draw_strokes:
-                all_points.extend(stroke)
-            if all_points:
-                polygon = QPolygon(all_points)
-                painter.setPen(QPen(stroke_color, 2))
-                painter.setBrush(QBrush(QColor(255, 107, 53, 70)))
-                painter.drawPolygon(polygon)
+            # Computed polygon (shown after "Convert to Polygon")
+            if self.polygon_active and self.polygon_points:
+                poly = QPolygon(self.polygon_points)
+                painter.setPen(QPen(QColor("#BBFF00"), 2))
+                painter.setBrush(QBrush(QColor(187, 255, 0, 70)))
+                painter.drawPolygon(poly)
                 painter.setBrush(Qt.NoBrush)
+                # Also draw the raw strokes dimly so the user can still see what they drew
+                dim_pen = QPen(QColor(255, 107, 53, 80), 1, Qt.DotLine)
+                painter.setPen(dim_pen)
+                for stroke in self.draw_strokes:
+                    for i in range(1, len(stroke)):
+                        painter.drawLine(stroke[i - 1], stroke[i])
 
-        else:
-            # Completed strokes
-            painter.setPen(pen_stroke)
-            for stroke in self.draw_strokes:
-                for i in range(1, len(stroke)):
-                    painter.drawLine(stroke[i - 1], stroke[i])
+            # Filled ROI overlay (shown after "Done")
+            elif self.roi_closed:
+                all_points = []
+                for stroke in self.draw_strokes:
+                    all_points.extend(stroke)
+                if all_points:
+                    polygon = QPolygon(all_points)
+                    painter.setPen(QPen(stroke_color, 2))
+                    painter.setBrush(QBrush(QColor(255, 107, 53, 70)))
+                    painter.drawPolygon(polygon)
+                    painter.setBrush(Qt.NoBrush)
 
-            # Stroke currently being drawn
-            if self.current_stroke:
+            else:
+                # Completed strokes
                 painter.setPen(pen_stroke)
-                for i in range(1, len(self.current_stroke)):
-                    painter.drawLine(self.current_stroke[i - 1], self.current_stroke[i])
+                for stroke in self.draw_strokes:
+                    for i in range(1, len(stroke)):
+                        painter.drawLine(stroke[i - 1], stroke[i])
 
-        # Cursor indicator
-        if self.cursor_pos and self.type == "Draw":
-            if self.draw_mode == "pencil":
-                painter.setPen(QPen(stroke_color, 2))
-                painter.setBrush(Qt.NoBrush)
-                painter.drawEllipse(self.cursor_pos, 5, 5)
-            elif self.draw_mode == "eraser":
-                painter.setPen(QPen(QColor("#FFFFFF"), 2, Qt.DashLine))
-                painter.setBrush(Qt.NoBrush)
-                painter.drawEllipse(self.cursor_pos, self.eraser_radius, self.eraser_radius)
+                # Stroke currently being drawn
+                if self.current_stroke:
+                    painter.setPen(pen_stroke)
+                    for i in range(1, len(self.current_stroke)):
+                        painter.drawLine(self.current_stroke[i - 1], self.current_stroke[i])
+
+            # Cursor indicator
+            if self.cursor_pos and self.type == "Draw":
+                if self.draw_mode == "pencil":
+                    painter.setPen(QPen(stroke_color, 2))
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawEllipse(self.cursor_pos, 5, 5)
+                elif self.draw_mode == "eraser":
+                    painter.setPen(QPen(QColor("#FFFFFF"), 2, Qt.DashLine))
+                    painter.setBrush(Qt.NoBrush)
+                    painter.drawEllipse(self.cursor_pos, self.eraser_radius, self.eraser_radius)
 
             self.roiSignal.emit(self.dot, self.rectangle, self.sample_overlay_x, self.sample_overlay_y)
-        
+
         except:
             pass
         
