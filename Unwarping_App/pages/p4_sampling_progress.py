@@ -8,18 +8,20 @@ import cv2
 from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
 from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
 
+from Unwarping_App.services import sampling_service
+
 class SamplingProgress(QWidget):
     next = pyqtSignal()
     returnToConfig = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, printer, sampling):
         super().__init__()
+
+        self.printer = printer
+        self.sampling = sampling
+        
         self.initUI()
-    # def __init__(self, printer, json_path):
-    #     super().__init__()
-    #     self.printer = printer
-    #     self.json_path = json_path
-    #     self.initUI()
+
     
     def initUI(self):
         styling = "Unwarping_App/components/style.css"
@@ -31,6 +33,7 @@ class SamplingProgress(QWidget):
 
         self.photo = ClickableImage()
 
+        # RIGHT COLUMN ----------------------------------------
         right = QWidget()
         layout_right = QVBoxLayout(right)
 
@@ -69,7 +72,7 @@ class SamplingProgress(QWidget):
         layout.setSpacing(0)  
 
 
-        ''' FUNCTIONS '''
+        # FUNCTIONS ----------------------------------------
         self.button_pause.clicked.connect(lambda: self.handlePause(True))
 
         self.operations.btn_resume.clicked.connect(lambda: self.handlePause(False))
@@ -78,13 +81,17 @@ class SamplingProgress(QWidget):
     
     def handlePause(self, stopped):
         if stopped:
-            # TODO stop printer activity
+            
+            # TODO Check this works?
+            # self.printer.pause_sample()
+
             self.img_loadingCircle.hide()
             self.label_estimatedTime.hide()
             self.label_points.hide()
             self.button_pause.hide()
 
             self.operations.show()
+        
         else:
             self.img_loadingCircle.show()
             self.label_estimatedTime.show()
@@ -92,11 +99,11 @@ class SamplingProgress(QWidget):
             self.button_pause.show()
 
             self.operations.hide()
-            # TODO resume sampling...
+            
+            # TODO check this works?
+            # self.printer.resume_sample()
 
     def stopSampling(self):
-        # TODO some printer command to stop fully... clear path?
-
         # Reset as default
         self.img_loadingCircle.show()
         self.label_estimatedTime.show()
@@ -107,6 +114,8 @@ class SamplingProgress(QWidget):
 
         # Return to previous page (signal)
         self.returnToConfig.emit()
+
+        sampling_service.clearSampling(self.printer)
 
         
 class OperationButtons(QWidget):
