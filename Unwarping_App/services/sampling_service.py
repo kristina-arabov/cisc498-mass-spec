@@ -7,6 +7,9 @@ import time
 
 from Unwarping_App.services import calibration_service
 
+import csv
+from datetime import datetime
+
 
 class SamplingItem():
     def __init__(self):
@@ -30,15 +33,20 @@ class SamplingItem():
         self.sampleHeight = None
 
 
-        # Gcode stuff
+        # Gcode info
         self.estimated_time = None
 
         self.gcodes = []
         self.timestamps = []
         self.readable_timestamps = []
         self.completed_gcodes = 0
+
+        # File info
+        self.csv_filename = None
+        self.csv_rows = []
         
 
+samplingItem = SamplingItem()
 
 def setTransformation(transformation, path, valid):
 
@@ -258,6 +266,9 @@ def getSampling(sampling):
 
     sampling.gcodes.append("G90")
 
+    # Always go to sample/start height first
+    sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+
     for i in locations:
         # Command: Go to (X, Y) location
         sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
@@ -280,10 +291,11 @@ def getSampling(sampling):
 
     sampling.completed_gcodes = 0
     sampling.timestamps = []
-    sampling.readable_timestamps = [0]
+    sampling.readable_timestamps = []
 
     # Start timer
     sampling.timestamps.append(time.time())
+    sampling.readable_timestamps.append(0)
 
     # print(sampling.gcodes)
 
@@ -303,6 +315,76 @@ def serpentinePath(locations):
         serpentine.extend(row if i % 2 == 0 else row[::-1])
 
     return serpentine
+
+# Function to get time stamp between operations
+def getTime():
+    samplingItem.timestamps.append(time.time())
+
+    achieved_time = samplingItem.timestamps[-1] - samplingItem.timestamps[-2]
+    samplingItem.readable_timestamps.append(samplingItem.readable_timestamps[-1] + achieved_time)
+
+    # Return most recent timestamp to spreadsheet
+    return samplingItem.readable_timestamps[-1]
+
+
+# Function to send a GCode to the printer and remove it from the queue
+def runGCode(printer):
+    line = samplingItem.gcodes.pop(0)
+    samplingItem.completed_gcodes.append(line)
+            
+    printer.cmd(line)
+
+    # emit signal for completed points? time?
+
+
+# Function to add a row containing time + position data to the spreadsheet
+# TODO why overwriting lines?
+def addData(printer):
+    # Get time and printer position at this moment
+    time_val = getTime()
+    pos = printer.pos
+
+
+    # Open file and add row to it
+    with open(samplingItem.csv_filename, "w", newline="") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([time_val, 0, pos[0], pos[1], pos[2]])
+
+
+
+# Function to create new CSV files
+def createCSV():
+    current_time = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+    samplingItem.csv_filename = f"collectedData/sampleRun_{current_time}.csv"
+
+    # Create and write to the CSV
+    with open(samplingItem.csv_filename, "w", newline="") as file:
+        writer = csv.writer(file)
+
+        # Write header
+        writer.writerow(["Time (ms)", "Conductance", "X", "Y", "Z"])
+
+
+
+def clearSampling(printer):
+    # Clear GCodes and sampling data
+    samplingItem.estimated_time = None
+
+    samplingItem.gcodes = []
+    samplingItem.timestamps = []
+    samplingItem.readable_timestamps = [0]
+    samplingItem.completed_gcodes = 0
+
+    samplingItem.csv_filename = None
+    samplingItem.csv_rows = []
+
+    # Ensure file is saved
+
+    # TODO Return to initial position? or emergency position?
+    # Currently emergency position
+    printer.cmd("G0 Z100 F3000")
+    printer.cmd("G0 X10 Y10 Z100 F3000")
 
 
     # start_point = rectangle.topLeft()
