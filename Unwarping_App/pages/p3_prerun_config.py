@@ -68,6 +68,7 @@ class PrerunConfig(QWidget):
         # FUNCTIONS ----------------------------------------
         button_startRun.clicked.connect(self.next.emit)
         button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
+        button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
