@@ -99,7 +99,11 @@ class ProvideTransformation(QWidget):
     def applyTransformation(self):
         try:
             # TODO uncomment after testing
-            pos = device_service.getPrinterPosition(self.printer)
+            try:
+                pos = device_service.getPrinterPosition(self.printer)
+            
+            except:
+                pos = [0,0,0]
 
             # if pos[2] != self.transformation.height:
             #     print("height not same")
@@ -119,7 +123,6 @@ class ProvideTransformation(QWidget):
             self.resultAvailable.emit(unwarped)
             # self.checkAllowNext()
         except:
-            print("doesnt run!")
             pass
 
 
