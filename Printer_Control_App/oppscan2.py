@@ -789,11 +789,8 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
 
 
         self.Printer.start() #starts a new thread where the run function is called in prt
-        time.sleep(1)
-        print("Opening pronsole.py")
-
-        self.Printer.cmd('pronsole.py')
-        time.sleep(1)                                       #changed from currentText to currentData
+        time.sleep(2)
+        print("Sending connect command to pronsole...")
         self.Printer.cmd('connect %s %s' %(self.prt_com_sel.currentData(),self.prt_baud_sel.currentText()))
         time.sleep(1)
         self.enable_prt_buttons(True)

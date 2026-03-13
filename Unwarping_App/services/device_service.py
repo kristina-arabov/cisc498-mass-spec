@@ -5,7 +5,7 @@ def toggle(row, device):
     # Camera
     if row.kind == "camera":
         connect_camera(row, device) if row.toggle.isChecked() else disconnect_camera(row, device)
-    
+
     # Printer
     elif row.kind == "printer":
         pass # TODO signal?
@@ -17,7 +17,7 @@ def toggle(row, device):
     # Lights
     elif row.kind == "light":
         connect_lights(row, device) if row.toggle.isChecked() else disconnect_lights(row, device)
-    
+
     else:
         pass
 
@@ -28,7 +28,7 @@ def connect_camera(row, camera, resolution=(1280, 720), fps=None, name=None):
     idx = row.port_combo.currentIndex() - 1
     camera.idx = idx if idx >= 0 else None
     camera.resolution = resolution
-    
+
     if not camera.running and idx >= 0:
         try:
             camera.start()
@@ -39,6 +39,7 @@ def connect_camera(row, camera, resolution=(1280, 720), fps=None, name=None):
     
     if camera.running and camera.capture.isOpened():
         row.set_connected(True)
+
 
 
 # Disconnect camera
@@ -54,7 +55,6 @@ def disconnect_camera(row, camera):
 # Connect lights
 def connect_lights(row, lights):
     lights.idx = row.port_combo.currentData()
-
 
     if not lights.running:
         try:
@@ -93,5 +93,5 @@ def getPrinterPosition(printer):
             line = printer.line.split()
             pos = [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
             break
-    
+
     return pos

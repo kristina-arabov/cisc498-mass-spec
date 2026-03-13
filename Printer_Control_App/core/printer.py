@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import PyQt5
 import time
 import re
@@ -107,20 +108,13 @@ class console_control(QtCore.QThread):
         """
         
         self.flag = True
-        if os.name == 'nt':  # Windows
-            self.sc_path = r'cmd.exe --cli --disable_readline'  # Windows specific
-            self.console = subprocess.Popen(self.sc_path,
-                                            stdin=subprocess.PIPE,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                            text=True)
-        else:  # added for mac compatibility
-            self.sc_path = ['/bin/bash']
-            self.console = subprocess.Popen(self.sc_path,  # subprocess
-                                            stdin=subprocess.PIPE,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                            text=True)
+        wrapper = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pronsole_pipe.py')
+        self.sc_path = [sys.executable, wrapper]
+        self.console = subprocess.Popen(self.sc_path,
+                                        stdin=subprocess.PIPE,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        text=True)
         print('start console thread')
       
         

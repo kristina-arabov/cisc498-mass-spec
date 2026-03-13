@@ -110,6 +110,7 @@ class Main(QWidget):
 
         self.nav = NavBar(self.stacked)
         self.nav.steps.stepClicked.connect(lambda step: self.handleStepClick(step))
+        self.nav.exit_button.clicked.connect(self.page2.resetAll)
         self.nav.hide()
 
         space = QLabel("")

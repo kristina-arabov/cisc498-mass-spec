@@ -115,6 +115,7 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_tagSize.clear()
 
 
+
     # Function to handle scaling of image feed
     def compute_scale(self):
         screen = QApplication.instance().primaryScreen()
@@ -196,6 +197,7 @@ class TagInstructions(QWidget):
 
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+
 
 
         # FUNCTIONS --------------------------------------

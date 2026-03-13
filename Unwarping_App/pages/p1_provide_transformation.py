@@ -67,7 +67,7 @@ class ProvideTransformation(QWidget):
         # FUNCTIONS --------------------------------------
         self.camera.change_pixmap_signal.connect(lambda frame: updateFrame(self.component_unwarpComparison.feed, frame))
         self.component_unwarpComparison.arrow.button.clicked.connect(lambda: self.applyTransformation())
-        
+
         self.file_box.btn_select.clicked.connect(lambda: self.selectFile())
 
 
@@ -89,9 +89,9 @@ class ProvideTransformation(QWidget):
         path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
         self.file_box.path.setText(path)
 
-        # Update transformation vars  
+        # Update transformation vars
         self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
-        
+
         # self.checkAllowNext()
 
 
@@ -131,16 +131,16 @@ class ProvideTransformation(QWidget):
 
     #     allow_unwarp = True
     #     btn.setEnabled(True)
-       
+
     #     # Check if transformation file is valid
     #     if not self.valid_transformation:
     #         allow_unwarp = False
-        
+
     #     # Check if camera is connected
     #     if not self.camera.running or not self.camera.capture.isOpened():
     #         allow_unwarp = False
 
-        
+
     #     # Check if printer is connected and is at the same height as transformation
     #     pos = device_service.getPrinterPosition(self.printer)
     #     if not pos:
@@ -152,14 +152,14 @@ class ProvideTransformation(QWidget):
 
     #     if not allow_unwarp:
     #         btn.setEnabled(False)
-        
+
 
 
     # Function to check if the user has provided the necessary information to proceed
     def checkAllowNext(self):
         allow_next = True
         self.button_next.setEnabled(True)
-    
+
 
         img = self.component_unwarpComparison.result.image_label.pixmap()
 
@@ -202,14 +202,14 @@ class ProvideTransformation(QWidget):
         elif type == "size":
             val = self.component_tagInfo.input_tagSize.text()
             self.transformation.tag_size = float(val)
-        
+
 
 
 # File selection component
 class FileSelection(QWidget):
     def __init__(self):
         super().__init__()
-        
+
         layout = QVBoxLayout(self)
 
         container = QWidget(objectName="light_blue_box")
@@ -217,7 +217,7 @@ class FileSelection(QWidget):
 
         self.path = QLabel("", objectName="path_label")
         self.btn_select = QPushButton("Select file", objectName="blue")
-        
+
         self.label_error = QLabel("", objectName="light_blue_box")
         self.label_error.hide()
 
