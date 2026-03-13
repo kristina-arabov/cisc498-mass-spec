@@ -301,7 +301,8 @@ def getSampling(sampling):
 
         # Return to original position
         p = sampling.originalLoc
-        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1])+" Z"+str([p[2]]))
+        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
+        sampling.gcodes.append("G0 Z"+ str(p[2]))
 
         sampling.total_points = len(locations)
         sampling.sampled_points = 0
@@ -388,9 +389,11 @@ def createCSV():
 def stop(printer):
     # Move printer to original position...
     p = samplingItem.originalLoc
+    print(p)
 
     printer.cmd("G90")
-    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1])+" Z"+str([p[2]]))
+    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    printer.cmd("G0 Z"+str(p[2]))
 
 
     # Clear GCodes and sampling data
@@ -433,6 +436,8 @@ def pause(printer):
 def resume(printer):
     print("resuming")
     print("sending to", printer.last_pos)
+
+    print(printer.last_pos)
 
     # if self.conductance_mode:
     #     self.cmd("G90")
