@@ -17,8 +17,6 @@ import pprint
 
 from datetime import datetime
 
-from Unwarping_App.components.gcodeObject import gcodes
-
 
 global temp_vars
 temp_vars = {
@@ -696,34 +694,34 @@ def generatePixelOverlay(result, locations, json_file):
 
     # result.sample_overlay = pixels
 
-def sendLocations(locations, dwell, transit):
-    # Create GCodes then send to main
-    # TODO temp values for now
-    locations = [(181.4, -2),
-                (182.4, -2),
-                (181.4, -1),
-                (182.4, -1)]
+# def sendLocations(locations, dwell, transit):
+#     # Create GCodes then send to main
+#     # TODO temp values for now
+#     locations = [(181.4, -2),
+#                 (182.4, -2),
+#                 (181.4, -1),
+#                 (182.4, -1)]
 
-    gcodes.gcode_list.append("G90")
+#     gcodes.gcode_list.append("G90")
 
-    for i in locations:
-        # Command to go to location
-        gcodes.gcode_list.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
-        gcodes.gcode_list.append("G0 Z"+ str(-5)) # TODO temp height
+#     for i in locations:
+#         # Command to go to location
+#         gcodes.gcode_list.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+#         gcodes.gcode_list.append("G0 Z"+ str(-5)) # TODO temp height
 
-        # Command to dwell there (in milliseconds)
-        dwell_time = int(dwell) * 1000
-        gcodes.gcode_list.append(f"G4 P{str(dwell_time)}")
+#         # Command to dwell there (in milliseconds)
+#         dwell_time = int(dwell) * 1000
+#         gcodes.gcode_list.append(f"G4 P{str(dwell_time)}")
 
-        # Command to return to transit height
-        gcodes.gcode_list.append("G0 Z"+ str(transit))
+#         # Command to return to transit height
+#         gcodes.gcode_list.append("G0 Z"+ str(transit))
 
-    # Reset any pre-exisitng data
-    gcodes.completed_gcodes = []
-    gcodes.time_stamps = []
-    gcodes.readable_time_stamps = []
+#     # Reset any pre-exisitng data
+#     gcodes.completed_gcodes = []
+#     gcodes.time_stamps = []
+#     gcodes.readable_time_stamps = []
 
-    # Start the time stamp collection immediately once gcodes are ready
-    gcodes.time_stamps.append(time.time())
-    gcodes.readable_time_stamps.append(0)
-    print(gcodes.gcode_list)
+#     # Start the time stamp collection immediately once gcodes are ready
+#     gcodes.time_stamps.append(time.time())
+#     gcodes.readable_time_stamps.append(0)
+#     print(gcodes.gcode_list)

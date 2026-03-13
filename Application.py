@@ -18,7 +18,8 @@ from Printer_Control_App import oppscan2
 
 from Unwarping_App import unwarpingApp
 from Unwarping_App.components.common import Header
-from Unwarping_App.components.gcodeObject import gcodes
+
+from Unwarping_App.services import sampling_service
 
 from Printer_Control_App.core import printer as prt
 
@@ -34,33 +35,20 @@ printer = prt.console_control()
 moving = False
 next_height = 0
 
-# function to get time stamp between operations
-def addTime():
-    gcodes.time_stamps.append(time.time())
-    achieved_time = gcodes.time_stamps[-1] - gcodes.time_stamps[-2]
-    gcodes.readable_time_stamps.append(gcodes.readable_time_stamps[-1] + achieved_time)
-
 def global_poll():
     global moving, next_height
     # If gcodes are ready
-    if len(gcodes.gcode_list) > 0:
-        line = gcodes.gcode_list[0]
+    if len(sampling_service.samplingItem.gcodes) > 0:
+        line = sampling_service.samplingItem.gcodes[0]
 
         # Check if next step is to sample
         if "G4" in line and not moving:
             print("Sampling...")
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
-            addTime()
-            
-            printer.cmd(line)
-        
+            # sampling_service.runGCode(printer)
+
         # Check if next step is to move to a position
         elif "G0" in line and not moving:
             print("Moving to position: ", line)
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
-            addTime()
             
             # If movement is a height adjustment, grab the value so we can compare if the printer is there
             if "Z" in line:
@@ -68,25 +56,24 @@ def global_poll():
                 next_height = float(match.group(1))
 
             # Move to position and set flag as true
-            printer.cmd(line)
+            # sampling_service.runGCode(printer)
             moving = True
         
         # Command to set absolute positioning, usually first line of gcode list
         elif "G90" in line:
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
-
-            addTime()
-            printer.cmd(line)
+            pass
+            # sampling_service.runGCode(printer)
 
         # Check if printer has made it to the expected height, remove moving flag
         elif printer.pos[2] == next_height:
             moving = False
 
+        sampling_service.addData(printer)
+
     # Idle
-    elif len(gcodes.gcode_list) <= 0:
+    elif len(sampling_service.samplingItem.gcodes) <= 0:
         pass
-        # print("running...")
+
 
 class LightingThread(QThread):
     light_signal = pyqtSignal(str)
@@ -176,6 +163,7 @@ class CameraThread(QThread):
         if self.capture:
             self.capture.release()
 
+
 class App(QWidget):
     def __init__(self):
         super().__init__()
@@ -249,6 +237,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(1000)  # every second?
+    global_timer.start(500)  # every .5 seconds
 
     sys.exit(app.exec_())

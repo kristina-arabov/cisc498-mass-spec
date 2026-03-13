@@ -341,12 +341,15 @@ def runGCode(printer):
 # TODO why overwriting lines?
 def addData(printer):
     # Get time and printer position at this moment
-    time_val = getTime()
-    pos = printer.pos
+    time_val = int(getTime() * 1000)
+    # pos = printer.pos
+    pos = [1, 2, 3]
+
+    print("Runs!")
 
 
     # Open file and add row to it
-    with open(samplingItem.csv_filename, "w", newline="") as file:
+    with open(samplingItem.csv_filename, "a", newline="") as file:
         writer = csv.writer(file)
 
         writer.writerow([time_val, 0, pos[0], pos[1], pos[2]])
@@ -383,8 +386,9 @@ def clearSampling(printer):
 
     # TODO Return to initial position? or emergency position?
     # Currently emergency position
-    printer.cmd("G0 Z100 F3000")
-    printer.cmd("G0 X10 Y10 Z100 F3000")
+
+    # printer.cmd("G0 Z100 F3000")
+    # printer.cmd("G0 X10 Y10 Z100 F3000")
 
 
     # start_point = rectangle.topLeft()
