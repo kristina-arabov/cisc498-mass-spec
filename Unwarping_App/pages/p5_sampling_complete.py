@@ -5,18 +5,12 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
 import cv2
 
-from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
-from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
 
 class SamplingComplete(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI()
-    # def __init__(self, printer, json_path):
-    #     super().__init__()
-    #     self.printer = printer
-    #     self.json_path = json_path
-    #     self.initUI()
+    
     
     def initUI(self):
         styling = "Unwarping_App/components/style.css"
