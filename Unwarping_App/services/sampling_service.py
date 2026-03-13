@@ -37,9 +37,12 @@ class SamplingItem():
         self.estimated_time = None
 
         self.gcodes = []
+        self.completed_gcodes = []
         self.timestamps = []
         self.readable_timestamps = []
-        self.completed_gcodes = 0
+        
+        self.moving = False
+        self.paused = False
 
         # File info
         self.csv_filename = None
@@ -263,11 +266,10 @@ def getSampling(sampling):
     
     print(f"path: {locations}")
     
-
     sampling.gcodes.append("G90")
 
-    # Always go to sample/start height first
-    sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+    # Always go to transit height first
+    sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
     for i in locations:
         # Command: Go to (X, Y) location
@@ -289,7 +291,7 @@ def getSampling(sampling):
 
         # Repeat...
 
-    sampling.completed_gcodes = 0
+    sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
 
@@ -297,7 +299,8 @@ def getSampling(sampling):
     sampling.timestamps.append(time.time())
     sampling.readable_timestamps.append(0)
 
-    # print(sampling.gcodes)
+    for row in sampling.gcodes:
+        print(row)
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
@@ -381,6 +384,35 @@ def clearSampling(printer):
 
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
+
+
+def pause(printer):
+    printer.last_pos = printer.pos
+    # if self.conductance_mode:
+    #     self.cmd("G90")
+    #     self.cmd("G0 Z100 F3000")
+    #     self.cmd("G0 X10 Y10 Z100 F3000")
+    #     self.cmd("G91")
+    # else:
+    printer.cmd("G91")
+    printer.cmd("G0 Z15 F3000")
+    printer.cmd("G0 X10 Y10 F3000")
+    
+    samplingItem.paused = True
+
+def resume(printer):
+    print("resuming")
+    print("sending to", printer.last_pos)
+
+    # if self.conductance_mode:
+    #     self.cmd("G90")
+    #     self.cmd("G0 X"+str(self.last_pos[0])+" Y"+str(self.last_pos[1])+ " Z"+str(self.last_pos[2])+" F2000")
+    #     self.cmd("G91")
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2])+" F2000")
+
+    samplingItem.paused = False
 
     # Ensure file is saved
 
