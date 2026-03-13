@@ -29,6 +29,8 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        self.startLoc = None
+
         # TODO allow mode to change
         self.mode = "constantZ"
 
@@ -39,8 +41,8 @@ class SamplingItem():
         self.gcodes = []
         self.completed_gcodes = []
 
-        self.total_points = None
-        self.sampled_points = None
+        self.total_points = 0
+        self.sampled_points = 0
 
         self.timestamps = []
         self.readable_timestamps = []
@@ -91,6 +93,8 @@ def findLocations(transformation, sampling, img):
 
     rectangle = img.rectangle
     dot = img.dot
+
+    sampling.originalLoc = transformation.photo_loc
 
     if not dot or not rectangle:
         print("NO DOT/ROI")
@@ -295,9 +299,11 @@ def getSampling(sampling):
 
             # Repeat...
 
-            # TODO return to start position?
+        # Return to original position
+        p = sampling.originalLoc
+        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1])+" Z"+str([p[2]]))
 
-        sampling.total_points = len(sampling.gcodes)
+        sampling.total_points = len(locations)
         sampling.sampled_points = 0
 
         sampling.completed_gcodes = []
@@ -344,7 +350,6 @@ def runGCode(printer):
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
-    samplingItem.sampled_points += 1
             
     printer.cmd(line)
 
@@ -380,19 +385,33 @@ def createCSV():
 
 
 
-def clearSampling(printer):
+def stop(printer):
+    # Move printer to original position...
+    p = samplingItem.originalLoc
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1])+" Z"+str([p[2]]))
+
+
     # Clear GCodes and sampling data
-    samplingItem.estimated_time = None
-
-    samplingItem.gcodes = []
-    samplingItem.timestamps = []
-    samplingItem.readable_timestamps = [0]
-    samplingItem.completed_gcodes = 0
-
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
 
-    # Move printer to original position
+    samplingItem.estimated_time = None
+
+    samplingItem.gcodes = []
+    samplingItem.completed_gcodes = []
+
+    samplingItem.total_points = 0
+    samplingItem.sampled_points = 0
+
+    samplingItem.timestamps = []
+    samplingItem.readable_timestamps = []
+    
+    samplingItem.moving = False
+    samplingItem.paused = False
+
+    
 
 
 def pause(printer):
@@ -406,6 +425,7 @@ def pause(printer):
     printer.cmd("G91")
     printer.cmd("G0 Z15 F3000")
     printer.cmd("G0 X10 Y10 F3000")
+    printer.cmd("G90")
     
     samplingItem.paused = True
 

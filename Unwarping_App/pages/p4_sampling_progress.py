@@ -41,7 +41,7 @@ class SamplingProgress(QWidget):
         gif.start()
         gif.setScaledSize(QSize(100, 100))
 
-        self.label_points = QLabel("___ points sampled")
+        self.label_points = QLabel("0 / 0 points sampled")
         self.label_estimatedTime = QLabel("Estimated time left: ___")
 
         self.button_pause = QPushButton("Pause", objectName="headerBlue")
@@ -100,8 +100,7 @@ class SamplingProgress(QWidget):
             self.operations.hide()
             
             # TODO check this works?
-            self.printer.resume_sample()
-            self.sampling.paused = False
+            sampling_service.resume(self.printer)
 
 
 
@@ -117,7 +116,7 @@ class SamplingProgress(QWidget):
         # Return to previous page (signal)
         self.returnToConfig.emit()
 
-        sampling_service.clearSampling(self.printer)
+        sampling_service.stop(self.printer)
 
 
         

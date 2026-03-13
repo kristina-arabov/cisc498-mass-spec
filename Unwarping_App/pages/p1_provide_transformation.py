@@ -99,13 +99,13 @@ class ProvideTransformation(QWidget):
     def applyTransformation(self):
         try:
             # TODO uncomment after testing
-            # pos = device_service.getPrinterPosition(self.printer)
+            pos = device_service.getPrinterPosition(self.printer)
 
             # if pos[2] != self.transformation.height:
             #     print("height not same")
             #     return
 
-            # self.transformation.photo_loc = pos
+            self.transformation.photo_loc = pos
 
             # Unwarp photo if printer is at the same height as calibration
             img = self.camera.frame.copy()
