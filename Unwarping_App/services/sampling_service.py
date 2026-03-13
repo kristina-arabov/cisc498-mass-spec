@@ -29,6 +29,9 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # TODO allow mode to change
+        self.mode = "constantZ"
+
 
         # Gcode info
         self.estimated_time = None
@@ -266,47 +269,47 @@ def getSampling(sampling):
 
     
     print(f"path: {locations}")
-    
-    sampling.gcodes.append("G90")
 
-    # Always go to transit height first
-    sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
-
-    for i in locations:
-        # Command: Go to (X, Y) location
-        sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+    if sampling.mode == "constantZ":
         
-        # Command: Go to Z sampling height
-        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+        sampling.gcodes.append("G90") # Absolute positioning
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
 
-        # Command: Sample for __ milliseconds
-        sample_time = int(sampling.sampleTime) * 1000 
-        sampling.gcodes.append(f"G4 P{str(sample_time)}")
+        for i in locations:
+            # Command: Go to (X, Y) location
+            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            
+            # Command: Go to Z sampling height
+            sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
 
-        # Command: Return to Z ransit height
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+            # Command: Sample for __ milliseconds
+            sample_time = int(sampling.sampleTime) * 1000 
+            sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
-        # Command: Dwell for __ milliseconds
-        dwell_time = int(sampling.dwellTime) * 1000
-        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+            # Command: Return to Z ransit height
+            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
-        # Repeat...
+            # Command: Dwell for __ milliseconds
+            dwell_time = int(sampling.dwellTime) * 1000
+            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
-    # TODO return to start position?
+            # Repeat...
 
-    sampling.total_points = len(sampling.gcodes)
-    sampling.sampled_points = 0
+            # TODO return to start position?
 
-    sampling.completed_gcodes = []
-    sampling.timestamps = []
-    sampling.readable_timestamps = []
+        sampling.total_points = len(sampling.gcodes)
+        sampling.sampled_points = 0
 
-    # Start timer
-    sampling.timestamps.append(time.time())
-    sampling.readable_timestamps.append(0)
+        sampling.completed_gcodes = []
+        sampling.timestamps = []
+        sampling.readable_timestamps = []
 
-    for row in sampling.gcodes:
-        print(row)
+        # Start timer
+        sampling.timestamps.append(time.time())
+        sampling.readable_timestamps.append(0)
+
+        for row in sampling.gcodes:
+            print(row)
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
