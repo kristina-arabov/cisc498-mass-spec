@@ -19,9 +19,6 @@ class SamplingItem():
         self.drawn = None
         self.dot = None
 
-        self.total_points = None
-        self.sampled_points = None
-
         # Sampling parameters
         self.spatialRes_X = None
         self.spatialRes_Y = None
@@ -38,6 +35,10 @@ class SamplingItem():
 
         self.gcodes = []
         self.completed_gcodes = []
+
+        self.total_points = None
+        self.sampled_points = None
+
         self.timestamps = []
         self.readable_timestamps = []
         
@@ -291,6 +292,11 @@ def getSampling(sampling):
 
         # Repeat...
 
+    # TODO return to start position?
+
+    sampling.total_points = len(sampling.gcodes)
+    sampling.sampled_points = 0
+
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
@@ -333,7 +339,9 @@ def getTime():
 # Function to send a GCode to the printer and remove it from the queue
 def runGCode(printer):
     line = samplingItem.gcodes.pop(0)
+
     samplingItem.completed_gcodes.append(line)
+    samplingItem.sampled_points += 1
             
     printer.cmd(line)
 
@@ -341,15 +349,11 @@ def runGCode(printer):
 
 
 # Function to add a row containing time + position data to the spreadsheet
-# TODO why overwriting lines?
 def addData(printer):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
-    # pos = printer.pos
-    pos = [1, 2, 3]
-
-    print("Runs!")
-
+    pos = printer.pos
+    # pos = [1, 2, 3]
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
@@ -385,6 +389,8 @@ def clearSampling(printer):
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
 
+    # Move printer to original position
+
 
 def pause(printer):
     printer.last_pos = printer.pos
@@ -400,6 +406,7 @@ def pause(printer):
     
     samplingItem.paused = True
 
+
 def resume(printer):
     print("resuming")
     print("sending to", printer.last_pos)
@@ -409,10 +416,12 @@ def resume(printer):
     #     self.cmd("G0 X"+str(self.last_pos[0])+" Y"+str(self.last_pos[1])+ " Z"+str(self.last_pos[2])+" F2000")
     #     self.cmd("G91")
 
-    printer.cmd("G90")
-    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2])+" F2000")
-
     samplingItem.paused = False
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2]))
+
+    
 
     # Ensure file is saved
 

@@ -32,22 +32,21 @@ import sys
 
 printer = prt.console_control()
 
-moving = False
 next_height = 0
 
 def global_poll():
-    global moving, next_height
+    global next_height
     # If gcodes are ready
-    if len(sampling_service.samplingItem.gcodes) > 0:
+    if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
         line = sampling_service.samplingItem.gcodes[0]
 
         # Check if next step is to sample
-        if "G4" in line and not moving:
-            print("Sampling...")
-            # sampling_service.runGCode(printer)
+        if "G4" in line and not sampling_service.samplingItem.moving:
+            print("Waiting...")
+            sampling_service.runGCode(printer)
 
         # Check if next step is to move to a position
-        elif "G0" in line and not moving:
+        elif "G0" in line and not sampling_service.samplingItem.moving:
             print("Moving to position: ", line)
             
             # If movement is a height adjustment, grab the value so we can compare if the printer is there
@@ -56,23 +55,23 @@ def global_poll():
                 next_height = float(match.group(1))
 
             # Move to position and set flag as true
-            # sampling_service.runGCode(printer)
-            moving = True
+            sampling_service.runGCode(printer)
+            sampling_service.samplingItem.moving = True
         
         # Command to set absolute positioning, usually first line of gcode list
         elif "G90" in line:
-            pass
-            # sampling_service.runGCode(printer)
+            sampling_service.runGCode(printer)
 
         # Check if printer has made it to the expected height, remove moving flag
         elif printer.pos[2] == next_height:
-            moving = False
+            sampling_service.samplingItem.moving = False
 
         sampling_service.addData(printer)
 
     # Idle
-    elif len(sampling_service.samplingItem.gcodes) <= 0:
+    elif len(sampling_service.samplingItem.gcodes) <= 0 or sampling_service.samplingItem.paused:
         pass
+
 
 
 class LightingThread(QThread):

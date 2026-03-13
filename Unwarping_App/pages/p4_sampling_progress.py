@@ -82,7 +82,7 @@ class SamplingProgress(QWidget):
         if stopped:
             
             # TODO Check this works?
-            # self.printer.pause_sample()
+            sampling_service.pause(self.printer)
 
             self.img_loadingCircle.hide()
             self.label_estimatedTime.hide()
@@ -100,7 +100,10 @@ class SamplingProgress(QWidget):
             self.operations.hide()
             
             # TODO check this works?
-            # self.printer.resume_sample()
+            self.printer.resume_sample()
+            self.sampling.paused = False
+
+
 
     def stopSampling(self):
         # Reset as default
@@ -115,6 +118,7 @@ class SamplingProgress(QWidget):
         self.returnToConfig.emit()
 
         sampling_service.clearSampling(self.printer)
+
 
         
 class OperationButtons(QWidget):
