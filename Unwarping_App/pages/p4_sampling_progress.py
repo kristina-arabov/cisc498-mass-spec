@@ -27,7 +27,7 @@ class SamplingProgress(QWidget):
             self.setStyleSheet(file.read())
 
         layout = QHBoxLayout(self)
-        gif = QMovie("Unwarping_App\components\images\Loading.gif")
+        gif = QMovie("Unwarping_App/components/images/Loading.gif")
 
         self.photo = ClickableImage()
 
