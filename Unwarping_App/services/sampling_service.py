@@ -263,10 +263,7 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling):
-    # All sampling points + reference
-    # TODO actually read inputs from config page
-    # make modifications to inputs if needed
-
+    # TODO change to real locations
     # Convert to serpentine pattern
     locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     locations = serpentinePath(locations)
