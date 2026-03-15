@@ -268,8 +268,9 @@ class SamplingParameters(QWidget):
         """)
 
         # FUNCTIONS ----------------------------------------
-        # Resolution
-        self.input_spatialRes_X.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text()))
+        # Resolution (X and Y)
+        self.input_spatialRes_X.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
+        self.input_spatialRes_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
 
         self.input_spatialRes_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_X.text(), "res_X"))
         self.input_spatialRes_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_Y.text(), "res_Y"))
