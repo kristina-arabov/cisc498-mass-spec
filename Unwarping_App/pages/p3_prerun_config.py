@@ -5,8 +5,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
 import cv2
 
-from Unwarping_App.components.common import CamFeed, ClickableImage,InputField
-from Unwarping_App.components.utils import generateProbeAcquisition, updatePixelOverlay, sendLocations
+from Unwarping_App.components.common import ClickableImage
 from Unwarping_App.services import sampling_service
 
 class PrerunConfig(QWidget):
@@ -68,6 +67,7 @@ class PrerunConfig(QWidget):
         # FUNCTIONS ----------------------------------------
         button_startRun.clicked.connect(self.next.emit)
         button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
+        button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))

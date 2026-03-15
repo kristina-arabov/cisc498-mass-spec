@@ -7,6 +7,9 @@ import time
 
 from Unwarping_App.services import calibration_service
 
+import csv
+from datetime import datetime
+
 
 class SamplingItem():
     def __init__(self):
@@ -15,9 +18,6 @@ class SamplingItem():
         self.rectangle = None
         self.drawn = None
         self.dot = None
-
-        self.total_points = None
-        self.sampled_points = None
 
         # Sampling parameters
         self.spatialRes_X = None
@@ -29,16 +29,33 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        self.startLoc = None
 
-        # Gcode stuff
+        # TODO allow mode to change
+        self.mode = "constantZ"
+
+
+        # Gcode info
         self.estimated_time = None
 
         self.gcodes = []
+        self.completed_gcodes = []
+
+        self.total_points = 0
+        self.sampled_points = 0
+
         self.timestamps = []
         self.readable_timestamps = []
-        self.completed_gcodes = 0
+        
+        self.moving = False
+        self.paused = False
+
+        # File info
+        self.csv_filename = None
+        self.csv_rows = []
         
 
+samplingItem = SamplingItem()
 
 def setTransformation(transformation, path, valid):
 
@@ -76,6 +93,8 @@ def findLocations(transformation, sampling, img):
 
     rectangle = img.rectangle
     dot = img.dot
+
+    sampling.originalLoc = transformation.photo_loc
 
     if not dot or not rectangle:
         print("NO DOT/ROI")
@@ -244,48 +263,57 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling):
-    # All sampling points + reference
-    # TODO actually read inputs from config page
-    # make modifications to inputs if needed
-
+    # TODO change to real locations
     # Convert to serpentine pattern
     locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     locations = serpentinePath(locations)
 
     
     print(f"path: {locations}")
-    
 
-    sampling.gcodes.append("G90")
-
-    for i in locations:
-        # Command: Go to (X, Y) location
-        sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+    if sampling.mode == "constantZ":
         
-        # Command: Go to Z sampling height
-        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+        sampling.gcodes.append("G90") # Absolute positioning
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
 
-        # Command: Sample for __ milliseconds
-        sample_time = int(sampling.sampleTime) * 1000 
-        sampling.gcodes.append(f"G4 P{str(sample_time)}")
+        for i in locations:
+            # Command: Go to (X, Y) location
+            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            
+            # Command: Go to Z sampling height
+            sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
 
-        # Command: Return to Z ransit height
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+            # Command: Sample for __ milliseconds
+            sample_time = int(sampling.sampleTime) * 1000 
+            sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
-        # Command: Dwell for __ milliseconds
-        dwell_time = int(sampling.dwellTime) * 1000
-        sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+            # Command: Return to Z ransit height
+            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
-        # Repeat...
+            # Command: Dwell for __ milliseconds
+            dwell_time = int(sampling.dwellTime) * 1000
+            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
-    sampling.completed_gcodes = 0
-    sampling.timestamps = []
-    sampling.readable_timestamps = [0]
+            # Repeat...
 
-    # Start timer
-    sampling.timestamps.append(time.time())
+        # Return to original position
+        p = sampling.originalLoc
+        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
+        sampling.gcodes.append("G0 Z"+ str(p[2]))
 
-    # print(sampling.gcodes)
+        sampling.total_points = len(locations)
+        sampling.sampled_points = 0
+
+        sampling.completed_gcodes = []
+        sampling.timestamps = []
+        sampling.readable_timestamps = []
+
+        # Start timer
+        sampling.timestamps.append(time.time())
+        sampling.readable_timestamps.append(0)
+
+        for row in sampling.gcodes:
+            print(row)
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
@@ -303,6 +331,130 @@ def serpentinePath(locations):
         serpentine.extend(row if i % 2 == 0 else row[::-1])
 
     return serpentine
+
+# Function to get time stamp between operations
+def getTime():
+    samplingItem.timestamps.append(time.time())
+
+    achieved_time = samplingItem.timestamps[-1] - samplingItem.timestamps[-2]
+    samplingItem.readable_timestamps.append(samplingItem.readable_timestamps[-1] + achieved_time)
+
+    # Return most recent timestamp to spreadsheet
+    return samplingItem.readable_timestamps[-1]
+
+
+# Function to send a GCode to the printer and remove it from the queue
+def runGCode(printer):
+    line = samplingItem.gcodes.pop(0)
+
+    samplingItem.completed_gcodes.append(line)
+            
+    printer.cmd(line)
+
+    # emit signal for completed points? time?
+
+
+# Function to add a row containing time + position data to the spreadsheet
+def addData(printer):
+    # Get time and printer position at this moment
+    time_val = int(getTime() * 1000)
+    pos = printer.pos
+    # pos = [1, 2, 3]
+
+    # Open file and add row to it
+    with open(samplingItem.csv_filename, "a", newline="") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([time_val, 0, pos[0], pos[1], pos[2]])
+
+
+
+# Function to create new CSV files
+def createCSV():
+    current_time = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+    samplingItem.csv_filename = f"collectedData/sampleRun_{current_time}.csv"
+
+    # Create and write to the CSV
+    with open(samplingItem.csv_filename, "w", newline="") as file:
+        writer = csv.writer(file)
+
+        # Write header
+        writer.writerow(["Time (ms)", "Conductance", "X", "Y", "Z"])
+
+
+
+def stop(printer):
+    # Move printer to original position...
+    p = samplingItem.originalLoc
+    print(p)
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    printer.cmd("G0 Z"+str(p[2]))
+
+
+    # Clear GCodes and sampling data
+    samplingItem.csv_filename = None
+    samplingItem.csv_rows = []
+
+    samplingItem.estimated_time = None
+
+    samplingItem.gcodes = []
+    samplingItem.completed_gcodes = []
+
+    samplingItem.total_points = 0
+    samplingItem.sampled_points = 0
+
+    samplingItem.timestamps = []
+    samplingItem.readable_timestamps = []
+    
+    samplingItem.moving = False
+    samplingItem.paused = False
+
+    
+
+
+def pause(printer):
+    printer.last_pos = printer.pos
+    # if self.conductance_mode:
+    #     self.cmd("G90")
+    #     self.cmd("G0 Z100 F3000")
+    #     self.cmd("G0 X10 Y10 Z100 F3000")
+    #     self.cmd("G91")
+    # else:
+    printer.cmd("G91")
+    printer.cmd("G0 Z15 F3000")
+    printer.cmd("G0 X10 Y10 F3000")
+    printer.cmd("G90")
+    
+    samplingItem.paused = True
+
+
+def resume(printer):
+    print("resuming")
+    print("sending to", printer.last_pos)
+
+    print(printer.last_pos)
+
+    # if self.conductance_mode:
+    #     self.cmd("G90")
+    #     self.cmd("G0 X"+str(self.last_pos[0])+" Y"+str(self.last_pos[1])+ " Z"+str(self.last_pos[2])+" F2000")
+    #     self.cmd("G91")
+
+    samplingItem.paused = False
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2]))
+
+    
+
+    # Ensure file is saved
+
+    # TODO Return to initial position? or emergency position?
+    # Currently emergency position
+
+    # printer.cmd("G0 Z100 F3000")
+    # printer.cmd("G0 X10 Y10 Z100 F3000")
 
 
     # start_point = rectangle.topLeft()
