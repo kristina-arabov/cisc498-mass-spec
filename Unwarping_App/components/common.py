@@ -1467,16 +1467,18 @@ class ClickableImage(QLabel):
 
         self.update()
 
-    def updateOverlay(self, resolution):
-        # let be 15 * 10 mm
+    def updateOverlay(self, x, y):
+        # TODO update for polygon
+        # TODO use actual dimensions
+        # TODO fix any inaccurate spacing
 
         try:
             if self.rectangle:
                 self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
-                x_range = np.arange(x0, x1, float(resolution))
-                y_range = np.arange(y0, y1, float(resolution))
+                x_range = np.arange(x0, x1, float(x))
+                y_range = np.arange(y0, y1, float(y))
 
                 self.sample_overlay_x = len(x_range)
                 self.sample_overlay_y = len(y_range)
