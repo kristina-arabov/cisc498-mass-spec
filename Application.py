@@ -86,7 +86,7 @@ class LightingThread(QThread):
         self.running = False
         
     def run(self):
-        print("attempting connection: ", self.idx)
+        print("Attempting lights connection: ", self.idx)
         try:
             self.running = True
             self.serial_conn = serial.Serial(self.idx, self.baudrate, timeout=1)
@@ -101,6 +101,7 @@ class LightingThread(QThread):
             self.enable_buttons.emit(False)
             print(f"Serial error: {e}")
 
+    # TODO
     # Doesnt entirely work, will make a workaround
     def stop(self):
         self.running = False
@@ -135,7 +136,7 @@ class CameraThread(QThread):
     # Start running feed
     def run(self):
         if self.idx is not None:
-            print("attempting connection: ", self.idx)
+            print("Attempting camera connection: ", self.idx)
             self.capture = cv2.VideoCapture(self.idx)
             self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
             self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
@@ -162,7 +163,7 @@ class CameraThread(QThread):
         if self.capture:
             self.capture.release()
 
-
+# The main application window
 class App(QWidget):
     def __init__(self):
         super().__init__()
