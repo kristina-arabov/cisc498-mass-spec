@@ -77,32 +77,63 @@ class PrerunConfig(QWidget):
 
     # Function to handle the sampling type
     def handleSamplingType(self, type=None, drag=False):
+        params = self.component_samplingParams
+
         # Show all on default
-        self.component_samplingParams.row_1.show()
-        self.component_samplingParams.row_2.show()
-        self.component_samplingParams.row_3.show()
-        self.component_samplingParams.row_4.show()
-        self.component_samplingParams.row_5.show()
-        self.component_samplingParams.row_6.show()
-        self.component_samplingParams.row_7.show()
+        params.row_1.show()
+        params.row_2.show()
+        params.row_3.show()
+        params.row_4.show()
+        params.row_5.show()
+        params.row_6.show()
+        params.row_7.show()
 
         # Constant Z
         if type == "constant":
             # If drag sampling toggled, hide spatial res and dwell time
-            if self.component_samplingParams.button_dragSampling.isChecked():
-                self.component_samplingParams.row_1.hide()
-                self.component_samplingParams.row_2.hide()
-                self.component_samplingParams.row_3.hide()
+            if params.button_dragSampling.isChecked():
+                params.row_1.hide()
+                params.row_2.hide()
+                params.row_3.hide() 
+
+                # Reset hidden rows
+                params.input_spatialRes_X.clear()
+                params.input_spatialRes_Y.clear()
+                params.input_dwell.clear()
+                params.input_sampleTime.clear()         
 
         # Conductive
         elif type == "conductive":
-            self.component_samplingParams.row_5.hide()
-            self.component_samplingParams.row_6.hide()
+            params.row_5.hide()
+            params.row_6.hide()
 
+            # Reset all inputs if drag sampling button is checked (makes it slightly nicer to look at on change)
+            if params.button_dragSampling.isChecked():
+                self.clearInputs()
+
+            # Reset hidden rows
+            params.input_sampleHeight.clear()
+            params.button_dragSampling.setChecked(False)
+
+
+        self.photo.update()
+
+        
+    # Function to clear all sampling parameter inputs
     def clearInputs(self):
-        self.component_samplingParams.input_spatialRes.clear()
-        self.component_samplingParams.input_dwell.clear()
-        self.component_samplingParams.input_transfer.clear()
+        params = self.component_samplingParams
+
+        # Spatial res inputs
+        params.input_spatialRes_X.clear()
+        params.input_spatialRes_Y.clear()
+
+        # Time inputs
+        params.input_dwell.clear()
+        params.input_sampleTime.clear()
+
+        # Height inputs
+        params.input_transit.clear()
+        params.input_sampleHeight.clear()
 
 
 class ModeSelection(QWidget):
