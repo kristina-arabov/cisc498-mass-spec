@@ -1153,6 +1153,9 @@ class ClickableImage(QLabel):
 
         self.sample_overlay_x = None
         self.sample_overlay_y = None
+
+        self.x_range = None
+        self.y_range = None
         # self.sample_overlay = None
 
         # Positions + flag
@@ -1355,20 +1358,26 @@ class ClickableImage(QLabel):
                 width  = end_x - start_x
                 height = end_y - start_y
 
-                step_x = width  / self.sample_overlay_x
-                step_y = height / self.sample_overlay_y
+                x0, y0, x1, y1 = self.probe_rectangle
+
+                real_width  = x1 - x0
+                real_height = y1 - y0
 
                 # Vertical lines
-                for i in range(self.sample_overlay_x + 1):
-                    x = int(start_x + i * step_x)
+                for val in self.x_range:
+                    t = (val - x0) / real_width # Location as a percentage
+                    x = int(start_x + t * width) # Pixel location
+
                     painter.drawLine(
                         x, start_y,
                         x, end_y
                     )
 
                 # Horizontal lines
-                for j in range(self.sample_overlay_y + 1):
-                    y = int(start_y + j * step_y)
+                for val in self.y_range:
+                    t = (val - y0) / real_height # Location as a percentage
+                    y = int(start_y + t * height) # Pixel location
+
                     painter.drawLine(
                         start_x, y,
                         end_x, y
@@ -1378,10 +1387,26 @@ class ClickableImage(QLabel):
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
 
-                for j in range(self.sample_overlay_y):
-                    for i in range(self.sample_overlay_x):
-                        mid_x = start_x + (i + 0.5) * step_x
-                        mid_y = start_y + (j + 0.5) * step_y
+                for j in range(len(self.y_range) - 1):
+                    for i in range(len(self.x_range) - 1):
+
+                        left  = self.x_range[i]
+                        right = self.x_range[i + 1]
+
+                        top    = self.y_range[j]
+                        bottom = self.y_range[j + 1]
+
+                        # Calculated midpoint
+                        mid_x_real = (left + right) / 2
+                        mid_y_real = (top + bottom) / 2
+
+                        # Normalized X and Y
+                        tx = (mid_x_real - x0) / (x1 - x0)
+                        ty = (mid_y_real - y0) / (y1 - y0)
+
+                        # Midpoint X and Y in grid
+                        mid_x = start_x + tx * width
+                        mid_y = start_y + ty * height
 
                         painter.drawPoint(int(mid_x), int(mid_y))
 
@@ -1467,19 +1492,27 @@ class ClickableImage(QLabel):
 
         self.update()
 
-    def updateOverlay(self, resolution):
-        # let be 15 * 10 mm
+    def updateOverlay(self, x, y):
+        # TODO update for polygon
+        # TODO use actual dimensions
+        # TODO fix any inaccurate spacing
 
         try:
             if self.rectangle:
                 self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
-                x_range = np.arange(x0, x1, float(resolution))
-                y_range = np.arange(y0, y1, float(resolution))
+                self.x_range = np.arange(x0, x1, float(x))
+                self.y_range = np.arange(y0, y1, float(y))
 
-                self.sample_overlay_x = len(x_range)
-                self.sample_overlay_y = len(y_range)
+                self.x_range = np.append(self.x_range, x1)
+                self.y_range = np.append(self.y_range, y1)
+
+                print(self.x_range)
+                print(self.y_range)
+
+                self.sample_overlay_x = len(self.x_range) - 1
+                self.sample_overlay_y = len(self.y_range) - 1
 
                 self.update()
         except:
