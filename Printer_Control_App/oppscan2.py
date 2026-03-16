@@ -61,7 +61,7 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
     
     """
     
-    def __init__(self, camera, printer):  # this init part runs every time an object of MainWin is created
+    def __init__(self, camera, printer, conductance):  # this init part runs every time an object of MainWin is created
         """
         This init part runs every time an object of MainWin is created (from pyqt5)
         """
@@ -73,7 +73,7 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
         #self.initStdoutCapture()
         
         self.serConductance = serialcon.SerialConnection() # Calls class for serial connection
-        self.conThread = conductance.ConThread() # Calls class for conductance
+        self.conThread = conductance # Calls class for conductance
         self.Printer = printer # Calls class for printer
         self.Pump=pump.Pump_control() # Calls class for pump
         self.Pump.Connection = serialcon.SerialConnection() #class for serial connection

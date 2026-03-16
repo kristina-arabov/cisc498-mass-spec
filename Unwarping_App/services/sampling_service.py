@@ -340,7 +340,7 @@ def getSampling(sampling):
 
     # Return to original position
     # p = sampling.originalLoc
-    p = [0,0,0]
+    p = [180.4, -3, 0]
     sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
     sampling.gcodes.append("G0 Z"+ str(p[2]))
 
@@ -392,17 +392,18 @@ def runGCode(printer):
 
 
 # Function to add a row containing time + position data to the spreadsheet
-def addData(printer):
+def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
-    pos = printer.pos
+    pos = printer.pos if printer.pos is not None else [0, 0, 0]
+    c = conductance.connection.read() if conductance is not None else 0
     # pos = [1, 2, 3]
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
         writer = csv.writer(file)
 
-        writer.writerow([time_val, 0, pos[0], pos[1], pos[2]])
+        writer.writerow([time_val, c, pos[0], pos[1], pos[2]])
 
 
 
@@ -458,10 +459,10 @@ def pause(printer):
     #     self.cmd("G0 X10 Y10 Z100 F3000")
     #     self.cmd("G91")
     # else:
-    printer.cmd("G91")
-    printer.cmd("G0 Z15 F3000")
-    printer.cmd("G0 X10 Y10 F3000")
-    printer.cmd("G90")
+    # printer.cmd("G91")
+    # printer.cmd("G0 Z15 F3000")
+    # printer.cmd("G0 X10 Y10 F3000")
+    # printer.cmd("G90")
     
     samplingItem.paused = True
 

@@ -22,6 +22,7 @@ from Unwarping_App.components.common import Header
 from Unwarping_App.services import sampling_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import conductance 
 
 
 from PyQt5.QtWidgets import (
@@ -31,6 +32,7 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
+conduct = conductance.ConThread()
 
 next_height = 0
 
@@ -67,12 +69,13 @@ def global_poll():
                     pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
                     print(re.match(pattern, line))
                     if re.match(pattern, line):
+                        cap = conduct.connection.read()
                         
                         # TODO change to conductance read
-                        for i in range(3):
+                        while cap <= 0:
                             print(line)
                             # printer.cmd(line) 
-                            print(i)
+                            cap = conduct.connection.read()
 
                         sampling_service.samplingItem.gcodes.pop(0)
                     else:
@@ -90,7 +93,7 @@ def global_poll():
         elif printer.pos[2] == next_height:
             sampling_service.samplingItem.moving = False
 
-        sampling_service.addData(printer)
+        sampling_service.addData(printer, conduct)
 
     # Idle
     elif len(sampling_service.samplingItem.gcodes) <= 0 or sampling_service.samplingItem.paused:
@@ -207,7 +210,7 @@ class App(QWidget):
         # Tabs
         self.stack = QStackedWidget()
         self.stack.addWidget(unwarpingApp.Main(self.camera_feed, self.lighting_control, printer))
-        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
+        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer, conduct))
 
         # Set size
         self.width = min(1400, int(self.available.width() * 0.75))
