@@ -75,8 +75,9 @@ class PrerunConfig(QWidget):
 
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
+        component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
 
-        self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("drag"))
+        # self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("drag"))
 
 
     # Function to handle the sampling type
@@ -89,27 +90,13 @@ class PrerunConfig(QWidget):
         params.row_3.show()
         params.row_4.show()
         params.row_5.show()
-        params.row_6.show()
-        params.row_7.show()
+        # params.row_6.show()
+        # params.row_7.show()
 
         # Constant Z
-        if type == "constant" or type == "drag":
-            # If drag sampling toggled, hide spatial res and dwell time
-            if params.button_dragSampling.isChecked():
-                params.row_1.hide()
-                params.row_2.hide()
-                params.row_3.hide() 
-
-                # Reset hidden rows
-                params.input_spatialRes_X.clear()
-                params.input_spatialRes_Y.clear()
-                params.input_dwell.clear()
-                params.input_sampleTime.clear()         
-
-        # Conductive
-        elif type == "conductive":
+        if type == "conductive":
             params.row_5.hide()
-            params.row_6.hide()
+            # params.row_6.hide()
 
             # Reset all inputs if drag sampling button is checked (makes it slightly nicer to look at on change)
             if params.button_dragSampling.isChecked():
@@ -118,6 +105,22 @@ class PrerunConfig(QWidget):
             # Reset hidden rows
             params.input_sampleHeight.clear()
             params.button_dragSampling.setChecked(False)
+
+        elif type == "drag":
+            params.row_1.hide()
+            params.row_2.hide()
+            params.row_3.hide() 
+
+            # Reset hidden rows
+            params.input_spatialRes_X.clear()
+            params.input_spatialRes_Y.clear()
+            params.input_dwell.clear()
+            params.input_sampleTime.clear()    
+
+        else:
+            pass     
+
+
 
         self.sampling.mode = type
         self.photo.update()
@@ -154,16 +157,19 @@ class ModeSelection(QWidget):
 
         self.button_constantZ = QRadioButton("Constant-Z")
         self.button_conductive = QRadioButton("Conductive")
+        self.button_drag = QRadioButton("Drag")
 
         mode_group = QButtonGroup()
         mode_group.addButton(self.button_constantZ, 0)
         mode_group.addButton(self.button_conductive, 1)
+        mode_group.addButton(self.button_drag, 2)
 
         self.button_constantZ.setChecked(True)
 
         layout_container.addWidget(label_mode)
         layout_container.addWidget(self.button_constantZ)
         layout_container.addWidget(self.button_conductive)
+        layout_container.addWidget(self.button_drag)
 
         layout.addWidget(container)
 
@@ -288,8 +294,8 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_3)
         layout_container.addWidget(self.row_4)
         layout_container.addWidget(self.row_5)
-        layout_container.addWidget(self.row_6)
-        layout_container.addStretch()
+        # layout_container.addWidget(self.row_6)
+        # layout_container.addStretch()
         # layout_container.addWidget(self.row_7)
 
         layout.addWidget(container)
@@ -413,3 +419,24 @@ class SamplingSpeeds(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
         """)
+
+        # FUNCTIONS ---------------------------------------
+        # Speed
+        self.input_XYSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_XYSpeed.text(), "XY"))
+        self.input_ZUpSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZUpSpeed.text(), "ZUp"))
+        self.input_ZDownSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZDownSpeed.text(), "ZDown"))
+
+    # Function to set the speed of the printer 
+    def setSpeed(self, sampling, val, type):
+        # Speed changes
+        if type == "XY":
+            sampling.xy_speed = float(val)
+
+        elif type == "ZUp":
+            sampling.z_up_speed = float(val)
+
+        elif type == "ZDown":
+            sampling.z_down_speed = float(val)
+    
+        else:
+            pass
