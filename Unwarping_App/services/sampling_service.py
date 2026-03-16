@@ -355,9 +355,11 @@ def getSampling(sampling):
         print(initial[0], initial[1])
 
         sampling.gcodes.append("G90") # Absolute positioning
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Go to transit height first
-        sampling.gcodes.append("G0 X"+str(round(initial[0], 2))+" Y"+str(round(initial[1], 2))) # Move to first X, Y position
-        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight)) # Lower to sampling height
+        # TODO... if current Z > goto Z then use down speed else up speed
+        # speed not working for some reason?
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}") # Go to transit height first
+        sampling.gcodes.append(f"G0 X{str(round(initial[0], 2))} Y{str(round(initial[1], 2))} F{str(sampling.xy_speed)}") # Move to first X, Y position
+        sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") # Lower to sampling height
 
         locations.pop(0) # Remove first ?
 
@@ -365,10 +367,10 @@ def getSampling(sampling):
             # Speed?
             # Command: Go to (X, Y) location
             # TODO speed...
-            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            sampling.gcodes.append(f"G0 X{str(round(i[0], 2))} Y{str(round(i[1], 2))} F{str(sampling.xy_speed)}")
             
         # Move back to transit height
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
 
             
         # if (self.probe==True):   #conductive                                                                            #statement to determine probing
@@ -382,8 +384,8 @@ def getSampling(sampling):
     # Return to original position
     # p = sampling.originalLoc
     p = [180.4, -3, 0]
-    sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
-    sampling.gcodes.append("G0 Z"+ str(p[2]))
+    sampling.gcodes.append(f"G0 X{str(round(p[0], 2))} Y{str(round(p[1], 2))} F{str(sampling.xy_speed)}")
+    sampling.gcodes.append(f"G0 Z{str(p[2])}")
 
     # Start timer
     sampling.timestamps.append(time.time())

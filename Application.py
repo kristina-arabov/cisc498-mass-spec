@@ -54,7 +54,7 @@ def global_poll():
 
                 # Grab current height to later compare if the printer has reached it (Constant-Z mode)
                 if sampling_service.samplingItem.mode == "constant" or sampling_service.samplingItem.mode == "drag":
-                    match = re.search(r'Z(-?\d+)', line)
+                    match = re.search(r'Z(-?\d+)', line) # TODO problem may be here... matching
                     next_height = float(match.group(1))
 
                     # Move to position and set flag as true
