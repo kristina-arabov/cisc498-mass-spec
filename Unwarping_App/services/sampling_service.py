@@ -32,8 +32,7 @@ class SamplingItem():
         self.startLoc = None
 
         # TODO allow mode to change
-        self.mode = "constantZ"
-
+        self.mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -268,10 +267,18 @@ def getSampling(sampling):
     locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     locations = serpentinePath(locations)
 
-    
+    # Reset values
+    sampling.total_points = len(locations) # TODO include reference... already in list?
+    sampling.sampled_points = 0
+
+    sampling.completed_gcodes = []
+    sampling.timestamps = []
+    sampling.readable_timestamps = []
+
+
     print(f"path: {locations}")
 
-    if sampling.mode == "constantZ":
+    if sampling.mode == "constant":
         
         sampling.gcodes.append("G90") # Absolute positioning
         sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
@@ -287,33 +294,61 @@ def getSampling(sampling):
             sample_time = int(sampling.sampleTime) * 1000 
             sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
-            # Command: Return to Z ransit height
+            # Command: Return to Z transit height
             sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
             # Command: Dwell for __ milliseconds
             dwell_time = int(sampling.dwellTime) * 1000
             sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
-            # Repeat...
 
-        # Return to original position
-        p = sampling.originalLoc
-        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
-        sampling.gcodes.append("G0 Z"+ str(p[2]))
+    elif sampling.mode == "conductive":
+        print("conductive selected")
 
-        sampling.total_points = len(locations)
-        sampling.sampled_points = 0
+        for i in locations:
+            # Command: Go to (X, Y) location
+            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
 
-        sampling.completed_gcodes = []
-        sampling.timestamps = []
-        sampling.readable_timestamps = []
+            # Command: Move down until conductance detected
+            # TODO... how to move down until detected?
+            sampling.gcodes.append("G91")
+            sampling.gcodes.append(f"G0 Z-{0.5} F{10}") # TODO modify... new rows?
+            sampling.gcodes.append("G90")
 
-        # Start timer
-        sampling.timestamps.append(time.time())
-        sampling.readable_timestamps.append(0)
+            # Command: Sample for __ milliseconds
+            sample_time = int(sampling.sampleTime) * 1000 
+            sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
-        for row in sampling.gcodes:
-            print(row)
+            # Command: Return to transit height
+            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+
+            # Command: Dwell for __ milliseconds
+            dwell_time = int(sampling.dwellTime) * 1000
+            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+            
+        # if (self.probe==True):   #conductive                                                                            #statement to determine probing
+        #     self.AppendProbe(x,y) # adds G0 z- step command then sets back to absolute
+        #     self.AppendPause(self.stms) #pause for sampling time
+        #     self.Zspeed(self.zspeedup) #set z speed to zspeedup
+        #     self.AppendPos(x, y, self.startz) #set position for next movement
+        #     self.AppendPause(self.pausems) #pause for pausems
+
+
+    # Return to original position
+    p = sampling.originalLoc
+    sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
+    sampling.gcodes.append("G0 Z"+ str(p[2]))
+
+    # Start timeer
+    sampling.timestamps.append(time.time())
+    sampling.readable_timestamps.append(0)
+
+
+    for row in sampling.gcodes:
+        print(row)
+
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
@@ -352,6 +387,7 @@ def runGCode(printer):
     printer.cmd(line)
 
     # emit signal for completed points? time?
+    # TODO Conductive mode?
 
 
 # Function to add a row containing time + position data to the spreadsheet
