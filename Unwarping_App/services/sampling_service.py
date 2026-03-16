@@ -1,4 +1,5 @@
 import json
+import re
 import numpy as np
 import cv2
 from collections import defaultdict
@@ -30,6 +31,7 @@ class SamplingItem():
         self.sampleHeight = None
 
         self.startLoc = None
+        self.originalLoc = [0, 0, 0]
 
         # TODO allow mode to change
         self.mode = "constant"
@@ -312,7 +314,7 @@ def getSampling(sampling):
             # Command: Move down until conductance detected
             # TODO... how to move down until detected?
             sampling.gcodes.append("G91")
-            sampling.gcodes.append(f"G0 Z-{0.5} F{10}") # TODO modify... new rows?
+            sampling.gcodes.append(f"G0 Z-{0.5} F{10}")
             sampling.gcodes.append("G90")
 
             # Command: Sample for __ milliseconds
@@ -337,14 +339,14 @@ def getSampling(sampling):
 
 
     # Return to original position
-    p = sampling.originalLoc
+    # p = sampling.originalLoc
+    p = [0,0,0]
     sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
     sampling.gcodes.append("G0 Z"+ str(p[2]))
 
-    # Start timeer
+    # Start timer
     sampling.timestamps.append(time.time())
     sampling.readable_timestamps.append(0)
-
 
     for row in sampling.gcodes:
         print(row)
@@ -383,11 +385,10 @@ def runGCode(printer):
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
-            
+
     printer.cmd(line)
 
     # emit signal for completed points? time?
-    # TODO Conductive mode?
 
 
 # Function to add a row containing time + position data to the spreadsheet
@@ -420,15 +421,6 @@ def createCSV():
 
 
 def stop(printer):
-    # Move printer to original position...
-    p = samplingItem.originalLoc
-    print(p)
-
-    printer.cmd("G90")
-    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    printer.cmd("G0 Z"+str(p[2]))
-
-
     # Clear GCodes and sampling data
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
@@ -446,6 +438,14 @@ def stop(printer):
     
     samplingItem.moving = False
     samplingItem.paused = False
+
+
+    # Move printer to original position
+    p = samplingItem.originalLoc
+
+    printer.cmd("G90")
+    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    printer.cmd("G0 Z"+str(p[2]))
 
     
 
