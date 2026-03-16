@@ -40,7 +40,7 @@ def global_poll():
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
         line = sampling_service.samplingItem.gcodes[0]
 
-        # Check if next step is to sample
+        # Check if next step is to sample/dwell
         if "G4" in line and not sampling_service.samplingItem.moving:
             print("Waiting...")
             sampling_service.runGCode(printer)
@@ -49,17 +49,41 @@ def global_poll():
         elif "G0" in line and not sampling_service.samplingItem.moving:
             print("Moving to position: ", line)
             
-            # If movement is a height adjustment, grab the value so we can compare if the printer is there
+            # Height adjustment
             if "Z" in line:
-                match = re.search(r'Z(-?\d+)', line)
-                next_height = float(match.group(1))
 
-            # Move to position and set flag as true
-            sampling_service.runGCode(printer)
-            sampling_service.samplingItem.moving = True
+                # Grab current height to later compare if the printer has reached it (Constant-Z mode)
+                if sampling_service.samplingItem.mode == "constant":
+                    match = re.search(r'Z(-?\d+)', line)
+                    next_height = float(match.group(1))
+
+                    # Move to position and set flag as true
+                    sampling_service.runGCode(printer)
+                    sampling_service.samplingItem.moving = True
+
+                # Run relative downward movement until printer has detected a conductance (Conductive mode)
+                elif sampling_service.samplingItem.mode == "conductive":
+                    
+                    pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
+                    print(re.match(pattern, line))
+                    if re.match(pattern, line):
+                        
+                        # TODO change to conductance read
+                        for i in range(3):
+                            print(line)
+                            # printer.cmd(line) 
+                            print(i)
+
+                        sampling_service.samplingItem.gcodes.pop(0)
+                    else:
+                        sampling_service.runGCode(printer)
+
+            else:
+                sampling_service.runGCode(printer)
+            
         
-        # Command to set absolute positioning, usually first line of gcode list
-        elif "G90" in line:
+        # Absolute (G90) or relative (G91) positioning 
+        elif "G90" in line or "G91" in line:
             sampling_service.runGCode(printer)
 
         # Check if printer has made it to the expected height, remove moving flag
