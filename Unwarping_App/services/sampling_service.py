@@ -350,15 +350,25 @@ def getSampling(sampling):
     elif sampling.mode == "drag":
         print("drag selected")
 
-        sampling.gcodes.append("G90")
+        initial = locations[0]
+        print(initial)
+        print(initial[0], initial[1])
+
+        sampling.gcodes.append("G90") # Absolute positioning
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Go to transit height first
+        sampling.gcodes.append("G0 X"+str(round(initial[0], 2))+" Y"+str(round(initial[1], 2))) # Move to first X, Y position
+        sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight)) # Lower to sampling height
+
+        locations.pop(0) # Remove first ?
+
+        for i in locations:
+            # Speed?
+            # Command: Go to (X, Y) location
+            # TODO speed...
+            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            
+        # Move back to transit height
         sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
-
-        # go to X starting location
-        # move to X end location
-        # move down on Y
-        # reverse direction
-        # repeat...
-
 
             
         # if (self.probe==True):   #conductive                                                                            #statement to determine probing
@@ -437,7 +447,8 @@ def serpentineDrag(locations):
                 start = (row_max, y)
                 end = (next_min, y)
 
-        result.append((start, end))
+        result.append(start)
+        result.append(end)
 
     return result
 
@@ -445,6 +456,7 @@ def serpentineDrag(locations):
 # Function to get time stamp between operations
 def getTime():
     samplingItem.timestamps.append(time.time())
+    # print(samplingItem.timestamps)
 
     achieved_time = samplingItem.timestamps[-1] - samplingItem.timestamps[-2]
     samplingItem.readable_timestamps.append(samplingItem.readable_timestamps[-1] + achieved_time)
@@ -516,9 +528,9 @@ def stop(printer):
     # Move printer to original position
     p = samplingItem.originalLoc
 
-    printer.cmd("G90")
-    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    printer.cmd("G0 Z"+str(p[2]))
+    # printer.cmd("G90")
+    # printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    # printer.cmd("G0 Z"+str(p[2]))
 
     
 
@@ -531,10 +543,10 @@ def pause(printer):
     #     self.cmd("G0 X10 Y10 Z100 F3000")
     #     self.cmd("G91")
     # else:
-    printer.cmd("G91")
-    printer.cmd("G0 Z15 F3000")
-    printer.cmd("G0 X10 Y10 F3000")
-    printer.cmd("G90")
+    # printer.cmd("G91")
+    # printer.cmd("G0 Z15 F3000")
+    # printer.cmd("G0 X10 Y10 F3000")
+    # printer.cmd("G90")
     
     samplingItem.paused = True
 

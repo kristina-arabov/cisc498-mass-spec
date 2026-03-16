@@ -53,7 +53,7 @@ def global_poll():
             if "Z" in line:
 
                 # Grab current height to later compare if the printer has reached it (Constant-Z mode)
-                if sampling_service.samplingItem.mode == "constant":
+                if sampling_service.samplingItem.mode == "constant" or sampling_service.samplingItem.mode == "drag":
                     match = re.search(r'Z(-?\d+)', line)
                     next_height = float(match.group(1))
 
