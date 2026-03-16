@@ -72,7 +72,7 @@ class PrerunConfig(QWidget):
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
 
-        self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("constant"))
+        self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("drag"))
 
 
     # Function to handle the sampling type
@@ -89,7 +89,7 @@ class PrerunConfig(QWidget):
         params.row_7.show()
 
         # Constant Z
-        if type == "constant":
+        if type == "constant" or type == "drag":
             # If drag sampling toggled, hide spatial res and dwell time
             if params.button_dragSampling.isChecked():
                 params.row_1.hide()
@@ -115,7 +115,7 @@ class PrerunConfig(QWidget):
             params.input_sampleHeight.clear()
             params.button_dragSampling.setChecked(False)
 
-
+        self.sampling.mode = type
         self.photo.update()
 
         
