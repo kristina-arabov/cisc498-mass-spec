@@ -30,11 +30,17 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # Speed
+        self.xy_speed = None
+        self.z_down_speed = None
+        self.z_up_speed = None
+
+
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
         # TODO allow mode to change
-        self.mode = "constant"
+        self.mode = None
 
         # Gcode info
         self.estimated_time = None
@@ -267,7 +273,16 @@ def getSampling(sampling):
     # TODO change to real locations
     # Convert to serpentine pattern
     locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
-    locations = serpentinePath(locations)
+
+    if sampling.mode == "drag":
+        locations = serpentineDrag(locations)
+        print(locations)
+    
+    else:
+        locations = serpentinePath(locations)
+
+
+    # [(100, 5), (110, 5), (120, 5), (87, 0), (100, 0), (124, 0), (100, -5), (110, -5)]
 
     # Reset values
     sampling.total_points = len(locations) # TODO include reference... already in list?
@@ -307,6 +322,9 @@ def getSampling(sampling):
     elif sampling.mode == "conductive":
         print("conductive selected")
 
+        sampling.gcodes.append("G90") # Absolute positioning
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
+
         for i in locations:
             # Command: Go to (X, Y) location
             sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
@@ -329,6 +347,19 @@ def getSampling(sampling):
             sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
+    elif sampling.mode == "drag":
+        print("drag selected")
+
+        sampling.gcodes.append("G90")
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+
+        # go to X starting location
+        # move to X end location
+        # move down on Y
+        # reverse direction
+        # repeat...
+
+
             
         # if (self.probe==True):   #conductive                                                                            #statement to determine probing
         #     self.AppendProbe(x,y) # adds G0 z- step command then sets back to absolute
@@ -340,7 +371,7 @@ def getSampling(sampling):
 
     # Return to original position
     # p = sampling.originalLoc
-    p = [0,0,0]
+    p = [180.4, -3, 0]
     sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
     sampling.gcodes.append("G0 Z"+ str(p[2]))
 
@@ -368,6 +399,48 @@ def serpentinePath(locations):
         serpentine.extend(row if i % 2 == 0 else row[::-1])
 
     return serpentine
+
+
+def serpentineDrag(locations):
+    rows = defaultdict(list)
+
+    # group X values by Y
+    for x, y in locations:
+        rows[y].append(x)
+
+    ys = sorted(rows, reverse=True)
+    result = []
+
+    for i in range(len(ys)):
+        y = ys[i]
+        row_min = min(rows[y])
+        row_max = max(rows[y])
+
+        # last row
+        if i == len(ys) - 1:
+            if i % 2 == 0:
+                start = (row_min, y)
+                end = (row_max, y)
+            else:
+                start = (row_max, y)
+                end = (row_min, y)
+
+        else:
+            next_y = ys[i + 1]
+            next_min = min(rows[next_y])
+            next_max = max(rows[next_y])
+
+            if i % 2 == 0:
+                start = (row_min, y)
+                end = (next_max, y)
+            else:
+                start = (row_max, y)
+                end = (next_min, y)
+
+        result.append((start, end))
+
+    return result
+
 
 # Function to get time stamp between operations
 def getTime():

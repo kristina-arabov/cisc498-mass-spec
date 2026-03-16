@@ -36,8 +36,11 @@ class PrerunConfig(QWidget):
         # SAMPLING MODE SELECTION -----------------------------
         component_samplingMode = ModeSelection()
 
-        # PARAMETER INPUTS  -----------------------------------
+        # PARAMETER INPUTS  ------------------------------------
         self.component_samplingParams = SamplingParameters(self.photo, self.sampling)
+        
+        # SPEED INPUTS ----------------------------------------
+        self.component_speed = SamplingSpeeds(self.sampling)
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
         
@@ -47,12 +50,13 @@ class PrerunConfig(QWidget):
         layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_samplingMode)
         layout_right.addWidget(self.component_samplingParams)
+        layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
         layout_right.addWidget(button_startRun)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(15)
+        layout_right.setSpacing(10)
 
         self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 10)
 
@@ -145,7 +149,7 @@ class ModeSelection(QWidget):
         container = QWidget(objectName="light_blue_box")
         layout_container = QHBoxLayout(container)
 
-        label_mode = QLabel("Sampling mode: ", objectName="larger")
+        label_mode = QLabel("Mode: ", objectName="larger")
         label_mode.setStyleSheet("font-weight: bold;")
 
         self.button_constantZ = QRadioButton("Constant-Z")
@@ -179,14 +183,14 @@ class SamplingParameters(QWidget):
         layout_container = QVBoxLayout(container)
 
 
-        label_samplingParameters = QLabel("Sampling parameters: ", objectName="larger")
+        label_samplingParameters = QLabel("Parameters: ", objectName="larger")
         label_samplingParameters.setStyleSheet("font-weight: bold;")
 
         # ROW 1 ----------------------------------------
         self.row_1 = QWidget()
         layout_row_1 = QHBoxLayout(self.row_1)
 
-        label_spatialRes = QLabel("Spatial resolution (mm) ")
+        label_spatialRes = QLabel("Resolution (mm) ")
 
         label_spatialRes_X = QLabel("X: ")
 
@@ -286,7 +290,7 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_5)
         layout_container.addWidget(self.row_6)
         layout_container.addStretch()
-        layout_container.addWidget(self.row_7)
+        # layout_container.addWidget(self.row_7)
 
         layout.addWidget(container)
 
@@ -340,3 +344,72 @@ class SamplingParameters(QWidget):
         else:
             pass
 
+
+class SamplingSpeeds(QWidget):
+    def __init__(self, sampling_item):
+        super().__init__()
+        
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        label_speed = QLabel("Speed (mm/min): ", objectName="larger")
+        label_speed.setStyleSheet("font-weight: bold;")
+
+
+        # ROW 1 ----------------------------------------
+        self.row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(self.row_1)
+
+        label_XYSpeed = QLabel("XY Speed: ")
+        self.input_XYSpeed = QLineEdit()
+        self.input_XYSpeed.setValidator(QDoubleValidator())
+        self.input_XYSpeed.setText("5000")
+
+        layout_row_1.addWidget(label_XYSpeed, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_XYSpeed, alignment=Qt.AlignRight)
+        layout_row_1.setContentsMargins(0, 5, 0, 0)
+
+
+        # ROW 2 ----------------------------------------
+        self.row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(self.row_2)
+
+        label_ZUpSpeed = QLabel("Z Up Speed: ")
+        self.input_ZUpSpeed = QLineEdit()
+        self.input_ZUpSpeed.setValidator(QDoubleValidator())
+        self.input_ZUpSpeed.setText("725")
+
+        layout_row_2.addWidget(label_ZUpSpeed, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(self.input_ZUpSpeed, alignment=Qt.AlignRight)
+        layout_row_2.setContentsMargins(0, 5, 0, 0)
+
+        # ROW 3 ----------------------------------------
+        self.row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(self.row_3)
+
+        label_ZDownSpeed = QLabel("Z Down Speed: ")
+        self.input_ZDownSpeed = QLineEdit()
+        self.input_ZDownSpeed.setValidator(QDoubleValidator())
+        self.input_ZDownSpeed.setText("50")
+
+        layout_row_3.addWidget(label_ZDownSpeed, alignment=Qt.AlignLeft)
+        layout_row_3.addWidget(self.input_ZDownSpeed, alignment=Qt.AlignRight)
+        layout_row_3.setContentsMargins(0, 5, 0, 0)
+
+        # COMPOSE ----------------------------------------
+        layout_container.addWidget(label_speed)
+        layout_container.addWidget(self.row_1)
+        layout_container.addWidget(self.row_2)
+        layout_container.addWidget(self.row_3)
+
+        layout.addWidget(container)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit { background-color: white; }
+        """)
