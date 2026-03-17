@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup
+from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea
 from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
@@ -36,7 +36,7 @@ class PrerunConfig(QWidget):
         # SAMPLING MODE SELECTION -----------------------------
         component_samplingMode = ModeSelection()
 
-        # PARAMETER INPUTS  ------------------------------------
+        # PARAMETER INPUTS  -----------------------------------
         self.component_samplingParams = SamplingParameters(self.photo, self.sampling)
         
         # SPEED INPUTS ----------------------------------------
@@ -77,8 +77,6 @@ class PrerunConfig(QWidget):
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
         component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
 
-        # self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("drag"))
-
 
     # Function to handle the sampling type
     def handleSamplingType(self, type=None, drag=False):
@@ -90,23 +88,19 @@ class PrerunConfig(QWidget):
         params.row_3.show()
         params.row_4.show()
         params.row_5.show()
-        # params.row_6.show()
-        # params.row_7.show()
 
-        # Constant Z
+        # Conductive mode
         if type == "conductive":
+            # Hide sample height
             params.row_5.hide()
-            # params.row_6.hide()
-
-            # Reset all inputs if drag sampling button is checked (makes it slightly nicer to look at on change)
-            if params.button_dragSampling.isChecked():
-                self.clearInputs()
 
             # Reset hidden rows
             params.input_sampleHeight.clear()
-            params.button_dragSampling.setChecked(False)
 
+
+        # Drag mode
         elif type == "drag":
+            # Hide sampling res, dwell time, sample time
             params.row_1.hide()
             params.row_2.hide()
             params.row_3.hide() 
@@ -117,10 +111,9 @@ class PrerunConfig(QWidget):
             params.input_dwell.clear()
             params.input_sampleTime.clear()    
 
+        # Constant Z mode
         else:
             pass     
-
-
 
         self.sampling.mode = type
         self.photo.update()
@@ -266,25 +259,27 @@ class SamplingParameters(QWidget):
         layout_row_5.setContentsMargins(0, 5, 0, 0)
 
         # ROW 6 ----------------------------------------
-        self.row_6 = QWidget()
-        layout_row_6 = QHBoxLayout(self.row_6)
+        # self.row_6 = QWidget()
+        # layout_row_6 = QHBoxLayout(self.row_6)
 
-        self.button_dragSampling = QRadioButton("Drag sampling")
+        # self.button_dragSampling = QRadioButton("Drag sampling")
 
-        layout_row_6.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
-        layout_row_6.setContentsMargins(0, 5, 0, 0)
+        # layout_row_6.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
+        # layout_row_6.setContentsMargins(0, 5, 0, 0)
         
 
         # ROW 7 ----------------------------------------
-        self.row_7 = QWidget()
-        layout_row_7 = QHBoxLayout(self.row_7)
+        # self.row_7 = QWidget()
+        # layout_row_7 = QHBoxLayout(self.row_7)
 
-        more_options = QLabel("More options available in \"Legacy\" mode.")
-        more_options.setWordWrap(True)
-        more_options.setStyleSheet("font-weight: bold;")
+        # more_options = QLabel("More options available in \"Legacy\" mode.")
+        # more_options.setWordWrap(True)
+        # more_options.setStyleSheet("font-weight: bold;")
 
-        layout_row_7.addWidget(more_options)
-        layout_row_7.setContentsMargins(0, 10, 0, 0)
+        # layout_row_7.addWidget(more_options)
+        # layout_row_7.setContentsMargins(0, 10, 0, 0)
+
+
 
 
         # COMPOSE ----------------------------------------
@@ -294,14 +289,20 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_3)
         layout_container.addWidget(self.row_4)
         layout_container.addWidget(self.row_5)
-        # layout_container.addWidget(self.row_6)
-        # layout_container.addStretch()
-        # layout_container.addWidget(self.row_7)
 
         layout.addWidget(container)
 
         layout.setContentsMargins(0, 0, 0, 0) 
         layout.setSpacing(0)  
+
+        # Allow for scrolling if needed on the user's monitor size
+        scroll_area = QScrollArea()
+        scroll_area.setWidget(container)
+        scroll_area.setWidgetResizable(True) 
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        scroll_area.setFrameShape(QFrame.NoFrame) 
+        # scroll_area.setFixedWidth(right_col_width)
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
