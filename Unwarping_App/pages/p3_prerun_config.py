@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea
+from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea, QSizePolicy
 from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
@@ -120,6 +120,9 @@ class PrerunConfig(QWidget):
         else:
             pass     
 
+        # Adjust height of scroll area
+        params.scroll_area.setMaximumHeight(params.container.sizeHint().height())  
+
         self.sampling.mode = type
         self.photo.update()
 
@@ -186,8 +189,8 @@ class SamplingParameters(QWidget):
         
         layout = QVBoxLayout(self)
 
-        container = QWidget(objectName="light_blue_box")
-        layout_container = QVBoxLayout(container)
+        self.container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(self.container)
 
 
         label_samplingParameters = QLabel("Parameters: ", objectName="larger")
@@ -303,19 +306,24 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_5)
         layout_container.addWidget(self.row_6)
 
-        layout.addWidget(container)
+        self.container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        # Allow for scrolling if needed on the user's monitor size
+        self.scroll_area = QScrollArea(objectName="light_blue_box")
+        self.scroll_area.setWidget(self.container)
+        self.scroll_area.setWidgetResizable(True) 
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setFrameShape(QFrame.NoFrame) 
+
+        self.scroll_area.setViewportMargins(0, 0, 0, 0)
+        self.scroll_area.setContentsMargins(0, 0, 0, 0)
+
+        layout.addWidget(self.scroll_area)
 
         layout.setContentsMargins(0, 0, 0, 0) 
         layout.setSpacing(0)  
 
-        # Allow for scrolling if needed on the user's monitor size
-        # scroll_area = QScrollArea()
-        # scroll_area.setWidget(container)
-        # scroll_area.setWidgetResizable(True) 
-        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
-        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        # scroll_area.setFrameShape(QFrame.NoFrame) 
-        # scroll_area.setFixedWidth(right_col_width)
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
