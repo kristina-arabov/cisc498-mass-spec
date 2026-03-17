@@ -84,6 +84,9 @@ class PrerunConfig(QWidget):
 
         # Show all on default except step size
         params.row_1.show()
+        params.label_spatialRes_X.show()
+        params.input_spatialRes_X.show()
+        
         params.row_2.show()
         params.row_3.show()
         params.row_4.show()
@@ -95,36 +98,29 @@ class PrerunConfig(QWidget):
             # Hide sample height
             params.row_5.hide()
             
-            # Show step size
+            # Show Z step size
             params.row_6.show()
-
-            # Reset hidden rows
-            params.input_sampleHeight.clear()
-
 
         # Drag mode
         elif type == "drag":
-            # Hide sampling res, dwell time, sample time
-            params.row_1.hide()
+            # Hide X resolution, show Y resolution ("step size")
+            params.label_spatialRes_X.hide()
+            params.input_spatialRes_X.hide()
+
+            # Hide dwell and sample time
             params.row_2.hide()
             params.row_3.hide()
 
-            # Reset hidden rows
-            params.input_spatialRes_X.clear()
-            params.input_spatialRes_Y.clear()
-            params.input_dwell.clear()
-            params.input_sampleTime.clear()    
-            params.input_stepSize.clear()
-
         # Constant Z mode
         else:
-            pass     
+            pass   
 
         # Adjust height of scroll area
         params.scroll_area.setMaximumHeight(params.container.sizeHint().height())  
 
         self.sampling.mode = type
         self.photo.update()
+        self.clearInputs()
 
         
     # Function to clear all sampling parameter inputs
@@ -143,8 +139,8 @@ class PrerunConfig(QWidget):
         params.input_transit.clear()
         params.input_sampleHeight.clear()
 
-        # Step size input
-        params.input_stepSize.clear()
+        # Step size inputs
+        params.input_ZstepSize.clear()
 
 
 class ModeSelection(QWidget):
@@ -202,22 +198,22 @@ class SamplingParameters(QWidget):
 
         label_spatialRes = QLabel("Resolution (mm) ")
 
-        label_spatialRes_X = QLabel("X: ")
+        self.label_spatialRes_X = QLabel("X: ")
 
         self.input_spatialRes_X = QLineEdit()
         self.input_spatialRes_X.setValidator(QDoubleValidator())
 
-        label_spatialRes_Y = QLabel("Y: ")
+        self.label_spatialRes_Y = QLabel("Y: ")
 
         self.input_spatialRes_Y = QLineEdit()
         self.input_spatialRes_Y.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_spatialRes, alignment=Qt.AlignLeft)
 
-        layout_row_1.addWidget(label_spatialRes_X, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.label_spatialRes_X, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(self.input_spatialRes_X, alignment=Qt.AlignRight)
 
-        layout_row_1.addWidget(label_spatialRes_Y, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.label_spatialRes_Y, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(self.input_spatialRes_Y, alignment=Qt.AlignLeft)
         layout_row_1.setContentsMargins(0, 5, 0,0)
 
@@ -273,11 +269,11 @@ class SamplingParameters(QWidget):
         self.row_6 = QWidget()
         layout_row_6 = QHBoxLayout(self.row_6)
 
-        label_stepSize = QLabel("Z Step Size (mm): ")
-        self.input_stepSize = QLineEdit()
+        label_ZstepSize = QLabel("Z Step Size (mm): ")
+        self.input_ZstepSize = QLineEdit()
 
-        layout_row_6.addWidget(label_stepSize, alignment=Qt.AlignLeft)
-        layout_row_6.addWidget(self.input_stepSize, alignment=Qt.AlignRight)
+        layout_row_6.addWidget(label_ZstepSize, alignment=Qt.AlignLeft)
+        layout_row_6.addWidget(self.input_ZstepSize, alignment=Qt.AlignRight)
         layout_row_6.setContentsMargins(0, 5, 0, 0)
 
         self.row_6.hide()
@@ -287,12 +283,14 @@ class SamplingParameters(QWidget):
         # self.row_7 = QWidget()
         # layout_row_7 = QHBoxLayout(self.row_7)
 
-        # more_options = QLabel("More options available in \"Legacy\" mode.")
-        # more_options.setWordWrap(True)
-        # more_options.setStyleSheet("font-weight: bold;")
+        # label_YstepSize = QLabel("Y Step Size (mm): ")
+        # self.input_YstepSize = QLineEdit()
 
-        # layout_row_7.addWidget(more_options)
-        # layout_row_7.setContentsMargins(0, 10, 0, 0)
+        # layout_row_7.addWidget(label_YstepSize, alignment=Qt.AlignLeft)
+        # layout_row_7.addWidget(self.input_YstepSize, alignment=Qt.AlignRight)
+        # layout_row_7.setContentsMargins(0, 5, 0, 0)
+
+        # self.row_7.hide()
 
 
 
@@ -305,6 +303,7 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_4)
         layout_container.addWidget(self.row_5)
         layout_container.addWidget(self.row_6)
+        # layout_container.addWidget(self.row_7)
 
         self.container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
@@ -348,7 +347,7 @@ class SamplingParameters(QWidget):
 
 
         # Step Size
-        self.input_stepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_stepSize.text(), "step_size"))
+        self.input_ZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_ZstepSize.text(), "Zstep_size"))
 
 
     def setVars(self, sampling, val, type):
@@ -376,8 +375,11 @@ class SamplingParameters(QWidget):
             sampling.sampleHeight = i
 
         # Step size:
-        elif type == "step_size":
+        elif type == "Zstep_size":
             sampling.stepSize = i
+        
+        # elif type == "Ystep_size":
+        #     sampling.stepSize = i
     
         else:
             pass

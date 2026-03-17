@@ -40,6 +40,7 @@ def global_poll():
     global next_height
     # If there are GCodes available (only when sampling run is started)
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
+        # sampling_service.addData(printer, conduct)
         line = sampling_service.samplingItem.gcodes[0]
 
         # Check if next step is to sample/dwell
@@ -271,6 +272,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(500)  # every .5 seconds
+    global_timer.start(60)  # every .5 seconds
 
     sys.exit(app.exec_())
