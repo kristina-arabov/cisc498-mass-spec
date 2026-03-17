@@ -22,6 +22,7 @@ from Unwarping_App.components.common import Header
 from Unwarping_App.services import sampling_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import conductance 
 
 
 from PyQt5.QtWidgets import (
@@ -31,16 +32,18 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
+conduct = conductance.ConThread()
 
 next_height = 0
 
 def global_poll():
     global next_height
-    # If gcodes are ready
+    # If there are GCodes available (only when sampling run is started)
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
+        # sampling_service.addData(printer, conduct)
         line = sampling_service.samplingItem.gcodes[0]
 
-        # Check if next step is to sample
+        # Check if next step is to sample/dwell
         if "G4" in line and not sampling_service.samplingItem.moving:
             print("Waiting...")
             sampling_service.runGCode(printer)
@@ -49,24 +52,56 @@ def global_poll():
         elif "G0" in line and not sampling_service.samplingItem.moving:
             print("Moving to position: ", line)
             
-            # If movement is a height adjustment, grab the value so we can compare if the printer is there
+            # Height adjustment
             if "Z" in line:
-                match = re.search(r'Z(-?\d+)', line)
-                next_height = float(match.group(1))
+                # Grab current height to later compare if the printer has reached it (Constant-Z and Drag mode)
+                if sampling_service.samplingItem.mode == "constant" or sampling_service.samplingItem.mode == "drag":
+                    match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
+                    next_height = float(match.group(1))
 
-            # Move to position and set flag as true
-            sampling_service.runGCode(printer)
-            sampling_service.samplingItem.moving = True
+                    # Move to position and set moving flag as true
+                    sampling_service.runGCode(printer)
+                    sampling_service.samplingItem.moving = True
+
+                # Run relative downward movement until printer has detected a conductance value (Conductive mode)
+                elif sampling_service.samplingItem.mode == "conductive":
+                    pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
+                    print(re.match(pattern, line))
+
+                    
+                    if re.match(pattern, line):
+                        cap = conduct.connection.read()
+                        
+                        # TODO change to conductance read
+                        while cap <= 0:
+                            print(line)
+                            # printer.cmd(line) 
+                            cap = conduct.connection.read()
+
+                        
+                        # # TODO change to conductance read
+                        # for i in range(3):
+                        #     print(line)
+                        #     # printer.cmd(line) 
+                        #     print(i)
+
+                        # sampling_service.samplingItem.gcodes.pop(0)
+                    else:
+                        sampling_service.runGCode(printer)
+
+            else:
+                sampling_service.runGCode(printer)
+            
         
-        # Command to set absolute positioning, usually first line of gcode list
-        elif "G90" in line:
+        # Absolute (G90) or relative (G91) positioning 
+        elif "G90" in line or "G91" in line:
             sampling_service.runGCode(printer)
 
         # Check if printer has made it to the expected height, remove moving flag
         elif printer.pos[2] == next_height:
             sampling_service.samplingItem.moving = False
 
-        sampling_service.addData(printer)
+        sampling_service.addData(printer, conduct)
 
     # Idle
     elif len(sampling_service.samplingItem.gcodes) <= 0 or sampling_service.samplingItem.paused:
@@ -183,7 +218,7 @@ class App(QWidget):
         # Tabs
         self.stack = QStackedWidget()
         self.stack.addWidget(unwarpingApp.Main(self.camera_feed, self.lighting_control, printer))
-        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
+        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer, conduct))
 
         # Set size
         self.width = min(1400, int(self.available.width() * 0.75))
@@ -237,6 +272,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(500)  # every .5 seconds
+    global_timer.start(60)  # every .5 seconds
 
     sys.exit(app.exec_())

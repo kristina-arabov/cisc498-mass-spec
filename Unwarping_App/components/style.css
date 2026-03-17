@@ -99,6 +99,13 @@ QWidget#light_blue_box {
     border-radius: 10px;
 }
 
+QScrollArea#light_blue_box {
+    background-color: #C8D3F1;
+    color: #000000;
+    padding: 0px;
+    border-radius: 10px;
+}
+
 QLabel#page_title {
     font-size: 20px;
     font-weight: bold;

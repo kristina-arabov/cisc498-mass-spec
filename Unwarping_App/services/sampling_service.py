@@ -1,4 +1,5 @@
 import json
+import re
 import numpy as np
 import cv2
 from collections import defaultdict
@@ -6,6 +7,7 @@ from collections import defaultdict
 import time
 
 from Unwarping_App.services import calibration_service
+from Unwarping_App.services import device_service
 
 import csv
 from datetime import datetime
@@ -29,11 +31,18 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # Speed + Step size
+        self.xy_speed = None
+        self.z_down_speed = None
+        self.z_up_speed = None
+        self.stepSize = None
+
+
         self.startLoc = None
+        self.originalLoc = [0, 0, 0]
 
         # TODO allow mode to change
-        self.mode = "constantZ"
-
+        self.mode = None
 
         # Gcode info
         self.estimated_time = None
@@ -264,56 +273,136 @@ def getDirectionFromPixel(u, v, mtx):
 
 def getSampling(sampling):
     # TODO change to real locations
-    # Convert to serpentine pattern
-    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
-    locations = serpentinePath(locations)
+    # locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
+    locations = [(170.4, 5), (175.4, 5), (181.4, 5),
+                (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
+                (170.4, 0), (174.4, 0), (179.4, 0),
+                (175.4, -2.5), (177.4, -2.5), (180.4, -2.5),
+                (175.4, -5), (178.4, -5)]
 
+    # If using drag mode, locations will need to follow a serpentine pattern, but 
+    # only move along the XY coordinates with no Z movement
+    if sampling.mode == "drag":
+        locations = serpentineDrag(locations)
     
+    # Standard serpentine pattern for Constant Z and Conductance modes
+    else:
+        locations = serpentinePath(locations)
+
+    # Reset values
+    sampling.total_points = len(locations)
+    sampling.sampled_points = 0
+
+    sampling.completed_gcodes = []
+    sampling.timestamps = []
+    sampling.readable_timestamps = []
+
     print(f"path: {locations}")
 
-    if sampling.mode == "constantZ":
-        
-        sampling.gcodes.append("G90") # Absolute positioning
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
+    sampling.gcodes.append("G90") # Absolute positioning
+    appendInitialTransit(sampling) # Set to transit height
+
+    # Constant Z mode
+    if sampling.mode == "constant":
+
+        # Loop through calculated locations
+        for i in locations:
+            appendXYMove(sampling, i)       # Go to (X, Y) location
+            appendSampleHeight(sampling)    # Go to Z sampling height
+            appendSampleTime(sampling)      # Sample for __ milliseconds
+            appendTransitHeight(sampling)   # Return to Z transit height
+            appendDwellTime(sampling)       # Dwell for __ milliseconds
+
+    # Conductive mode
+    elif sampling.mode == "conductive":
+        print("conductive selected")
+
+        # Loop through calculated locations
+        for i in locations:
+            appendXYMove(sampling, i)       # Go to (X, Y) location
+            appendConductanceZ(sampling)    # Move down until conductance detected
+            appendSampleTime(sampling)      # Sample for __ milliseconds
+            appendTransitHeight(sampling)   # Return to Z transit height
+            appendDwellTime(sampling)       # Dwell for __ milliseconds
+
+
+    # Drag sampling mode
+    elif sampling.mode == "drag":
+        initial = locations[0]
+
+        appendXYMove(sampling, initial) # Move to first X, Y position
+        appendSampleHeight(sampling)    # Go to Z sampling height
+
+        locations.pop(0) # Remove first location since printer will start there
 
         for i in locations:
-            # Command: Go to (X, Y) location
-            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            appendXYMove(sampling, i)   # Go to (X, Y) location
             
-            # Command: Go to Z sampling height
-            sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+        appendTransitHeight(sampling)   # Return to Z transit height
 
-            # Command: Sample for __ milliseconds
-            sample_time = int(sampling.sampleTime) * 1000 
-            sampling.gcodes.append(f"G4 P{str(sample_time)}")
+    # Return to original position
+    # p = sampling.originalLoc
+    p = [180.4, -3, 0]
+    appendXYMove(sampling, p)
+    appendZChange(sampling, p)
 
-            # Command: Return to Z ransit height
-            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+    # Start timer to begin run
+    sampling.timestamps.append(time.time())
+    sampling.readable_timestamps.append(0)
 
-            # Command: Dwell for __ milliseconds
-            dwell_time = int(sampling.dwellTime) * 1000
-            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+    for row in sampling.gcodes:
+        print(row)
 
-            # Repeat...
 
-        # Return to original position
-        p = sampling.originalLoc
-        sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
-        sampling.gcodes.append("G0 Z"+ str(p[2]))
+# Command: Movement to transit height before starting X,Y movements
+def appendInitialTransit(sampling):
+    # If current height is above transit height, use DOWN speed
+    if sampling.originalLoc[2] >= sampling.transitHeight:
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_down_speed)}")
+    
+    # Else if current height is below trasit height, use UP speed
+    elif sampling.originalLoc[2] < sampling.transitHeight:
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
 
-        sampling.total_points = len(locations)
-        sampling.sampled_points = 0
 
-        sampling.completed_gcodes = []
-        sampling.timestamps = []
-        sampling.readable_timestamps = []
+# Command: Go to (X, Y) location
+def appendXYMove(sampling, loc):
+    sampling.gcodes.append(f"G0 X{str(round(loc[0], 2))} Y{str(round(loc[1], 2))} F{str(sampling.xy_speed)}")
 
-        # Start timer
-        sampling.timestamps.append(time.time())
-        sampling.readable_timestamps.append(0)
 
-        for row in sampling.gcodes:
-            print(row)
+# Command: Go to a specific height
+def appendZChange(sampling, loc):
+    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+
+
+# Command: Move back to transit height
+def appendTransitHeight(sampling):
+    sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
+
+
+# Command: Go to Z sampling height
+def appendSampleHeight(sampling):
+    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
+
+
+# Command: Move down until conductance detected
+def appendConductanceZ(sampling):
+    sampling.gcodes.append("G91")
+    sampling.gcodes.append(f"G0 Z-{str(sampling.stepSize)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append("G90")
+
+
+# Command: Dwell for __ milliseconds
+def appendDwellTime(sampling):
+    dwell_time = int(sampling.dwellTime) * 1000
+    sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+# Command: Sample for __ milliseconds
+def appendSampleTime(sampling):
+    sample_time = int(sampling.sampleTime) * 1000 
+    sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
@@ -332,9 +421,59 @@ def serpentinePath(locations):
 
     return serpentine
 
+
+# Function to apply serpentine pathing for drag sampling
+def serpentineDrag(locations):
+    rows = defaultdict(list)
+
+    # Group X values by Y
+    for x, y in locations:
+        rows[y].append(x)
+
+    ys = sorted(rows, reverse=True)
+    result = []
+
+    for i in range(len(ys)):
+        y = ys[i]
+        row_min = min(rows[y])
+        row_max = max(rows[y])
+
+        # Last row
+        if i == len(ys) - 1:
+            if i % 2 == 0:
+                # Left to right
+                start = (row_min, y)
+                end = (row_max, y)
+            else:
+                # Right to left
+                start = (row_max, y)
+                end = (row_min, y)
+
+        else:
+            next_y = ys[i + 1]
+            next_min = min(rows[next_y])
+            next_max = max(rows[next_y])
+
+            if i % 2 == 0:
+                # Left to right
+                start = (row_min, y)
+                end = (next_max, y)
+            else:
+                # Right to left
+                start = (row_max, y)
+                end = (next_min, y)
+
+        # Add locations
+        result.append(start)
+        result.append(end)
+
+    return result
+
+
 # Function to get time stamp between operations
 def getTime():
     samplingItem.timestamps.append(time.time())
+    # print(samplingItem.timestamps)
 
     achieved_time = samplingItem.timestamps[-1] - samplingItem.timestamps[-2]
     samplingItem.readable_timestamps.append(samplingItem.readable_timestamps[-1] + achieved_time)
@@ -348,24 +487,26 @@ def runGCode(printer):
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
-            
+
     printer.cmd(line)
 
     # emit signal for completed points? time?
 
 
 # Function to add a row containing time + position data to the spreadsheet
-def addData(printer):
+def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
-    pos = printer.pos
+    pos = printer.pos if printer.pos is not None else [0, 0, 0]
+    # c = conductance.connection.read() if conductance is not None else 0
+    c = 0
     # pos = [1, 2, 3]
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
         writer = csv.writer(file)
 
-        writer.writerow([time_val, 0, pos[0], pos[1], pos[2]])
+        writer.writerow([time_val, c, pos[0], pos[1], pos[2]])
 
 
 
@@ -384,15 +525,6 @@ def createCSV():
 
 
 def stop(printer):
-    # Move printer to original position...
-    p = samplingItem.originalLoc
-    print(p)
-
-    printer.cmd("G90")
-    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    printer.cmd("G0 Z"+str(p[2]))
-
-
     # Clear GCodes and sampling data
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
@@ -411,6 +543,14 @@ def stop(printer):
     samplingItem.moving = False
     samplingItem.paused = False
 
+
+    # Move printer to original position
+    p = samplingItem.originalLoc
+
+    # printer.cmd("G90")
+    # printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    # printer.cmd("G0 Z"+str(p[2]))
+
     
 
 
@@ -422,10 +562,10 @@ def pause(printer):
     #     self.cmd("G0 X10 Y10 Z100 F3000")
     #     self.cmd("G91")
     # else:
-    printer.cmd("G91")
-    printer.cmd("G0 Z15 F3000")
-    printer.cmd("G0 X10 Y10 F3000")
-    printer.cmd("G90")
+    # printer.cmd("G91")
+    # printer.cmd("G0 Z15 F3000")
+    # printer.cmd("G0 X10 Y10 F3000")
+    # printer.cmd("G90")
     
     samplingItem.paused = True
 

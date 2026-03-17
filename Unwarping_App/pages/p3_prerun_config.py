@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup
+from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea, QSizePolicy
 from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
@@ -38,6 +38,9 @@ class PrerunConfig(QWidget):
 
         # PARAMETER INPUTS  -----------------------------------
         self.component_samplingParams = SamplingParameters(self.photo, self.sampling)
+        
+        # SPEED INPUTS ----------------------------------------
+        self.component_speed = SamplingSpeeds(self.sampling)
 
         button_startRun = QPushButton("Start sampling run", objectName="blue")
         
@@ -47,12 +50,13 @@ class PrerunConfig(QWidget):
         layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
         layout_right.addWidget(component_samplingMode)
         layout_right.addWidget(self.component_samplingParams)
+        layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
         layout_right.addWidget(button_startRun)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
-        layout_right.setSpacing(15)
+        layout_right.setSpacing(10)
 
         self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 10)
 
@@ -71,52 +75,52 @@ class PrerunConfig(QWidget):
 
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
-
-        self.component_samplingParams.button_dragSampling.clicked.connect(lambda: self.handleSamplingType("constant"))
+        component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
 
 
     # Function to handle the sampling type
     def handleSamplingType(self, type=None, drag=False):
         params = self.component_samplingParams
 
-        # Show all on default
+        # Show all on default except step size
         params.row_1.show()
+        params.label_spatialRes_X.show()
+        params.input_spatialRes_X.show()
+        
         params.row_2.show()
         params.row_3.show()
         params.row_4.show()
         params.row_5.show()
-        params.row_6.show()
-        params.row_7.show()
+        params.row_6.hide()
 
-        # Constant Z
-        if type == "constant":
-            # If drag sampling toggled, hide spatial res and dwell time
-            if params.button_dragSampling.isChecked():
-                params.row_1.hide()
-                params.row_2.hide()
-                params.row_3.hide() 
-
-                # Reset hidden rows
-                params.input_spatialRes_X.clear()
-                params.input_spatialRes_Y.clear()
-                params.input_dwell.clear()
-                params.input_sampleTime.clear()         
-
-        # Conductive
-        elif type == "conductive":
+        # Conductive mode
+        if type == "conductive":
+            # Hide sample height
             params.row_5.hide()
-            params.row_6.hide()
+            
+            # Show Z step size
+            params.row_6.show()
 
-            # Reset all inputs if drag sampling button is checked (makes it slightly nicer to look at on change)
-            if params.button_dragSampling.isChecked():
-                self.clearInputs()
+        # Drag mode
+        elif type == "drag":
+            # Hide X resolution, show Y resolution ("step size")
+            params.label_spatialRes_X.hide()
+            params.input_spatialRes_X.hide()
 
-            # Reset hidden rows
-            params.input_sampleHeight.clear()
-            params.button_dragSampling.setChecked(False)
+            # Hide dwell and sample time
+            params.row_2.hide()
+            params.row_3.hide()
 
+        # Constant Z mode
+        else:
+            pass   
 
+        # Adjust height of scroll area
+        params.scroll_area.setMaximumHeight(params.container.sizeHint().height())  
+
+        self.sampling.mode = type
         self.photo.update()
+        self.clearInputs()
 
         
     # Function to clear all sampling parameter inputs
@@ -135,6 +139,9 @@ class PrerunConfig(QWidget):
         params.input_transit.clear()
         params.input_sampleHeight.clear()
 
+        # Step size inputs
+        params.input_ZstepSize.clear()
+
 
 class ModeSelection(QWidget):
     def __init__(self):
@@ -145,21 +152,24 @@ class ModeSelection(QWidget):
         container = QWidget(objectName="light_blue_box")
         layout_container = QHBoxLayout(container)
 
-        label_mode = QLabel("Sampling mode: ", objectName="larger")
+        label_mode = QLabel("Mode: ", objectName="larger")
         label_mode.setStyleSheet("font-weight: bold;")
 
         self.button_constantZ = QRadioButton("Constant-Z")
         self.button_conductive = QRadioButton("Conductive")
+        self.button_drag = QRadioButton("Drag")
 
         mode_group = QButtonGroup()
         mode_group.addButton(self.button_constantZ, 0)
         mode_group.addButton(self.button_conductive, 1)
+        mode_group.addButton(self.button_drag, 2)
 
         self.button_constantZ.setChecked(True)
 
         layout_container.addWidget(label_mode)
         layout_container.addWidget(self.button_constantZ)
         layout_container.addWidget(self.button_conductive)
+        layout_container.addWidget(self.button_drag)
 
         layout.addWidget(container)
 
@@ -175,35 +185,35 @@ class SamplingParameters(QWidget):
         
         layout = QVBoxLayout(self)
 
-        container = QWidget(objectName="light_blue_box")
-        layout_container = QVBoxLayout(container)
+        self.container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(self.container)
 
 
-        label_samplingParameters = QLabel("Sampling parameters: ", objectName="larger")
+        label_samplingParameters = QLabel("Parameters: ", objectName="larger")
         label_samplingParameters.setStyleSheet("font-weight: bold;")
 
         # ROW 1 ----------------------------------------
         self.row_1 = QWidget()
         layout_row_1 = QHBoxLayout(self.row_1)
 
-        label_spatialRes = QLabel("Spatial resolution (mm) ")
+        label_spatialRes = QLabel("Resolution (mm) ")
 
-        label_spatialRes_X = QLabel("X: ")
+        self.label_spatialRes_X = QLabel("X: ")
 
         self.input_spatialRes_X = QLineEdit()
         self.input_spatialRes_X.setValidator(QDoubleValidator())
 
-        label_spatialRes_Y = QLabel("Y: ")
+        self.label_spatialRes_Y = QLabel("Y: ")
 
         self.input_spatialRes_Y = QLineEdit()
         self.input_spatialRes_Y.setValidator(QDoubleValidator())
 
         layout_row_1.addWidget(label_spatialRes, alignment=Qt.AlignLeft)
 
-        layout_row_1.addWidget(label_spatialRes_X, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.label_spatialRes_X, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(self.input_spatialRes_X, alignment=Qt.AlignRight)
 
-        layout_row_1.addWidget(label_spatialRes_Y, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.label_spatialRes_Y, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(self.input_spatialRes_Y, alignment=Qt.AlignLeft)
         layout_row_1.setContentsMargins(0, 5, 0,0)
 
@@ -259,22 +269,30 @@ class SamplingParameters(QWidget):
         self.row_6 = QWidget()
         layout_row_6 = QHBoxLayout(self.row_6)
 
-        self.button_dragSampling = QRadioButton("Drag sampling")
+        label_ZstepSize = QLabel("Z Step Size (mm): ")
+        self.input_ZstepSize = QLineEdit()
 
-        layout_row_6.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
+        layout_row_6.addWidget(label_ZstepSize, alignment=Qt.AlignLeft)
+        layout_row_6.addWidget(self.input_ZstepSize, alignment=Qt.AlignRight)
         layout_row_6.setContentsMargins(0, 5, 0, 0)
+
+        self.row_6.hide()
         
 
         # ROW 7 ----------------------------------------
-        self.row_7 = QWidget()
-        layout_row_7 = QHBoxLayout(self.row_7)
+        # self.row_7 = QWidget()
+        # layout_row_7 = QHBoxLayout(self.row_7)
 
-        more_options = QLabel("More options available in \"Legacy\" mode.")
-        more_options.setWordWrap(True)
-        more_options.setStyleSheet("font-weight: bold;")
+        # label_YstepSize = QLabel("Y Step Size (mm): ")
+        # self.input_YstepSize = QLineEdit()
 
-        layout_row_7.addWidget(more_options)
-        layout_row_7.setContentsMargins(0, 10, 0, 0)
+        # layout_row_7.addWidget(label_YstepSize, alignment=Qt.AlignLeft)
+        # layout_row_7.addWidget(self.input_YstepSize, alignment=Qt.AlignRight)
+        # layout_row_7.setContentsMargins(0, 5, 0, 0)
+
+        # self.row_7.hide()
+
+
 
 
         # COMPOSE ----------------------------------------
@@ -285,13 +303,26 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_4)
         layout_container.addWidget(self.row_5)
         layout_container.addWidget(self.row_6)
-        layout_container.addStretch()
-        layout_container.addWidget(self.row_7)
+        # layout_container.addWidget(self.row_7)
 
-        layout.addWidget(container)
+        self.container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        # Allow for scrolling if needed on the user's monitor size
+        self.scroll_area = QScrollArea(objectName="light_blue_box")
+        self.scroll_area.setWidget(self.container)
+        self.scroll_area.setWidgetResizable(True) 
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll_area.setFrameShape(QFrame.NoFrame) 
+
+        self.scroll_area.setViewportMargins(0, 0, 0, 0)
+        self.scroll_area.setContentsMargins(0, 0, 0, 0)
+
+        layout.addWidget(self.scroll_area)
 
         layout.setContentsMargins(0, 0, 0, 0) 
         layout.setSpacing(0)  
+
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
@@ -315,28 +346,139 @@ class SamplingParameters(QWidget):
         self.input_sampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_sampleHeight.text(), "sample_height"))
 
 
+        # Step Size
+        self.input_ZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_ZstepSize.text(), "Zstep_size"))
+
+
     def setVars(self, sampling, val, type):
+        i = float(val)
+
         # Resolution
         if type == "res_X":
-            sampling.spatialRes_X = float(val)
+            sampling.spatialRes_X = i
 
         elif type == "res_Y":
-            sampling.spatialRes_Y = float(val)
+            sampling.spatialRes_Y = i
 
         # Time
         elif type == "dwell_time":
-            sampling.dwellTime = float(val)
+            sampling.dwellTime = i
 
         elif type == "sample_time":
-            sampling.sampleTime = float(val)
+            sampling.sampleTime = i
 
         # Height
         elif type == "transit_height":
-            sampling.transitHeight = float(val)
+            sampling.transitHeight = i
 
         elif type == "sample_height":
-            sampling.sampleHeight = float(val)
+            sampling.sampleHeight = i
+
+        # Step size:
+        elif type == "Zstep_size":
+            sampling.stepSize = i
+        
+        # elif type == "Ystep_size":
+        #     sampling.stepSize = i
     
         else:
             pass
 
+
+class SamplingSpeeds(QWidget):
+    def __init__(self, sampling_item):
+        super().__init__()
+        
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(container)
+
+        label_speed = QLabel("Speed (mm/min): ", objectName="larger")
+        label_speed.setStyleSheet("font-weight: bold;")
+
+
+        # ROW 1 ----------------------------------------
+        self.row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(self.row_1)
+
+        label_XYSpeed = QLabel("XY Speed: ")
+        self.input_XYSpeed = QLineEdit()
+        self.input_XYSpeed.setValidator(QDoubleValidator())
+        self.input_XYSpeed.setText("5000")
+
+        layout_row_1.addWidget(label_XYSpeed, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_XYSpeed, alignment=Qt.AlignRight)
+        layout_row_1.setContentsMargins(0, 5, 0, 0)
+
+
+        # ROW 2 ----------------------------------------
+        self.row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(self.row_2)
+
+        label_ZUpSpeed = QLabel("Z Up Speed: ")
+        self.input_ZUpSpeed = QLineEdit()
+        self.input_ZUpSpeed.setValidator(QDoubleValidator())
+        self.input_ZUpSpeed.setText("725")
+
+        layout_row_2.addWidget(label_ZUpSpeed, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(self.input_ZUpSpeed, alignment=Qt.AlignRight)
+        layout_row_2.setContentsMargins(0, 5, 0, 0)
+
+        # ROW 3 ----------------------------------------
+        self.row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(self.row_3)
+
+        label_ZDownSpeed = QLabel("Z Down Speed: ")
+        self.input_ZDownSpeed = QLineEdit()
+        self.input_ZDownSpeed.setValidator(QDoubleValidator())
+        self.input_ZDownSpeed.setText("50")
+
+        layout_row_3.addWidget(label_ZDownSpeed, alignment=Qt.AlignLeft)
+        layout_row_3.addWidget(self.input_ZDownSpeed, alignment=Qt.AlignRight)
+        layout_row_3.setContentsMargins(0, 5, 0, 0)
+
+        # COMPOSE ----------------------------------------
+        layout_container.addWidget(label_speed)
+        layout_container.addWidget(self.row_1)
+        layout_container.addWidget(self.row_2)
+        layout_container.addWidget(self.row_3)
+
+        layout.addWidget(container)
+
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit { background-color: white; }
+        """)
+
+        # FUNCTIONS ---------------------------------------
+        # Speed
+        self.input_XYSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_XYSpeed.text(), "XY"))
+        self.input_ZUpSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZUpSpeed.text(), "ZUp"))
+        self.input_ZDownSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZDownSpeed.text(), "ZDown"))
+
+
+        # Value initialization
+        sampling_item.xy_speed = float(self.input_XYSpeed.text())
+        sampling_item.z_up_speed = float(self.input_ZUpSpeed.text())
+        sampling_item.z_down_speed = float(self.input_ZDownSpeed.text())
+
+
+    # Function to set the speed of the printer 
+    def setSpeed(self, sampling, val, type):
+        print("runs???")
+        # Speed changes
+        if type == "XY":
+            sampling.xy_speed = float(val)
+
+        elif type == "ZUp":
+            sampling.z_up_speed = float(val)
+
+        elif type == "ZDown":
+            sampling.z_down_speed = float(val)
+    
+        else:
+            pass
