@@ -337,7 +337,6 @@ def getSampling(sampling):
 
         for i in locations:
             appendXYMove(sampling, i)   # Go to (X, Y) location
-            sampling.gcodes.append(f"G4 P{str(200)}")
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
