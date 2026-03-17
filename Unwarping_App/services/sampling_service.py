@@ -292,6 +292,7 @@ def getSampling(sampling):
 
     print(f"path: {locations}")
 
+    # Constant Z mode
     if sampling.mode == "constant":
         
         sampling.gcodes.append("G90") # Absolute positioning
@@ -315,33 +316,33 @@ def getSampling(sampling):
             dwell_time = int(sampling.dwellTime) * 1000
             sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
+    # Conductive mode
+    elif sampling.mode == "conductive":
+        print("conductive selected")
 
-    # elif sampling.mode == "conductive":
-    #     print("conductive selected")
+        sampling.gcodes.append("G90") # Absolute positioning
+        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
 
-    #     sampling.gcodes.append("G90") # Absolute positioning
-    #     sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
+        for i in locations:
+            # Command: Go to (X, Y) location
+            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
 
-    #     for i in locations:
-    #         # Command: Go to (X, Y) location
-    #         sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            # Command: Move down until conductance detected
+            # TODO... how to move down until detected?
+            sampling.gcodes.append("G91")
+            sampling.gcodes.append(f"G0 Z-{0.5} F{10}")
+            sampling.gcodes.append("G90")
 
-    #         # Command: Move down until conductance detected
-    #         # TODO... how to move down until detected?
-    #         sampling.gcodes.append("G91")
-    #         sampling.gcodes.append(f"G0 Z-{0.5} F{10}")
-    #         sampling.gcodes.append("G90")
+            # Command: Sample for __ milliseconds
+            sample_time = int(sampling.sampleTime) * 1000 
+            sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
-    #         # Command: Sample for __ milliseconds
-    #         sample_time = int(sampling.sampleTime) * 1000 
-    #         sampling.gcodes.append(f"G4 P{str(sample_time)}")
+            # Command: Return to transit height
+            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
 
-    #         # Command: Return to transit height
-    #         sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
-
-    #         # Command: Dwell for __ milliseconds
-    #         dwell_time = int(sampling.dwellTime) * 1000
-    #         sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+            # Command: Dwell for __ milliseconds
+            dwell_time = int(sampling.dwellTime) * 1000
+            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
     # Drag sampling mode
