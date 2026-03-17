@@ -82,17 +82,21 @@ class PrerunConfig(QWidget):
     def handleSamplingType(self, type=None, drag=False):
         params = self.component_samplingParams
 
-        # Show all on default
+        # Show all on default except step size
         params.row_1.show()
         params.row_2.show()
         params.row_3.show()
         params.row_4.show()
         params.row_5.show()
+        params.row_6.hide()
 
         # Conductive mode
         if type == "conductive":
             # Hide sample height
             params.row_5.hide()
+            
+            # Show step size
+            params.row_6.show()
 
             # Reset hidden rows
             params.input_sampleHeight.clear()
@@ -103,13 +107,14 @@ class PrerunConfig(QWidget):
             # Hide sampling res, dwell time, sample time
             params.row_1.hide()
             params.row_2.hide()
-            params.row_3.hide() 
+            params.row_3.hide()
 
             # Reset hidden rows
             params.input_spatialRes_X.clear()
             params.input_spatialRes_Y.clear()
             params.input_dwell.clear()
             params.input_sampleTime.clear()    
+            params.input_stepSize.clear()
 
         # Constant Z mode
         else:
@@ -134,6 +139,9 @@ class PrerunConfig(QWidget):
         # Height inputs
         params.input_transit.clear()
         params.input_sampleHeight.clear()
+
+        # Step size input
+        params.input_stepSize.clear()
 
 
 class ModeSelection(QWidget):
@@ -259,13 +267,17 @@ class SamplingParameters(QWidget):
         layout_row_5.setContentsMargins(0, 5, 0, 0)
 
         # ROW 6 ----------------------------------------
-        # self.row_6 = QWidget()
-        # layout_row_6 = QHBoxLayout(self.row_6)
+        self.row_6 = QWidget()
+        layout_row_6 = QHBoxLayout(self.row_6)
 
-        # self.button_dragSampling = QRadioButton("Drag sampling")
+        label_stepSize = QLabel("Z Step Size (mm): ")
+        self.input_stepSize = QLineEdit()
 
-        # layout_row_6.addWidget(self.button_dragSampling, alignment=Qt.AlignLeft)
-        # layout_row_6.setContentsMargins(0, 5, 0, 0)
+        layout_row_6.addWidget(label_stepSize, alignment=Qt.AlignLeft)
+        layout_row_6.addWidget(self.input_stepSize, alignment=Qt.AlignRight)
+        layout_row_6.setContentsMargins(0, 5, 0, 0)
+
+        self.row_6.hide()
         
 
         # ROW 7 ----------------------------------------
@@ -289,6 +301,7 @@ class SamplingParameters(QWidget):
         layout_container.addWidget(self.row_3)
         layout_container.addWidget(self.row_4)
         layout_container.addWidget(self.row_5)
+        layout_container.addWidget(self.row_6)
 
         layout.addWidget(container)
 
@@ -326,27 +339,37 @@ class SamplingParameters(QWidget):
         self.input_sampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_sampleHeight.text(), "sample_height"))
 
 
+        # Step Size
+        self.input_stepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_stepSize.text(), "step_size"))
+
+
     def setVars(self, sampling, val, type):
+        i = float(val)
+
         # Resolution
         if type == "res_X":
-            sampling.spatialRes_X = float(val)
+            sampling.spatialRes_X = i
 
         elif type == "res_Y":
-            sampling.spatialRes_Y = float(val)
+            sampling.spatialRes_Y = i
 
         # Time
         elif type == "dwell_time":
-            sampling.dwellTime = float(val)
+            sampling.dwellTime = i
 
         elif type == "sample_time":
-            sampling.sampleTime = float(val)
+            sampling.sampleTime = i
 
         # Height
         elif type == "transit_height":
-            sampling.transitHeight = float(val)
+            sampling.transitHeight = i
 
         elif type == "sample_height":
-            sampling.sampleHeight = float(val)
+            sampling.sampleHeight = i
+
+        # Step size:
+        elif type == "step_size":
+            sampling.stepSize = i
     
         else:
             pass
