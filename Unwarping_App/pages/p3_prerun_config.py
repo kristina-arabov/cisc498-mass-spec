@@ -426,8 +426,16 @@ class SamplingSpeeds(QWidget):
         self.input_ZUpSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZUpSpeed.text(), "ZUp"))
         self.input_ZDownSpeed.textChanged.connect(lambda: self.setSpeed(sampling_item, self.input_ZDownSpeed.text(), "ZDown"))
 
+
+        # Value initialization
+        sampling_item.xy_speed = float(self.input_XYSpeed.text())
+        sampling_item.z_up_speed = float(self.input_ZUpSpeed.text())
+        sampling_item.z_down_speed = float(self.input_ZDownSpeed.text())
+
+
     # Function to set the speed of the printer 
     def setSpeed(self, sampling, val, type):
+        print("runs???")
         # Speed changes
         if type == "XY":
             sampling.xy_speed = float(val)

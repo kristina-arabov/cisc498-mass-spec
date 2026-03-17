@@ -51,19 +51,17 @@ def global_poll():
             
             # Height adjustment
             if "Z" in line:
-
-                # Grab current height to later compare if the printer has reached it (Constant-Z mode)
+                # Grab current height to later compare if the printer has reached it (Constant-Z and Drag mode)
                 if sampling_service.samplingItem.mode == "constant" or sampling_service.samplingItem.mode == "drag":
-                    match = re.search(r'Z(-?\d+)', line) # TODO problem may be here... matching
+                    match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
                     next_height = float(match.group(1))
 
-                    # Move to position and set flag as true
+                    # Move to position and set moving flag as true
                     sampling_service.runGCode(printer)
                     sampling_service.samplingItem.moving = True
 
-                # Run relative downward movement until printer has detected a conductance (Conductive mode)
+                # Run relative downward movement until printer has detected a conductance value (Conductive mode)
                 elif sampling_service.samplingItem.mode == "conductive":
-                    
                     pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
                     print(re.match(pattern, line))
                     if re.match(pattern, line):
