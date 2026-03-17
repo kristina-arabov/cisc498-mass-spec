@@ -19,9 +19,10 @@ from Printer_Control_App import oppscan2
 from Unwarping_App import unwarpingApp
 from Unwarping_App.components.common import Header
 
-from Unwarping_App.services import sampling_service
+from Unwarping_App.services import sampling_service, device_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import serialcon
 from Printer_Control_App.core import conductance 
 
 
@@ -32,16 +33,21 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
-conduct = conductance.ConThread()
+conduct = serialcon.SerialConnection()
 
 next_height = 0
 
 def global_poll():
     global next_height
+    # print(sampling_service.samplingItem.gcodes)
+    print(sampling_service.samplingItem.paused)
     # If there are GCodes available (only when sampling run is started)
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
+        
         # sampling_service.addData(printer, conduct)
         line = sampling_service.samplingItem.gcodes[0]
+        print(line)
+        print(sampling_service.samplingItem.moving)
 
         # Check if next step is to sample/dwell
         if "G4" in line and not sampling_service.samplingItem.moving:
@@ -66,26 +72,22 @@ def global_poll():
                 # Run relative downward movement until printer has detected a conductance value (Conductive mode)
                 elif sampling_service.samplingItem.mode == "conductive":
                     pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
-                    print(re.match(pattern, line))
+                    
 
                     
-                    if re.match(pattern, line):
-                        cap = conduct.connection.read()
-                        
-                        # TODO change to conductance read
-                        while cap <= 0:
-                            print(line)
-                            # printer.cmd(line) 
-                            cap = conduct.connection.read()
+                    if re.match(pattern, line) and conduct.status:
+                        match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+                        next_height = printer.pos[2] - float(match.group(1))
 
-                        
-                        # # TODO change to conductance read
-                        # for i in range(3):
-                        #     print(line)
-                        #     # printer.cmd(line) 
-                        #     print(i)
+                        conductance_val = device_service.getConductance(conduct)
 
-                        # sampling_service.samplingItem.gcodes.pop(0)
+                        if conductance_val < 99:
+                            printer.cmd(line)
+                            # sampling_service.samplingItem.moving = True
+                        else:
+                            print(conductance_val)
+                            sampling_service.samplingItem.gcodes.pop(0)
+                        
                     else:
                         sampling_service.runGCode(printer)
 
@@ -99,6 +101,7 @@ def global_poll():
 
         # Check if printer has made it to the expected height, remove moving flag
         elif printer.pos[2] == next_height:
+            print(printer.pos[2], next_height)
             sampling_service.samplingItem.moving = False
 
         sampling_service.addData(printer, conduct)
@@ -106,6 +109,23 @@ def global_poll():
     # Idle
     elif len(sampling_service.samplingItem.gcodes) <= 0 or sampling_service.samplingItem.paused:
         pass
+        # if conduct.status:
+        #     conduct.sync()
+        #     cap = conduct.read()
+        #     capDecode= int(cap.decode("utf-8"))
+
+        #     print(capDecode)
+        # else:
+        #     pass
+
+        # try:
+        #     cap=conduct.read()#reads the conductance value
+        #     capDecode= int(cap.decode("utf-8")) #to decode the value
+        #     print("Here??")
+        #     print(capDecode)
+        # except Exception as e:
+        #     print(e)
+
 
 
 
@@ -272,6 +292,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(60)  # every .5 seconds
+    global_timer.start(1000)  # every .5 seconds
 
     sys.exit(app.exec_())
