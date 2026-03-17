@@ -99,3 +99,15 @@ def getPrinterPosition(printer):
             break
 
     return pos
+
+
+def getConductance(conductance):
+    try:
+        conductance.sync()
+        cap=conductance.read()#reads the conductance value
+        capDecode= int(cap.decode("utf-8")) #to decode the value
+
+        return capDecode
+
+    except:
+        return 0
