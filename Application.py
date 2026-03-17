@@ -36,7 +36,7 @@ next_height = 0
 
 def global_poll():
     global next_height
-    # If gcodes are ready
+    # If there are GCodes available (only when sampling run is started)
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
         line = sampling_service.samplingItem.gcodes[0]
 
@@ -63,16 +63,17 @@ def global_poll():
                 # Run relative downward movement until printer has detected a conductance value (Conductive mode)
                 elif sampling_service.samplingItem.mode == "conductive":
                     pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
-                    print(re.match(pattern, line))
-                    if re.match(pattern, line):
-                        
-                        # TODO change to conductance read
-                        for i in range(3):
-                            print(line)
-                            # printer.cmd(line) 
-                            print(i)
 
-                        sampling_service.samplingItem.gcodes.pop(0)
+                    if re.match(pattern, line):
+                        pass
+                        
+                        # # TODO change to conductance read
+                        # for i in range(3):
+                        #     print(line)
+                        #     # printer.cmd(line) 
+                        #     print(i)
+
+                        # sampling_service.samplingItem.gcodes.pop(0)
                     else:
                         sampling_service.runGCode(printer)
 
