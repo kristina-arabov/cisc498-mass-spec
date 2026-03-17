@@ -296,12 +296,12 @@ class SamplingParameters(QWidget):
         layout.setSpacing(0)  
 
         # Allow for scrolling if needed on the user's monitor size
-        scroll_area = QScrollArea()
-        scroll_area.setWidget(container)
-        scroll_area.setWidgetResizable(True) 
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        scroll_area.setFrameShape(QFrame.NoFrame) 
+        # scroll_area = QScrollArea()
+        # scroll_area.setWidget(container)
+        # scroll_area.setWidgetResizable(True) 
+        # scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # Disable horizontal scrolling
+        # scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        # scroll_area.setFrameShape(QFrame.NoFrame) 
         # scroll_area.setFixedWidth(right_col_width)
 
         self.setStyleSheet("""
