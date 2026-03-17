@@ -296,21 +296,28 @@ def getSampling(sampling):
     if sampling.mode == "constant":
         
         sampling.gcodes.append("G90") # Absolute positioning
-        sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
+
+        # If current height is above transit height, use DOWN speed
+        if sampling.originalLoc[2] >= sampling.transitHeight:
+            sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_down_speed)}")
+        
+        # Else if current height is below trasit height, use UP speed
+        elif sampling.originalLoc[2] < sampling.transitHeight:
+            sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
 
         for i in locations:
             # Command: Go to (X, Y) location
-            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+            sampling.gcodes.append(f"G0 X{str(round(i[0], 2))} Y{str(round(i[1], 2))} F{str(sampling.xy_speed)}")
             
             # Command: Go to Z sampling height
-            sampling.gcodes.append("G0 Z"+ str(sampling.sampleHeight))
+            sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
 
             # Command: Sample for __ milliseconds
             sample_time = int(sampling.sampleTime) * 1000 
             sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
             # Command: Return to Z transit height
-            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+            sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
 
             # Command: Dwell for __ milliseconds
             dwell_time = int(sampling.dwellTime) * 1000
