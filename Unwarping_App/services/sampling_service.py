@@ -30,11 +30,17 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # Speed
+        self.xy_speed = None
+        self.z_down_speed = None
+        self.z_up_speed = None
+
+
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
         # TODO allow mode to change
-        self.mode = "constant"
+        self.mode = None
 
         # Gcode info
         self.estimated_time = None
@@ -265,18 +271,24 @@ def getDirectionFromPixel(u, v, mtx):
 
 def getSampling(sampling):
     # TODO change to real locations
-    # Convert to serpentine pattern
     locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
-    locations = serpentinePath(locations)
+
+    # If using drag mode, locations will need to follow a serpentine pattern, but 
+    # only move along the XY coordinates with no Z movement
+    if sampling.mode == "drag":
+        locations = serpentineDrag(locations)
+    
+    # Standard serpentine pattern for Constant Z and Conductance modes
+    else:
+        locations = serpentinePath(locations)
 
     # Reset values
-    sampling.total_points = len(locations) # TODO include reference... already in list?
+    sampling.total_points = len(locations)
     sampling.sampled_points = 0
 
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
-
 
     print(f"path: {locations}")
 
@@ -304,47 +316,70 @@ def getSampling(sampling):
             sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
-    elif sampling.mode == "conductive":
-        print("conductive selected")
+    # elif sampling.mode == "conductive":
+    #     print("conductive selected")
+
+    #     sampling.gcodes.append("G90") # Absolute positioning
+    #     sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight)) # Always go to transit height first
+
+    #     for i in locations:
+    #         # Command: Go to (X, Y) location
+    #         sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+
+    #         # Command: Move down until conductance detected
+    #         # TODO... how to move down until detected?
+    #         sampling.gcodes.append("G91")
+    #         sampling.gcodes.append(f"G0 Z-{0.5} F{10}")
+    #         sampling.gcodes.append("G90")
+
+    #         # Command: Sample for __ milliseconds
+    #         sample_time = int(sampling.sampleTime) * 1000 
+    #         sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
+    #         # Command: Return to transit height
+    #         sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
+
+    #         # Command: Dwell for __ milliseconds
+    #         dwell_time = int(sampling.dwellTime) * 1000
+    #         sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+    # Drag sampling mode
+    elif sampling.mode == "drag":
+        initial = locations[0]
+
+        sampling.gcodes.append("G90") # Absolute positioning
+
+        # If current height is above transit height, use DOWN speed
+        if sampling.originalLoc[2] >= sampling.transitHeight:
+            sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_down_speed)}")
+        
+        # Else if current height is below trasit height, use UP speed
+        elif sampling.originalLoc[2] < sampling.transitHeight:
+            sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
+
+        # Command: Move to first X, Y position
+        sampling.gcodes.append(f"G0 X{str(round(initial[0], 2))} Y{str(round(initial[1], 2))} F{str(sampling.xy_speed)}") 
+
+        # Command: # Lower to sampling height
+        sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
+
+        locations.pop(0) # Remove first location since printer will start there
 
         for i in locations:
-            # Command: Go to (X, Y) location
-            sampling.gcodes.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
-
-            # Command: Move down until conductance detected
-            # TODO... how to move down until detected?
-            sampling.gcodes.append("G91")
-            sampling.gcodes.append(f"G0 Z-{0.5} F{10}")
-            sampling.gcodes.append("G90")
-
-            # Command: Sample for __ milliseconds
-            sample_time = int(sampling.sampleTime) * 1000 
-            sampling.gcodes.append(f"G4 P{str(sample_time)}")
-
-            # Command: Return to transit height
-            sampling.gcodes.append("G0 Z"+ str(sampling.transitHeight))
-
-            # Command: Dwell for __ milliseconds
-            dwell_time = int(sampling.dwellTime) * 1000
-            sampling.gcodes.append(f"G4 P{str(dwell_time)}")
-
-
+            # Move to each (X,Y) location at the specified XY speed, No Z movement
+            sampling.gcodes.append(f"G0 X{str(round(i[0], 2))} Y{str(round(i[1], 2))} F{str(sampling.xy_speed)}")
             
-        # if (self.probe==True):   #conductive                                                                            #statement to determine probing
-        #     self.AppendProbe(x,y) # adds G0 z- step command then sets back to absolute
-        #     self.AppendPause(self.stms) #pause for sampling time
-        #     self.Zspeed(self.zspeedup) #set z speed to zspeedup
-        #     self.AppendPos(x, y, self.startz) #set position for next movement
-        #     self.AppendPause(self.pausems) #pause for pausems
-
+        # Move back to transit height
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight)} F{str(sampling.z_up_speed)}")
 
     # Return to original position
     # p = sampling.originalLoc
     p = [180.4, -3, 0]
-    sampling.gcodes.append("G0 X"+str(p[0])+" Y"+str(p[1]))
-    sampling.gcodes.append("G0 Z"+ str(p[2]))
+    sampling.gcodes.append(f"G0 X{str(round(p[0], 2))} Y{str(round(p[1], 2))} F{str(sampling.xy_speed)}")
+    sampling.gcodes.append(f"G0 Z{str(p[2])}")
 
-    # Start timer
+    # Start timer to begin run
     sampling.timestamps.append(time.time())
     sampling.readable_timestamps.append(0)
 
@@ -369,9 +404,59 @@ def serpentinePath(locations):
 
     return serpentine
 
+
+# Function to apply serpentine pathing for drag sampling
+def serpentineDrag(locations):
+    rows = defaultdict(list)
+
+    # Group X values by Y
+    for x, y in locations:
+        rows[y].append(x)
+
+    ys = sorted(rows, reverse=True)
+    result = []
+
+    for i in range(len(ys)):
+        y = ys[i]
+        row_min = min(rows[y])
+        row_max = max(rows[y])
+
+        # Last row
+        if i == len(ys) - 1:
+            if i % 2 == 0:
+                # Left to right
+                start = (row_min, y)
+                end = (row_max, y)
+            else:
+                # Right to left
+                start = (row_max, y)
+                end = (row_min, y)
+
+        else:
+            next_y = ys[i + 1]
+            next_min = min(rows[next_y])
+            next_max = max(rows[next_y])
+
+            if i % 2 == 0:
+                # Left to right
+                start = (row_min, y)
+                end = (next_max, y)
+            else:
+                # Right to left
+                start = (row_max, y)
+                end = (next_min, y)
+
+        # Add locations
+        result.append(start)
+        result.append(end)
+
+    return result
+
+
 # Function to get time stamp between operations
 def getTime():
     samplingItem.timestamps.append(time.time())
+    # print(samplingItem.timestamps)
 
     achieved_time = samplingItem.timestamps[-1] - samplingItem.timestamps[-2]
     samplingItem.readable_timestamps.append(samplingItem.readable_timestamps[-1] + achieved_time)
@@ -444,9 +529,9 @@ def stop(printer):
     # Move printer to original position
     p = samplingItem.originalLoc
 
-    printer.cmd("G90")
-    printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    printer.cmd("G0 Z"+str(p[2]))
+    # printer.cmd("G90")
+    # printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
+    # printer.cmd("G0 Z"+str(p[2]))
 
     
 

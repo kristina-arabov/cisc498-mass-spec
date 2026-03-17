@@ -38,7 +38,7 @@ next_height = 0
 
 def global_poll():
     global next_height
-    # If gcodes are ready
+    # If there are GCodes available (only when sampling run is started)
     if len(sampling_service.samplingItem.gcodes) > 0 and not sampling_service.samplingItem.paused:
         line = sampling_service.samplingItem.gcodes[0]
 
@@ -53,21 +53,21 @@ def global_poll():
             
             # Height adjustment
             if "Z" in line:
-
-                # Grab current height to later compare if the printer has reached it (Constant-Z mode)
-                if sampling_service.samplingItem.mode == "constant":
-                    match = re.search(r'Z(-?\d+)', line)
+                # Grab current height to later compare if the printer has reached it (Constant-Z and Drag mode)
+                if sampling_service.samplingItem.mode == "constant" or sampling_service.samplingItem.mode == "drag":
+                    match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
                     next_height = float(match.group(1))
 
-                    # Move to position and set flag as true
+                    # Move to position and set moving flag as true
                     sampling_service.runGCode(printer)
                     sampling_service.samplingItem.moving = True
 
-                # Run relative downward movement until printer has detected a conductance (Conductive mode)
+                # Run relative downward movement until printer has detected a conductance value (Conductive mode)
                 elif sampling_service.samplingItem.mode == "conductive":
-                    
                     pattern = r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$"
                     print(re.match(pattern, line))
+
+                    
                     if re.match(pattern, line):
                         cap = conduct.connection.read()
                         
@@ -77,7 +77,14 @@ def global_poll():
                             # printer.cmd(line) 
                             cap = conduct.connection.read()
 
-                        sampling_service.samplingItem.gcodes.pop(0)
+                        
+                        # # TODO change to conductance read
+                        # for i in range(3):
+                        #     print(line)
+                        #     # printer.cmd(line) 
+                        #     print(i)
+
+                        # sampling_service.samplingItem.gcodes.pop(0)
                     else:
                         sampling_service.runGCode(printer)
 
