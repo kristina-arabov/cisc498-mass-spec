@@ -83,6 +83,11 @@ def global_poll():
             sampling_service.runGCode(printer)
             probe.moving = False
 
+
+        elif probe.moving and printer.pos[2] == next_height:
+            sampling_service.runGCode(printer)
+            probe.moving = False
+
         sampling_service.addData(printer, conduct)
 
     # Idle
