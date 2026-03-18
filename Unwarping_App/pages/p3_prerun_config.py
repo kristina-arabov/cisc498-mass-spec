@@ -58,7 +58,7 @@ class PrerunConfig(QWidget):
         layout_right.setContentsMargins(0,0,0,0)
         layout_right.setSpacing(10)
 
-        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 10)
+        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 30)
 
         # COMPOSE ----------------------------------------
         layout.addWidget(self.photo)
