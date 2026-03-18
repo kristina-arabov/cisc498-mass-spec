@@ -95,7 +95,6 @@ def setTransformation(transformation, path, valid):
 
 
 
-# TODO fix bugginess ? why not working properly
 def findLocations(transformation, sampling, img):
     print("working!")
 
@@ -103,9 +102,10 @@ def findLocations(transformation, sampling, img):
     dot = img.dot
 
     sampling.originalLoc = transformation.photo_loc
+    print(sampling.originalLoc)
 
+    # If no reference point + ROI then don't caluclate locations
     if not dot or not rectangle:
-        print("NO DOT/ROI")
         return
 
     start_point = rectangle.topLeft()
@@ -124,14 +124,15 @@ def findLocations(transformation, sampling, img):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
 
-    mtx1 = transformation.mtx1
-    mtx1[0][0] = mtx1[0][0] * 0.01
-    mtx1[1][1] = mtx1[1][1] * 0.01
+    # bug here affecting actual transformation, make a copy
+    mtx1 = transformation.mtx1.copy()
+    mtx1[0][0] = mtx1[0][0] 
+    mtx1[1][1] = mtx1[1][1]
 
     dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
 
-    mtx2 = transformation.mtx2
-    dist2 = transformation.dist2
+    mtx2 = transformation.mtx2.copy()
+    dist2 = transformation.dist2.copy()
 
 
     # Detect tag in the image
@@ -141,7 +142,7 @@ def findLocations(transformation, sampling, img):
 
     corners, ids, _ = detector.detectMarkers(image)
     if not corners or len(corners) == 0:
-        print("CANT DETECT TAG")
+        print("Tag not detected")
         return
 
     image_points = corners[0].reshape(-1, 2).astype(np.float32)
@@ -157,8 +158,6 @@ def findLocations(transformation, sampling, img):
 
     t = transformation.tag_bottom_left
     tag_corner = np.array([t[0], t[1], 0], dtype=np.float32)
-
-    print(tag_size, tag_corner)
 
 
     retval, rvec, tvec = cv2.solvePnP(object_points, image_points, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)
@@ -182,17 +181,18 @@ def findLocations(transformation, sampling, img):
     t_base2cam = -R_cam2base_overlay.T @ t_cam2base_overlay
 
 
-    scale = 0.7 # TODO undo scale based on resolution
+    scale = 1 # TODO undo scale based on resolution
 
     # PROCESS DOT ----------------------------------------------
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay)
     
 
-    # PROCESS RECTANGLE --------------------------------------
-    sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay)
+    # # PROCESS RECTANGLE --------------------------------------
+    # sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay)
 
 
-    print(vars(sampling))
+    # print(sampling.rectangle)
+    print(sampling.dot)
 
 
 
@@ -204,6 +204,7 @@ def processDot(scale, transformation, dot, pos, cam2base):
     dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], transformation.mtx1)
     dot_in_base = cam2base @ dot_from_cam_principal
 
+    # Bug here?
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
     
@@ -234,6 +235,7 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base):
     end_point_in_base = cam2base @ end_point_from_cam_principal
 
     # 3D start position
+    # TODO bug here?
     start_x = pos[0] + (start_point_in_base[0] * 10)
     start_y = pos[1] + (start_point_in_base[1] * 10)
 
@@ -241,6 +243,7 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base):
     start_y += transformation.offset_y
 
     # 3D end position
+    # TODO bug here?
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
