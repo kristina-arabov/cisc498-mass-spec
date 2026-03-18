@@ -337,6 +337,7 @@ def getSampling(sampling):
 
         for i in locations:
             appendXYMove(sampling, i)   # Go to (X, Y) location
+            appendWait(sampling)
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
@@ -403,6 +404,10 @@ def appendSampleTime(sampling):
     sample_time = int(sampling.sampleTime) * 1000 
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
+
+# Command: Wait for this move to finish
+def appendWait(sampling):
+    sampling.gcodes.append("M400")
 
 
 # Function to sort 3D sampling locations into a serpentine pattern
