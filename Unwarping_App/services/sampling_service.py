@@ -188,12 +188,13 @@ def findLocations(transformation, sampling, img):
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
 
-    # # PROCESS RECTANGLE --------------------------------------
-    # sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay)
+    # PROCESS RECTANGLE --------------------------------------
+    sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
 
     # print(sampling.rectangle)
     print(sampling.dot)
+    print(sampling.rectangle)
 
 
 
@@ -224,37 +225,43 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
 
 
 # Function to get the 3D range of the rectangle from 2D points
-def processRectangle(scale, transformation, rectangle, pos, cam2base):
+def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2, dist2):
     start_point = rectangle.topRight()
     end_point = rectangle.bottomLeft()
 
     start_unscaled = (int(start_point.x() / scale), int(start_point.y() / scale))
     end_unscaled = (int(end_point.x() / scale), int(end_point.y() / scale))
 
-    start_point = calibration_service.undoSecondUnwarp(start_unscaled, transformation.mtx2, transformation.dist2)
-    end_point = calibration_service.undoSecondUnwarp(end_unscaled, transformation.mtx2, transformation.dist2)
+    start_point = calibration_service.undoSecondUnwarp(start_unscaled, mtx2, dist2)
+    end_point = calibration_service.undoSecondUnwarp(end_unscaled, mtx2, dist2)
 
-    start_point_from_cam_principal = getDirectionFromPixel(start_point[0], start_point[1], transformation.mtx1)
-    end_point_from_cam_principal = getDirectionFromPixel(end_point[0], end_point[1], transformation.mtx1)
+    start_point_from_cam_principal = getDirectionFromPixel(start_point[0], start_point[1], mtx1)
+    end_point_from_cam_principal = getDirectionFromPixel(end_point[0], end_point[1], mtx1)
 
     start_point_in_base = cam2base @ start_point_from_cam_principal
     end_point_in_base = cam2base @ end_point_from_cam_principal
 
     # 3D start position
-    # TODO bug here?
     start_x = pos[0] + (start_point_in_base[0] * 10)
     start_y = pos[1] + (start_point_in_base[1] * 10)
 
-    start_x += transformation.offset_x
-    start_y += transformation.offset_y
+    if transformation.offset_x < 0:
+        start_x -= transformation.offset_x
+    else:
+        start_x += transformation.offset_x
+    
+    start_y -= transformation.offset_y
 
     # 3D end position
-    # TODO bug here?
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
-    end_x += transformation.offset_x
-    end_y += transformation.offset_y
+    if transformation.offset_x < 0:
+        end_x -= transformation.offset_x
+    else:
+        end_x += transformation.offset_x
+    
+    end_y -= transformation.offset_y
 
 
     probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
