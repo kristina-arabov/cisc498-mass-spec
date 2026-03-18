@@ -41,8 +41,7 @@ class SamplingItem():
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
-        # TODO allow mode to change
-        self.mode = None
+        self.mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -273,12 +272,12 @@ def getDirectionFromPixel(u, v, mtx):
 
 def getSampling(sampling):
     # TODO change to real locations
-    # locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
-    locations = [(170.4, 5), (175.4, 5), (181.4, 5),
-                (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
-                (170.4, 0), (174.4, 0), (179.4, 0),
-                (175.4, -2.5), (177.4, -2.5), (180.4, -2.5),
-                (175.4, -5), (178.4, -5)]
+    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
+    # locations = [(170.4, 5), (175.4, 5), (181.4, 5),
+    #             (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
+    #             (170.4, 0), (174.4, 0), (179.4, 0),
+    #             (175.4, -2.5), (177.4, -2.5), (180.4, -2.5),
+    #             (175.4, -5), (178.4, -5)]
 
     # If using drag mode, locations will need to follow a serpentine pattern, but 
     # only move along the XY coordinates with no Z movement
