@@ -197,8 +197,8 @@ class SamplingParameters(QWidget):
         layout_row_1 = QHBoxLayout(self.row_1)
 
         selections = QComboBox()
-        selections.addItem("Resolution (mm)")
         selections.addItem("Sampling spots (#)")
+        selections.addItem("Resolution (mm)")
 
         self.label_X = QLabel("X: ")
 

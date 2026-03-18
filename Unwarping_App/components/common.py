@@ -1502,20 +1502,8 @@ class ClickableImage(QLabel):
                 self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
-                # Resolution based sizing
-                if type == 0:
-                    self.x_range = np.arange(x0, x1, float(x))
-                    self.y_range = np.arange(y0, y1, float(y))
-
-                    self.x_range = np.append(self.x_range, x1)
-                    self.y_range = np.append(self.y_range, y1)
-
-                    self.sample_overlay_x = len(self.x_range) - 1
-                    self.sample_overlay_y = len(self.y_range) - 1
-
-
                 # Sampling spots based sizing
-                elif type == 1:
+                if type == 0:
                     x_increment = abs(x1 - x0) / float(x)
                     y_increment = abs(y1 - y0) / float(y)
 
@@ -1527,6 +1515,18 @@ class ClickableImage(QLabel):
 
                     self.sample_overlay_x = len(self.x_range)
                     self.sample_overlay_y = len(self.y_range)
+                
+                # Resolution based sizing
+                elif type == 1:
+                    self.x_range = np.arange(x0, x1, float(x))
+                    self.y_range = np.arange(y0, y1, float(y))
+
+                    self.x_range = np.append(self.x_range, x1)
+                    self.y_range = np.append(self.y_range, y1)
+
+                    self.sample_overlay_x = len(self.x_range) - 1
+                    self.sample_overlay_y = len(self.y_range) - 1
+
 
                 self.update()
         
