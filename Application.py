@@ -41,8 +41,6 @@ next_height = 0
 
 def global_poll():
     global next_height
-    # print(sampling_service.samplingItem.gcodes)
-    print(sampling_service.samplingItem.paused)
     # If there are GCodes available (only when sampling run is started)
     if len(probe.gcodes) > 0 and not probe.paused:
         # sampling_service.addData(printer, conduct)
@@ -76,8 +74,23 @@ def global_poll():
                         next_height = float(match.group(1))
 
                     # Conductive mode
-                    elif probe.mode == "conductive":
-                        pass
+                    elif probe.mode == "conductive" and conduct.status:
+                        match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+
+                        if match:
+                            next_height = printer.pos[2] - float(match.group(1))
+
+                            conductance_val = device_service.getConductance(conduct)
+
+                            if conductance_val < 99:
+                                printer.cmd(line)
+                            else:
+                                probe.gcodes.pop(0)
+                        
+                        else:
+                            pass
+
+
                     # if re.match(pattern, line) and conduct.status:
                     #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
                     #     next_height = printer.pos[2] - float(match.group(1))
