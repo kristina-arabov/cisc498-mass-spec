@@ -126,8 +126,8 @@ def findLocations(transformation, sampling, img):
 
     # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
-    mtx1[0][0] = mtx1[0][0] 
-    mtx1[1][1] = mtx1[1][1]
+    mtx1[0][0] = mtx1[0][0] * 0.01
+    mtx1[1][1] = mtx1[1][1] * 0.01
 
     dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
 
@@ -181,10 +181,11 @@ def findLocations(transformation, sampling, img):
     t_base2cam = -R_cam2base_overlay.T @ t_cam2base_overlay
 
 
-    scale = 1 # TODO undo scale based on resolution
+    scale = img.scale_val
+    print(f"FIND LOCATIONS: {scale}")
 
     # PROCESS DOT ----------------------------------------------
-    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay)
+    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
 
     # # PROCESS RECTANGLE --------------------------------------
@@ -197,20 +198,25 @@ def findLocations(transformation, sampling, img):
 
 
 # Function to get the 3D location of the reference point from a 2D location
-def processDot(scale, transformation, dot, pos, cam2base):
+def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
     dot_unscaled = (int(dot.x() / scale), int(dot.y() / scale))
-    new_dot = calibration_service.undoSecondUnwarp(dot_unscaled, transformation.mtx2, transformation.dist2)
 
-    dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], transformation.mtx1)
+    new_dot = calibration_service.undoSecondUnwarp(dot_unscaled, mtx2, dist2)
+
+    dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
+
     dot_in_base = cam2base @ dot_from_cam_principal
 
-    # Bug here?
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
     
     # Add probe offset to dot position
-    dot_x += transformation.offset_x
-    dot_y += transformation.offset_y
+    if transformation.offset_x < 0:
+        dot_x -= transformation.offset_x
+    else:
+        dot_x += transformation.offset_x
+    
+    dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
