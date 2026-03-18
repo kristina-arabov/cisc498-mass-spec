@@ -79,7 +79,8 @@ def global_poll():
             sampling_service.runGCode(printer)
 
         # Check if printer has made it to the expected height, remove moving flag
-        elif probe.moving and "M":
+        elif probe.moving and "M400" in line:
+            sampling_service.runGCode(printer)
             probe.moving = False
 
         sampling_service.addData(printer, conduct)
