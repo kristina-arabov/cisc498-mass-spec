@@ -1,5 +1,5 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QLineEdit, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QLineEdit,QComboBox, QLabel, QVBoxLayout, QGridLayout, QFrame, QHBoxLayout, QPushButton, QRadioButton, QButtonGroup, QScrollArea, QSizePolicy
 from PyQt5.QtGui import QPixmap, QImage, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect
 
@@ -58,7 +58,7 @@ class PrerunConfig(QWidget):
         layout_right.setContentsMargins(0,0,0,0)
         layout_right.setSpacing(10)
 
-        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 10)
+        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 30)
 
         # COMPOSE ----------------------------------------
         layout.addWidget(self.photo)
@@ -84,8 +84,8 @@ class PrerunConfig(QWidget):
 
         # Show all on default except step size
         params.row_1.show()
-        params.label_spatialRes_X.show()
-        params.input_spatialRes_X.show()
+        params.label_X.show()
+        params.input_X.show()
         
         params.row_2.show()
         params.row_3.show()
@@ -104,8 +104,8 @@ class PrerunConfig(QWidget):
         # Drag mode
         elif type == "drag":
             # Hide X resolution, show Y resolution ("step size")
-            params.label_spatialRes_X.hide()
-            params.input_spatialRes_X.hide()
+            params.label_X.hide()
+            params.input_X.hide()
 
             # Hide dwell and sample time
             params.row_2.hide()
@@ -128,8 +128,8 @@ class PrerunConfig(QWidget):
         params = self.component_samplingParams
 
         # Spatial res inputs
-        params.input_spatialRes_X.clear()
-        params.input_spatialRes_Y.clear()
+        params.input_X.clear()
+        params.input_Y.clear()
 
         # Time inputs
         params.input_dwell.clear()
@@ -196,25 +196,27 @@ class SamplingParameters(QWidget):
         self.row_1 = QWidget()
         layout_row_1 = QHBoxLayout(self.row_1)
 
-        label_spatialRes = QLabel("Resolution (mm) ")
+        selections = QComboBox()
+        selections.addItem("Sampling spots (#)")
+        selections.addItem("Resolution (mm)")
 
-        self.label_spatialRes_X = QLabel("X: ")
+        self.label_X = QLabel("X: ")
 
-        self.input_spatialRes_X = QLineEdit()
-        self.input_spatialRes_X.setValidator(QDoubleValidator())
+        self.input_X = QLineEdit()
+        self.input_X.setValidator(QDoubleValidator())
 
-        self.label_spatialRes_Y = QLabel("Y: ")
+        self.label_Y = QLabel("Y: ")
 
-        self.input_spatialRes_Y = QLineEdit()
-        self.input_spatialRes_Y.setValidator(QDoubleValidator())
+        self.input_Y = QLineEdit()
+        self.input_Y.setValidator(QDoubleValidator())
 
-        layout_row_1.addWidget(label_spatialRes, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(selections, alignment=Qt.AlignLeft)
 
-        layout_row_1.addWidget(self.label_spatialRes_X, alignment=Qt.AlignLeft)
-        layout_row_1.addWidget(self.input_spatialRes_X, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(self.label_X, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_X, alignment=Qt.AlignRight)
 
-        layout_row_1.addWidget(self.label_spatialRes_Y, alignment=Qt.AlignLeft)
-        layout_row_1.addWidget(self.input_spatialRes_Y, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.label_Y, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.input_Y, alignment=Qt.AlignLeft)
         layout_row_1.setContentsMargins(0, 5, 0,0)
 
 
@@ -326,16 +328,17 @@ class SamplingParameters(QWidget):
 
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
-            QLineEdit { background-color: white; }
+            QLineEdit, QComboBox { background-color: white; }
         """)
 
         # FUNCTIONS ----------------------------------------
-        # Resolution (X and Y)
-        self.input_spatialRes_X.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
-        self.input_spatialRes_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
+        # Resolution / Sampling spots
+        self.input_X.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        self.input_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        selections.currentIndexChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
 
-        self.input_spatialRes_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_X.text(), "res_X"))
-        self.input_spatialRes_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_Y.text(), "res_Y"))
+        # self.input_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_X.text(), "res_X"))
+        # self.input_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_Y.text(), "res_Y"))
 
         # Time
         self.input_dwell.textChanged.connect(lambda: self.setVars(sampling_item, self.input_dwell.text(), "dwell_time"))
@@ -353,15 +356,15 @@ class SamplingParameters(QWidget):
     def setVars(self, sampling, val, type):
         i = float(val)
 
-        # Resolution
-        if type == "res_X":
-            sampling.spatialRes_X = i
+        # # Resolution
+        # if type == "res_X":
+        #     sampling.spatialRes_X = i
 
-        elif type == "res_Y":
-            sampling.spatialRes_Y = i
+        # elif type == "res_Y":
+        #     sampling.spatialRes_Y = i
 
         # Time
-        elif type == "dwell_time":
+        if type == "dwell_time":
             sampling.dwellTime = i
 
         elif type == "sample_time":
