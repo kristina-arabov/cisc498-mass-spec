@@ -1492,29 +1492,44 @@ class ClickableImage(QLabel):
 
         self.update()
 
-    def updateOverlay(self, x, y):
+    # Function to update the rectangle ROI overlay
+    def updateOverlay(self, x, y, type):
         # TODO update for polygon
         # TODO use actual dimensions
-        # TODO fix any inaccurate spacing
 
         try:
             if self.rectangle:
                 self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
-                self.x_range = np.arange(x0, x1, float(x))
-                self.y_range = np.arange(y0, y1, float(y))
+                # Sampling spots based sizing
+                if type == 0:
+                    x_increment = abs(x1 - x0) / float(x)
+                    y_increment = abs(y1 - y0) / float(y)
 
-                self.x_range = np.append(self.x_range, x1)
-                self.y_range = np.append(self.y_range, y1)
+                    self.x_range = np.arange(x0, x1, x_increment)
+                    self.y_range = np.arange(y0, y1, y_increment)
 
-                print(self.x_range)
-                print(self.y_range)
+                    self.x_range = np.append(self.x_range, x1)
+                    self.y_range = np.append(self.y_range, y1)
 
-                self.sample_overlay_x = len(self.x_range) - 1
-                self.sample_overlay_y = len(self.y_range) - 1
+                    self.sample_overlay_x = len(self.x_range)
+                    self.sample_overlay_y = len(self.y_range)
+                
+                # Resolution based sizing
+                elif type == 1:
+                    self.x_range = np.arange(x0, x1, float(x))
+                    self.y_range = np.arange(y0, y1, float(y))
+
+                    self.x_range = np.append(self.x_range, x1)
+                    self.y_range = np.append(self.y_range, y1)
+
+                    self.sample_overlay_x = len(self.x_range) - 1
+                    self.sample_overlay_y = len(self.y_range) - 1
+
 
                 self.update()
+        
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None

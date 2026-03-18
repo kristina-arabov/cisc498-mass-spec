@@ -41,8 +41,7 @@ class SamplingItem():
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
-        # TODO allow mode to change
-        self.mode = None
+        self.mode = "constant"
 
         # Gcode info
         self.estimated_time = None
