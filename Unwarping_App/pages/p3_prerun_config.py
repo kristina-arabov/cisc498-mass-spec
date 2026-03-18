@@ -331,8 +331,9 @@ class SamplingParameters(QWidget):
 
         # FUNCTIONS ----------------------------------------
         # Resolution (X and Y)
-        self.input_spatialRes_X.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
-        self.input_spatialRes_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text()))
+        self.input_spatialRes_X.textChanged.connect(lambda: self.overlayUpdate(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text(), sampling_item, photo))
+        self.input_spatialRes_Y.textChanged.connect(lambda: self.overlayUpdate(self.input_spatialRes_X.text(), self.input_spatialRes_Y.text(), sampling_item, photo))
+
 
         self.input_spatialRes_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_X.text(), "res_X"))
         self.input_spatialRes_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_spatialRes_Y.text(), "res_Y"))
@@ -350,6 +351,18 @@ class SamplingParameters(QWidget):
         self.input_ZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_ZstepSize.text(), "Zstep_size"))
 
 
+    # Function to update the grid overlay
+    def overlayUpdate(self, x, y, sampling, photo):
+
+        if sampling.mode == "drag":
+            photo.rowsOnly = True
+            photo.updateOverlayRows(y)
+        else:
+            photo.rowsOnly = False
+            photo.updateOverlay(x, y)
+
+
+    # Function to set the sampling variables
     def setVars(self, sampling, val, type):
         i = float(val)
 
