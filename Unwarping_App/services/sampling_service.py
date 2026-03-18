@@ -336,6 +336,7 @@ def getSampling(sampling):
 
         for i in locations:
             appendXYMove(sampling, i)   # Go to (X, Y) location
+            appendWait(sampling)
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
@@ -403,6 +404,10 @@ def appendSampleTime(sampling):
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
 
+# Command: Wait for this move to finish
+def appendWait(sampling):
+    sampling.gcodes.append("M400")
+
 
 # Function to sort 3D sampling locations into a serpentine pattern
 def serpentinePath(locations):
@@ -432,37 +437,43 @@ def serpentineDrag(locations):
     ys = sorted(rows, reverse=True)
     result = []
 
+
     for i in range(len(ys)):
         y = ys[i]
         row_min = min(rows[y])
         row_max = max(rows[y])
 
-        # Last row
-        if i == len(ys) - 1:
-            if i % 2 == 0:
-                # Left to right
-                start = (row_min, y)
-                end = (row_max, y)
-            else:
-                # Right to left
-                start = (row_max, y)
-                end = (row_min, y)
+        is_last = (i == len(ys) - 1)
 
-        else:
+        if not is_last:
             next_y = ys[i + 1]
             next_min = min(rows[next_y])
             next_max = max(rows[next_y])
+        else:
+            next_min = row_min
+            next_max = row_max
 
-            if i % 2 == 0:
-                # Left to right
-                start = (row_min, y)
-                end = (next_max, y)
+        # Move left to right
+        if i % 2 == 0:
+            # Compare current row min to previous row min (if not first row)
+            if i > 0:
+                start = (min(row_min, min(rows[ys[i-1]])), y)
             else:
-                # Right to left
-                start = (row_max, y)
-                end = (next_min, y)
+                start = (row_min, y)
 
-        # Add locations
+            # Compare current row max and next row max
+            end_x = max(row_max, next_max)
+
+        # Move right to left 
+        else:
+            # Compare current row max and previous row max
+            start = (max(row_max, max(rows[ys[i-1]])), y)
+
+            # Compare current row min and next row min
+            end_x = min(row_min, next_min)
+
+        end = (end_x, y)
+
         result.append(start)
         result.append(end)
 
