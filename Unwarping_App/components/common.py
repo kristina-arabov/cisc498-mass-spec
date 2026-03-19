@@ -1403,6 +1403,8 @@ class ClickableImage(QLabel):
                         mid_x_real = (left + right) / 2
                         mid_y_real = (top + bottom) / 2
 
+                        self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
+
                         # Normalized X and Y
                         tx = (mid_x_real - x0) / (x1 - x0)
                         ty = (mid_y_real - y0) / (y1 - y0)
@@ -1562,14 +1564,16 @@ class ClickableImage(QLabel):
         self.update()
 
     # Function to update the rectangle ROI overlay
-    def updateOverlay(self, x, y, type):
+    def updateOverlay(self, x, y, type, sampling):
+        self.real_points = []
         # TODO update for polygon
         # TODO use actual dimensions
 
         # Likely to fix to use # of sampling spots instead.
         try:
             if self.rectangle:
-                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                # self.probe_rectangle = sampling.rectangle
+                self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1599,6 +1603,9 @@ class ClickableImage(QLabel):
 
 
                 self.update()
+
+                # Transfer all sampling points to sampling item
+                sampling.real_points_list = self.real_points
         
         except:
             self.sample_overlay_x = None
@@ -1607,9 +1614,12 @@ class ClickableImage(QLabel):
     
     # Function to update the overlay to show rows (Drag sampling)
     # Shows the serpentine sampling path
-    def updateOverlayRows(self, y, type):
+    def updateOverlayRows(self, y, type, sampling):
+        self.real_points = []
+        
         try:
             if self.rectangle: 
+                # self.probe_rectangle = sampling.rectangle
                 self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
@@ -1631,6 +1641,9 @@ class ClickableImage(QLabel):
                     self.sample_overlay_y = len(self.y_range) - 1
 
                 self.update()
+
+                # Transfer all sampling points to sampling item
+                sampling.real_points_list = self.real_points
 
         except:
             self.sample_overlay_x = None
