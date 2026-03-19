@@ -1332,7 +1332,9 @@ class ClickableImage(QLabel):
             # Draw full rectangle
             if self.rectangle:
                 painter.setPen(QPen(QColor("#BBFF00"), 3))
+                painter.setOpacity(0.1) if self.rowsOnly else painter.setOpacity(1)
                 painter.drawRect(self.rectangle)
+
 
             # If rectangle is still being drawn, update so the user sees
             if self.type == "Rectangle" and self.drawing and self.start_point and self.end_point:
@@ -1384,7 +1386,7 @@ class ClickableImage(QLabel):
                         end_x, y
                     )
 
-                # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
+                # Draw mid-points for each grid 
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
 
@@ -1605,18 +1607,28 @@ class ClickableImage(QLabel):
     
     # Function to update the overlay to show rows (Drag sampling)
     # Shows the serpentine sampling path
-    def updateOverlayRows(self, y):
+    def updateOverlayRows(self, y, type):
         try:
             if self.rectangle: 
                 self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
-                # Y rows
-                self.y_range = np.arange(y0, y1, float(y))
-                self.y_range = np.append(self.y_range, y1)
+                # Sampling spots based sizing
+                if type == 0:
+                    y_increment = abs(y1 - y0) / float(y)
+                    self.y_range = np.arange(y0, y1, y_increment)
+                    self.y_range = np.append(self.y_range, y1)
 
-                self.sample_overlay_y = len(self.y_range) - 1
-                self.sample_overlay_x = None 
+                    self.sample_overlay_x = None
+                    self.sample_overlay_y = len(self.y_range)
+
+                # Resolution based sizing
+                elif type == 1:
+                    self.y_range = np.arange(y0, y1, float(y))
+                    self.y_range = np.append(self.y_range, y1)
+
+                    self.sample_overlay_x = None
+                    self.sample_overlay_y = len(self.y_range) - 1
 
                 self.update()
 

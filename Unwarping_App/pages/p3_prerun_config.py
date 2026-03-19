@@ -58,7 +58,7 @@ class PrerunConfig(QWidget):
         layout_right.setContentsMargins(0,0,0,0)
         layout_right.setSpacing(10)
 
-        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 30)
+        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width())
 
         # COMPOSE ----------------------------------------
         layout.addWidget(self.photo)
@@ -333,9 +333,9 @@ class SamplingParameters(QWidget):
 
         # FUNCTIONS ----------------------------------------
         # Resolution / Sampling spots
-        self.input_X.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
-        self.input_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
-        selections.currentIndexChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        self.input_X.textChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        self.input_Y.textChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        selections.currentIndexChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
 
         # self.input_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_X.text(), "res_X"))
         # self.input_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_Y.text(), "res_Y"))
@@ -354,14 +354,17 @@ class SamplingParameters(QWidget):
 
 
     # Function to update the grid overlay
-    def overlayUpdate(self, x, y, sampling, photo):
+    def overlayHandle(self, photo, sampling, x, y, type):
 
         if sampling.mode == "drag":
             photo.rowsOnly = True
-            photo.updateOverlayRows(y)
+            photo.updateOverlayRows(y, type)
+
         else:
             photo.rowsOnly = False
-            photo.updateOverlay(x, y)
+            photo.updateOverlay(x, y, type)
+
+
 
 
     # Function to set the sampling variables
