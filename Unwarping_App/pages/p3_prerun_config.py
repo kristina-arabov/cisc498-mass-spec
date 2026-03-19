@@ -108,8 +108,8 @@ class PrerunConfig(QWidget):
             params.input_X.hide()
 
             # Hide dwell and sample time
-            params.row_2.hide()
-            params.row_3.hide()
+            # params.row_2.hide()
+            # params.row_3.hide()
 
         # Constant Z mode
         else:

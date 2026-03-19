@@ -1463,6 +1463,15 @@ class ClickableImage(QLabel):
                         x_start_real = x1
                         x_end_real   = x0
 
+                    location1 = (round(x_start_real, 2), round(y_val, 2))
+                    location2 = (round(x_end_real, 2), round(y_val, 2))
+
+                    if location1 not in self.real_points:
+                        self.real_points.append(location1)
+
+                    if location2 not in self.real_points:
+                        self.real_points.append(location2)
+
                     # Convert to pixels
                     tx_start = (x_start_real - x0) / real_width
                     tx_end   = (x_end_real - x0) / real_width
@@ -1606,7 +1615,6 @@ class ClickableImage(QLabel):
                 self.update()
 
                 # Transfer all sampling points to sampling item
-
                 sampling.real_points_list = self.real_points
         
         except:
@@ -1621,8 +1629,8 @@ class ClickableImage(QLabel):
         
         try:
             if self.rectangle: 
-                # self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                self.probe_rectangle = sampling.rectangle
+                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
