@@ -21,6 +21,8 @@ class SamplingItem():
         self.drawn = None
         self.dot = None
 
+        self.real_points_list = None
+
         # Sampling parameters
         self.spatialRes_X = None
         self.spatialRes_Y = None
@@ -264,6 +266,7 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     end_y -= transformation.offset_y
 
 
+    # Reverse?
     probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
 
     return probe_rectangle
@@ -287,8 +290,15 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling):
+
+
+    print(sampling.real_points_list)
+
     # TODO change to real locations
-    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
+
+    locations = sampling.real_points_list
+
+    # locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     # locations = [(170.4, 5), (175.4, 5), (181.4, 5),
     #             (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
     #             (170.4, 0), (174.4, 0), (179.4, 0),
@@ -316,6 +326,8 @@ def getSampling(sampling):
 
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
+
+    appendReferencePoint(sampling)
 
     # Constant Z mode
     if sampling.mode == "constant":
@@ -356,9 +368,12 @@ def getSampling(sampling):
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
+    
+    appendReferencePoint(sampling)
+
     # Return to original position
-    # p = sampling.originalLoc
-    p = [180.4, -3, 0]
+    p = sampling.originalLoc
+    # p = [180.4, -3, 0]
     appendXYMove(sampling, p)
     appendZChange(sampling, p)
 
@@ -368,6 +383,15 @@ def getSampling(sampling):
 
     for row in sampling.gcodes:
         print(row)
+
+
+# Commands to move to the reference point
+def appendReferencePoint(sampling):
+    appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
+    appendSampleHeight(sampling)            # Go to Z sampling height
+    appendSampleTime(sampling)              # Sample for __ milliseconds
+    appendTransitHeight(sampling)           # Return to Z transit height
+    appendDwellTime(sampling)               # Dwell for __ milliseconds
 
 
 # Command: Movement to transit height before starting X,Y movements
