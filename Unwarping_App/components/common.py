@@ -1133,7 +1133,7 @@ class TagOverlay(QWidget):
             painter.drawEllipse(x, y, diameter, diameter)
 
 class ClickableImage(QLabel):
-    roiSignal = pyqtSignal(object, object, object, object)
+    roiSignal = pyqtSignal(object, object, object, object, bool)
 
     # Overlay with unwarped image, else black screen
     def __init__(self):
@@ -1153,6 +1153,7 @@ class ClickableImage(QLabel):
 
         self.sample_overlay_x = None
         self.sample_overlay_y = None
+        self.rowsOnly = False
 
         self.x_range = None
         self.y_range = None
@@ -1331,7 +1332,9 @@ class ClickableImage(QLabel):
             # Draw full rectangle
             if self.rectangle:
                 painter.setPen(QPen(QColor("#BBFF00"), 3))
+                painter.setOpacity(0.1) if self.rowsOnly else painter.setOpacity(1)
                 painter.drawRect(self.rectangle)
+
 
             # If rectangle is still being drawn, update so the user sees
             if self.type == "Rectangle" and self.drawing and self.start_point and self.end_point:
@@ -1383,7 +1386,7 @@ class ClickableImage(QLabel):
                         end_x, y
                     )
 
-                # Draw mid-points for each grid (actual sampling point for non-conductive sampling)
+                # Draw mid-points for each grid 
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
 
@@ -1409,6 +1412,69 @@ class ClickableImage(QLabel):
                         mid_y = start_y + ty * height
 
                         painter.drawPoint(int(mid_x), int(mid_y))
+
+            elif self.sample_overlay_y and self.rowsOnly:
+                painter.setPen(QPen(QColor("#EAFFC2"), 2))
+                painter.setOpacity(0.6)
+
+                start_x = self.rectangle.left()
+                start_y = self.rectangle.top()
+                end_x   = self.rectangle.right()
+                end_y   = self.rectangle.bottom()
+
+                width  = end_x - start_x
+                height = end_y - start_y
+
+                x0, y0, x1, y1 = self.probe_rectangle
+                real_height = y1 - y0
+
+                # Draw rows only
+                for val in self.y_range:
+                    t = (val - y0) / real_height
+                    y = int(start_y + t * height)
+
+                    painter.drawLine(start_x, y, end_x, y)
+
+                
+                painter.setPen(QPen(QColor("#0FBFFF"), 3))
+                painter.setOpacity(0.4)
+
+                x0, y0, x1, y1 = self.probe_rectangle
+                real_width  = x1 - x0
+                real_height = y1 - y0
+
+                prev_point = None
+
+                for i, y_val in enumerate(self.y_range):
+
+                    # Normalize Y
+                    ty = (y_val - y0) / real_height
+                    py = start_y + ty * height
+
+                    # Zig-zag direction
+                    if i % 2 == 0:
+                        x_start_real = x0
+                        x_end_real   = x1
+                    else:
+                        x_start_real = x1
+                        x_end_real   = x0
+
+                    # Convert to pixels
+                    tx_start = (x_start_real - x0) / real_width
+                    tx_end   = (x_end_real - x0) / real_width
+
+                    px_start = start_x + tx_start * width
+                    px_end   = start_x + tx_end * width
+
+                    # Draw horizontal segment
+                    painter.drawLine(int(px_start), int(py), int(px_end), int(py))
+
+                    # Draw vertical connection to next row
+                    if prev_point:
+                        painter.drawLine(int(prev_point[0]), int(prev_point[1]), int(px_start), int(py))
+
+                    prev_point = (px_end, py)
+
 
             # ── Draw mode rendering ──────────────────────────────────────────────
 
@@ -1465,7 +1531,7 @@ class ClickableImage(QLabel):
                     painter.setBrush(Qt.NoBrush)
                     painter.drawEllipse(self.cursor_pos, self.eraser_radius, self.eraser_radius)
 
-            self.roiSignal.emit(self.dot, self.rectangle, self.sample_overlay_x, self.sample_overlay_y)
+            self.roiSignal.emit(self.dot, self.rectangle, self.sample_overlay_x, self.sample_overlay_y, self.rowsOnly)
 
         except:
             pass
@@ -1482,13 +1548,16 @@ class ClickableImage(QLabel):
         self.scaled = QPixmap.fromImage(self.scaled)
         self.setPixmap(self.scaled)
 
-    def setVals(self, pt=None, rect=None, x=None, y=None):
+    def setVals(self, pt=None, rect=None, x=None, y=None, rows=False):
         self.dot = pt
         self.rectangle = rect
 
         if x and y:
             self.sample_overlay_x = x
             self.sample_overlay_y = y
+
+        if rows:
+            self.rowsOnly = rows
 
         self.update()
 
@@ -1497,9 +1566,10 @@ class ClickableImage(QLabel):
         # TODO update for polygon
         # TODO use actual dimensions
 
+        # Likely to fix to use # of sampling spots instead.
         try:
             if self.rectangle:
-                self.probe_rectangle = [100, 40, 115, 50]
+                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1530,6 +1600,38 @@ class ClickableImage(QLabel):
 
                 self.update()
         
+        except:
+            self.sample_overlay_x = None
+            self.sample_overlay_y = None
+
+    
+    # Function to update the overlay to show rows (Drag sampling)
+    # Shows the serpentine sampling path
+    def updateOverlayRows(self, y, type):
+        try:
+            if self.rectangle: 
+                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                x0, y0, x1, y1 = self.probe_rectangle
+
+                # Sampling spots based sizing
+                if type == 0:
+                    y_increment = abs(y1 - y0) / float(y)
+                    self.y_range = np.arange(y0, y1, y_increment)
+                    self.y_range = np.append(self.y_range, y1)
+
+                    self.sample_overlay_x = None
+                    self.sample_overlay_y = len(self.y_range)
+
+                # Resolution based sizing
+                elif type == 1:
+                    self.y_range = np.arange(y0, y1, float(y))
+                    self.y_range = np.append(self.y_range, y1)
+
+                    self.sample_overlay_x = None
+                    self.sample_overlay_y = len(self.y_range) - 1
+
+                self.update()
+
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None
