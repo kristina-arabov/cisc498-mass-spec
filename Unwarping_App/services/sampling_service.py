@@ -291,6 +291,7 @@ def getDirectionFromPixel(u, v, mtx):
 
 def getSampling(sampling):
 
+
     print(sampling.real_points_list)
 
     # TODO change to real locations
@@ -326,7 +327,7 @@ def getSampling(sampling):
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
 
-    # TODO GO TO REFERENCE HERE
+    appendReferencePoint(sampling)
 
     # Constant Z mode
     if sampling.mode == "constant":
@@ -368,11 +369,11 @@ def getSampling(sampling):
         appendTransitHeight(sampling)   # Return to Z transit height
 
     
-    # TODO GO TO REFERENCE HERE
+    appendReferencePoint(sampling)
 
     # Return to original position
-    # p = sampling.originalLoc
-    p = [180.4, -3, 0]
+    p = sampling.originalLoc
+    # p = [180.4, -3, 0]
     appendXYMove(sampling, p)
     appendZChange(sampling, p)
 
@@ -382,6 +383,15 @@ def getSampling(sampling):
 
     for row in sampling.gcodes:
         print(row)
+
+
+# Commands to move to the reference point
+def appendReferencePoint(sampling):
+    appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
+    appendSampleHeight(sampling)            # Go to Z sampling height
+    appendSampleTime(sampling)              # Sample for __ milliseconds
+    appendTransitHeight(sampling)           # Return to Z transit height
+    appendDwellTime(sampling)               # Dwell for __ milliseconds
 
 
 # Command: Movement to transit height before starting X,Y movements

@@ -1403,7 +1403,9 @@ class ClickableImage(QLabel):
                         mid_x_real = (left + right) / 2
                         mid_y_real = (top + bottom) / 2
 
-                        self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
+                        location = (round(mid_x_real, 2), round(mid_y_real, 2))
+                        if location not in self.real_points:
+                            self.real_points.append(location)
 
                         # Normalized X and Y
                         tx = (mid_x_real - x0) / (x1 - x0)
@@ -1567,13 +1569,12 @@ class ClickableImage(QLabel):
     def updateOverlay(self, x, y, type, sampling):
         self.real_points = []
         # TODO update for polygon
-        # TODO use actual dimensions
 
         # Likely to fix to use # of sampling spots instead.
         try:
             if self.rectangle:
-                # self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50]
+                self.probe_rectangle = sampling.rectangle
+                # self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1605,6 +1606,7 @@ class ClickableImage(QLabel):
                 self.update()
 
                 # Transfer all sampling points to sampling item
+
                 sampling.real_points_list = self.real_points
         
         except:
