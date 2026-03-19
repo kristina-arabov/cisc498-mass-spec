@@ -403,11 +403,11 @@ class SamplingParameters(QWidget):
 
         if sampling.mode == "drag":
             photo.rowsOnly = True
-            photo.updateOverlayRows(y, type)
+            photo.updateOverlayRows(y, type, sampling)
 
         else:
             photo.rowsOnly = False
-            photo.updateOverlay(x, y, type)
+            photo.updateOverlay(x, y, type, sampling)
 
 
 

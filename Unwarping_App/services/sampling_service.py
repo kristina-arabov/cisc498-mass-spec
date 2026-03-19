@@ -21,6 +21,8 @@ class SamplingItem():
         self.drawn = None
         self.dot = None
 
+        self.real_points_list = None
+
         # Sampling parameters
         self.spatialRes_X = None
         self.spatialRes_Y = None
@@ -264,6 +266,7 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     end_y -= transformation.offset_y
 
 
+    # Reverse?
     probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
 
     return probe_rectangle
@@ -287,8 +290,14 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling):
+
+    print(sampling.real_points_list)
+
     # TODO change to real locations
-    locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
+
+    locations = sampling.real_points_list
+
+    # locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
     # locations = [(170.4, 5), (175.4, 5), (181.4, 5),
     #             (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
     #             (170.4, 0), (174.4, 0), (179.4, 0),
@@ -316,6 +325,8 @@ def getSampling(sampling):
 
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
+
+    # TODO GO TO REFERENCE HERE
 
     # Constant Z mode
     if sampling.mode == "constant":
@@ -355,6 +366,9 @@ def getSampling(sampling):
             appendWait(sampling)
             
         appendTransitHeight(sampling)   # Return to Z transit height
+
+    
+    # TODO GO TO REFERENCE HERE
 
     # Return to original position
     # p = sampling.originalLoc
