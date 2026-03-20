@@ -58,7 +58,7 @@ class PrerunConfig(QWidget):
         layout_right.setContentsMargins(0,0,0,0)
         layout_right.setSpacing(10)
 
-        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width() + 30)
+        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width())
 
         # COMPOSE ----------------------------------------
         layout.addWidget(self.photo)
@@ -108,8 +108,8 @@ class PrerunConfig(QWidget):
             params.input_X.hide()
 
             # Hide dwell and sample time
-            params.row_2.hide()
-            params.row_3.hide()
+            # params.row_2.hide()
+            # params.row_3.hide()
 
         # Constant Z mode
         else:
@@ -203,12 +203,14 @@ class SamplingParameters(QWidget):
         self.label_X = QLabel("X: ")
 
         self.input_X = QLineEdit()
-        self.input_X.setValidator(QDoubleValidator())
+        self.input_X.setValidator(QDoubleValidator(0, 150, 2)) # Set limit
+        self.input_X.textChanged.connect(lambda: self.limitValue(self.input_X, "space"))
 
         self.label_Y = QLabel("Y: ")
 
         self.input_Y = QLineEdit()
-        self.input_Y.setValidator(QDoubleValidator())
+        self.input_Y.setValidator(QDoubleValidator(0, 150, 2)) # Set limit
+        self.input_Y.textChanged.connect(lambda: self.limitValue(self.input_Y, "space"))
 
         layout_row_1.addWidget(selections, alignment=Qt.AlignLeft)
 
@@ -226,6 +228,8 @@ class SamplingParameters(QWidget):
 
         label_dwell = QLabel("Dwell time (s): ")
         self.input_dwell = QLineEdit()
+        self.input_dwell.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_dwell.textChanged.connect(lambda: self.limitValue(self.input_dwell, "time"))
 
         layout_row_2.addWidget(label_dwell, alignment=Qt.AlignLeft)
         layout_row_2.addWidget(self.input_dwell, alignment=Qt.AlignRight)
@@ -238,6 +242,8 @@ class SamplingParameters(QWidget):
 
         label_sampleTime = QLabel("Sample time (s): ")
         self.input_sampleTime = QLineEdit()
+        self.input_sampleTime.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_sampleTime.textChanged.connect(lambda: self.limitValue(self.input_sampleTime, "time"))
 
         layout_row_3.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
         layout_row_3.addWidget(self.input_sampleTime, alignment=Qt.AlignRight)
@@ -250,6 +256,8 @@ class SamplingParameters(QWidget):
 
         label_transit = QLabel("Transit height (mm): ")
         self.input_transit = QLineEdit()
+        self.input_transit.setValidator(QDoubleValidator(-180, 180, 2))
+        self.input_transit.textChanged.connect(lambda: self.limitValue(self.input_transit, "height"))
 
         layout_row_4.addWidget(label_transit, alignment=Qt.AlignLeft)
         layout_row_4.addWidget(self.input_transit, alignment=Qt.AlignRight)
@@ -262,6 +270,8 @@ class SamplingParameters(QWidget):
 
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_sampleHeight = QLineEdit()
+        self.input_sampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
+        self.input_sampleHeight.textChanged.connect(lambda: self.limitValue(self.input_sampleHeight, "height"))
 
         layout_row_5.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_5.addWidget(self.input_sampleHeight, alignment=Qt.AlignRight)
@@ -273,6 +283,8 @@ class SamplingParameters(QWidget):
 
         label_ZstepSize = QLabel("Z Step Size (mm): ")
         self.input_ZstepSize = QLineEdit()
+        self.input_ZstepSize.setValidator(QDoubleValidator(0, 5, 3))
+        self.input_ZstepSize.textChanged.connect(lambda: self.limitValue(self.input_ZstepSize, "ZStep"))
 
         layout_row_6.addWidget(label_ZstepSize, alignment=Qt.AlignLeft)
         layout_row_6.addWidget(self.input_ZstepSize, alignment=Qt.AlignRight)
@@ -333,9 +345,9 @@ class SamplingParameters(QWidget):
 
         # FUNCTIONS ----------------------------------------
         # Resolution / Sampling spots
-        self.input_X.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
-        self.input_Y.textChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
-        selections.currentIndexChanged.connect(lambda: photo.updateOverlay(self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        self.input_X.textChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        self.input_Y.textChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
+        selections.currentIndexChanged.connect(lambda: self.overlayHandle(photo, sampling_item, self.input_X.text(), self.input_Y.text(), selections.currentIndex()))
 
         # self.input_X.textChanged.connect(lambda: self.setVars(sampling_item, self.input_X.text(), "res_X"))
         # self.input_Y.textChanged.connect(lambda: self.setVars(sampling_item, self.input_Y.text(), "res_Y"))
@@ -352,7 +364,55 @@ class SamplingParameters(QWidget):
         # Step Size
         self.input_ZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_ZstepSize.text(), "Zstep_size"))
 
+    
+    # Function to limit the input value of the parameters, for safety
+    def limitValue(self, input, type):
+        if not input.text():
+            return
+    
+        try:
+            value = float(input.text())
+            # Enforce spatial limit
+            if type == "space" and value > 150:
+                input.setText("150")
+            
+            # Enfore time limit
+            elif type == "time" and value > 250:
+                input.setText("250")
 
+            # Enforce height limit
+            elif type == "height":
+                if value < -180:
+                    input.setText("-180")
+                elif value > 180:
+                    input.setText("180")
+
+            # Enforce Z step limit
+            elif type == "ZStep" and value > 5:
+                input.setText("5")
+                
+
+        except ValueError:
+            pass
+        
+
+
+
+    # Function to update the grid overlay
+    def overlayHandle(self, photo, sampling, x, y, type):
+
+        if sampling.mode == "drag":
+            photo.rowsOnly = True
+            photo.updateOverlayRows(y, type, sampling)
+
+        else:
+            photo.rowsOnly = False
+            photo.updateOverlay(x, y, type, sampling)
+
+
+
+
+    # Function to set the sampling variables
     def setVars(self, sampling, val, type):
         i = float(val)
 
@@ -472,7 +532,6 @@ class SamplingSpeeds(QWidget):
 
     # Function to set the speed of the printer 
     def setSpeed(self, sampling, val, type):
-        print("runs???")
         # Speed changes
         if type == "XY":
             sampling.xy_speed = float(val)
