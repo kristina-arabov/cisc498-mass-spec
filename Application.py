@@ -79,7 +79,7 @@ def global_poll():
                         pass
 
                 # (X, Y) adjustment (hold only for drag sampling)
-                elif "X" and "Y" in line and probe.mode == "drag":
+                elif "X" in line and "Y" in line and probe.mode == "drag":
                     match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
                     match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
 
