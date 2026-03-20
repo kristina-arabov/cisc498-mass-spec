@@ -69,6 +69,7 @@ class SamplingItem():
 
 class SamplingFrontEnd(QObject):
     pointUpdated = pyqtSignal(str)
+    samplingDone = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -81,7 +82,7 @@ class SamplingFrontEnd(QObject):
         
 
 samplingItem = SamplingItem()
-progressLabels = SamplingFrontEnd()
+progress = SamplingFrontEnd()
 
 def setTransformation(transformation, path, valid):
 
@@ -235,7 +236,10 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
     else:
         dot_x += transformation.offset_x
     
-    dot_y -= transformation.offset_y
+    if transformation.offset_y < 0:
+        dot_y += transformation.offset_y
+    else:
+        dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -263,23 +267,27 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     start_x = pos[0] + (start_point_in_base[0] * 10)
     start_y = pos[1] + (start_point_in_base[1] * 10)
 
-    if transformation.offset_x < 0:
-        start_x -= transformation.offset_x
-    else:
-        start_x += transformation.offset_x
-    
-    start_y -= transformation.offset_y
-
     # 3D end position
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
+    # Apply X offset
     if transformation.offset_x < 0:
+        start_x -= transformation.offset_x
         end_x -= transformation.offset_x
     else:
+        start_x += transformation.offset_x
         end_x += transformation.offset_x
     
-    end_y -= transformation.offset_y
+    # Apply Y offset
+    if transformation.offset_y < 0:
+        start_y += transformation.offset_y
+        end_y += transformation.offset_y
+    else:
+        start_y -= transformation.offset_y
+        end_y -= transformation.offset_y
+
+    
 
 
     # Reverse?
@@ -334,7 +342,7 @@ def getSampling(sampling):
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
 
-    progressLabels.updatePoints(sampling.sampled_points, sampling.total_points)
+    progress.updatePoints(sampling.sampled_points, sampling.total_points)
 
     sampling.completed_gcodes = []
     sampling.timestamps = []
@@ -556,13 +564,20 @@ def runGCode(printer):
 
     samplingItem.completed_gcodes.append(line)
 
+    # Check if point is in the ROI
     if "X" in line and "Y" in line:
-        samplingItem.sampled_points += 1
-        progressLabels.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
+        match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+        match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+        if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
+            samplingItem.sampled_points += 1
+            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
 
     printer.cmd(line)
 
     # emit signal for completed points? time?
+    if len(samplingItem.gcodes) == 0:
+        progress.samplingDone.emit()
 
 
 # Function to add a row containing time + position data to the spreadsheet
