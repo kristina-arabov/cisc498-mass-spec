@@ -532,7 +532,6 @@ class SamplingSpeeds(QWidget):
 
     # Function to set the speed of the printer 
     def setSpeed(self, sampling, val, type):
-        print("runs???")
         # Speed changes
         if type == "XY":
             sampling.xy_speed = float(val)
