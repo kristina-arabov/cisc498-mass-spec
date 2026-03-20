@@ -415,7 +415,13 @@ def getSampling(sampling):
 # Commands to move to the reference point
 def appendReferencePoint(sampling):
     appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
-    appendSampleHeight(sampling)            # Go to Z sampling height
+
+    if sampling.mode != "conductive":
+        appendSampleHeight(sampling)            # Go to Z sampling height
+    else:
+        # TODO TEMPORARY
+        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
+
     appendSampleTime(sampling)              # Sample for __ milliseconds
     appendTransitHeight(sampling)           # Return to Z transit height
     appendDwellTime(sampling)               # Dwell for __ milliseconds
