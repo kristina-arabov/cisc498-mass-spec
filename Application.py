@@ -87,7 +87,7 @@ def global_poll():
                     next_y = float(match_y.group(1))
 
 
-            sampling_service.runGCode(printer)
+            sampling_service.runGCode(printer, conduct)
             # probe.gcodes.pop(0)
 
         # # Check if printer has made it to the expected height, remove moving flag

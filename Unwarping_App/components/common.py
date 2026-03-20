@@ -1441,7 +1441,7 @@ class ClickableImage(QLabel):
                     painter.drawLine(start_x, y, end_x, y)
 
                 
-                painter.setPen(QPen(QColor("#0FBFFF"), 3))
+                painter.setPen(QPen(QColor("#0FFFF3"), 3))
                 painter.setOpacity(1.0)
 
                 x0, y0, x1, y1 = self.probe_rectangle
