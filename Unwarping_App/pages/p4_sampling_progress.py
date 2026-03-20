@@ -41,7 +41,7 @@ class SamplingProgress(QWidget):
         gif.start()
         gif.setScaledSize(QSize(100, 100))
 
-        self.label_points = QLabel("0 / 0 points sampled")
+        self.label_points = QLabel("0/0 points sampled")
         self.label_estimatedTime = QLabel("Estimated time left: ___")
 
         self.button_pause = QPushButton("Pause", objectName="headerBlue")
@@ -76,6 +76,14 @@ class SamplingProgress(QWidget):
 
         self.operations.btn_resume.clicked.connect(lambda: self.handlePause(False))
         self.operations.btn_abort.clicked.connect(lambda: self.stopSampling())
+
+        sampling_service.progressLabels.pointUpdated.connect(lambda: self.updateLabels("points"))
+
+
+    def updateLabels(self, type):
+        if type == "points":
+            fraction = sampling_service.progressLabels.fraction
+            self.label_points.setText(f"{fraction} points sampled")
 
     
     def handlePause(self, stopped):

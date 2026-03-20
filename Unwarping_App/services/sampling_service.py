@@ -12,6 +12,8 @@ from Unwarping_App.services import device_service
 import csv
 from datetime import datetime
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
 
 class SamplingItem():
     def __init__(self):
@@ -63,9 +65,23 @@ class SamplingItem():
         # File info
         self.csv_filename = None
         self.csv_rows = []
+
+
+class SamplingFrontEnd(QObject):
+    pointUpdated = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+        self.fraction = "0/0"
+
+
+    def updatePoints(self, numerator, denominator):
+        self.fraction = f"{numerator}/{denominator}"
+        self.pointUpdated.emit(self.fraction)
         
 
 samplingItem = SamplingItem()
+progressLabels = SamplingFrontEnd()
 
 def setTransformation(transformation, path, valid):
 
@@ -318,6 +334,8 @@ def getSampling(sampling):
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
 
+    progressLabels.updatePoints(sampling.sampled_points, sampling.total_points)
+
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
@@ -537,6 +555,10 @@ def runGCode(printer):
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
+
+    if "X" in line and "Y" in line:
+        samplingItem.sampled_points += 1
+        progressLabels.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
 
     printer.cmd(line)
 
