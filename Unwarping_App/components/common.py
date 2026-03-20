@@ -1344,6 +1344,7 @@ class ClickableImage(QLabel):
             # Draw dot
             if self.dot:
                 painter.setPen(QPen(QColor("#16FFFF"), 4))
+                painter.setOpacity(1.0)
                 painter.drawPoint(self.dot)
 
             # Pixel overlay
@@ -1440,8 +1441,8 @@ class ClickableImage(QLabel):
                     painter.drawLine(start_x, y, end_x, y)
 
                 
-                painter.setPen(QPen(QColor("#0FBFFF"), 3))
-                painter.setOpacity(0.4)
+                painter.setPen(QPen(QColor("#0FFFF3"), 3))
+                painter.setOpacity(1.0)
 
                 x0, y0, x1, y1 = self.probe_rectangle
                 real_width  = x1 - x0

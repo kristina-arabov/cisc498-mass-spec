@@ -37,9 +37,11 @@ conduct = conductance.ConThread()
 probe = sampling_service.samplingItem
 
 next_height = 0
+next_x = 0
+next_y = 0
 
 def global_poll():
-    global next_height
+    global next_height, next_x, next_y
     # If there are GCodes available (only when sampling run is started)
     if len(probe.gcodes) > 0 and not probe.paused:
         # sampling_service.addData(printer, conduct)
@@ -76,12 +78,25 @@ def global_poll():
                     elif probe.mode == "conductive":
                         pass
 
-            sampling_service.runGCode(printer)
+                # (X, Y) adjustment (hold only for drag sampling)
+                elif "X" in line and "Y" in line and probe.mode == "drag":
+                    match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+                    match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+                    next_x = float(match_x.group(1))
+                    next_y = float(match_y.group(1))
+
+
+            sampling_service.runGCode(printer, conduct)
+            # probe.gcodes.pop(0)
 
         # # Check if printer has made it to the expected height, remove moving flag
         # elif probe.moving and "M400" in line:
         #     sampling_service.runGCode(printer)
         #     probe.moving = False
+
+        elif probe.moving and (printer.pos[0] == next_x) and (printer.pos[1] == next_y) and (probe.mode == "drag"):
+            probe.moving = False
 
 
         elif probe.moving and printer.pos[2] == next_height:

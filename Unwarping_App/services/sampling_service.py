@@ -390,12 +390,13 @@ def getSampling(sampling):
 
         for i in locations:
             appendXYMove(sampling, i)   # Go to (X, Y) location
-            appendWait(sampling)
+            sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight + 0.0000001)} F{str(sampling.z_up_speed)}") 
+            sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
     
-    appendReferencePoint(sampling)
+    # appendReferencePoint(sampling)
 
     # Return to original position
     p = sampling.originalLoc
@@ -559,7 +560,9 @@ def getTime():
 
 
 # Function to send a GCode to the printer and remove it from the queue
-def runGCode(printer):
+def runGCode(printer, conduct):
+    addData(printer, conduct)
+
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
@@ -578,6 +581,8 @@ def runGCode(printer):
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
         progress.samplingDone.emit()
+
+    addData(printer, conduct)
 
 
 # Function to add a row containing time + position data to the spreadsheet
