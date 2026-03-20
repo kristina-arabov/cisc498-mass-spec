@@ -396,7 +396,7 @@ def getSampling(sampling):
         appendTransitHeight(sampling)   # Return to Z transit height
 
     
-    appendReferencePoint(sampling)
+    # appendReferencePoint(sampling)
 
     # Return to original position
     p = sampling.originalLoc
