@@ -77,12 +77,13 @@ class SamplingProgress(QWidget):
         self.operations.btn_resume.clicked.connect(lambda: self.handlePause(False))
         self.operations.btn_abort.clicked.connect(lambda: self.stopSampling())
 
-        sampling_service.progressLabels.pointUpdated.connect(lambda: self.updateLabels("points"))
+        sampling_service.progress.pointUpdated.connect(lambda: self.updateLabels("points"))
+        sampling_service.progress.samplingDone.connect(lambda: self.next.emit())
 
 
     def updateLabels(self, type):
         if type == "points":
-            fraction = sampling_service.progressLabels.fraction
+            fraction = sampling_service.progress.fraction
             self.label_points.setText(f"{fraction} points sampled")
 
     
