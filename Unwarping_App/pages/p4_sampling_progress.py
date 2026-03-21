@@ -97,7 +97,7 @@ class SamplingProgress(QWidget):
                 pass
 
             self.img_loadingCircle.hide()
-            self.label_estimatedTime.hide()
+            # self.label_estimatedTime.hide()
             self.label_points.hide()
             self.button_pause.hide()
 
@@ -105,7 +105,7 @@ class SamplingProgress(QWidget):
         
         else:
             self.img_loadingCircle.show()
-            self.label_estimatedTime.show()
+            # self.label_estimatedTime.show()
             self.label_points.show()
             self.button_pause.show()
 
@@ -122,7 +122,7 @@ class SamplingProgress(QWidget):
     def stopSampling(self):
         # Reset as default
         self.img_loadingCircle.show()
-        self.label_estimatedTime.show()
+        # self.label_estimatedTime.show()
         self.label_points.show()
         self.button_pause.show()
 
