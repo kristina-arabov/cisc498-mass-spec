@@ -54,7 +54,7 @@ class LandingPage(QWidget):
 
     def handleCreateTransformation(self):
         in_progress = False
-
+        
         # Check if there are any non-empty values
         for key, val in vars(self.transformation).items():
             # tag_bottom_left is a list 
@@ -64,7 +64,7 @@ class LandingPage(QWidget):
 
             # photo_loc is a list
             elif key == "photo_loc":
-                if val != [0,0,0]:
+                if val is not None:
                     in_progress = True
 
             # Check all other vals

@@ -46,7 +46,7 @@ class Transformation():
         self.offset_y = None
 
         # Sampling loc
-        self.photo_loc = [0, 0, 0]
+        self.photo_loc = None
 
 
     # Function to reset all properties if cleared
