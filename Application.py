@@ -77,31 +77,31 @@ def global_poll():
                         match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
                         next_height = float(match.group(1))
 
-                    # Conductive mode
-                    # BUG HERE works for all z movements in conductive
-                    elif probe.mode == "conductive" and conduct.status and waiting_for_signal:
-                        match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+                    # # Conductive mode
+                    # # BUG HERE works for all z movements in conductive
+                    # elif probe.mode == "conductive" and conduct.status and waiting_for_signal:
+                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
 
-                        print("runs here?")
+                    #     print("runs here?")
 
-                        if match:
-                            next_height = printer.pos[2] - float(match.group(1))
+                    #     if match:
+                    #         next_height = printer.pos[2] - float(match.group(1))
 
-                            print(next_height)
+                    #         print(next_height)
 
-                            conductance_val = device_service.getConductance(conduct)
+                    #         conductance_val = device_service.getConductance(conduct)
 
-                            print(conductance_val)
+                    #         print(conductance_val)
 
-                            if conductance_val < 99:
-                                printer.cmd(line)
+                    #         if conductance_val < 99:
+                    #             printer.cmd(line)
 
-                            elif conductance_val >= 99:
-                                waiting_for_signal = False
-                                probe.gcodes.pop(0)
+                    #         elif conductance_val >= 99:
+                    #             waiting_for_signal = False
+                    #             probe.gcodes.pop(0)
                         
-                        else:
-                            pass
+                    #     else:
+                    #         pass
 
 
                     # if re.match(pattern, line) and conduct.status:
@@ -126,7 +126,9 @@ def global_poll():
                     next_y = float(match_y.group(1))
 
 
-            sampling_service.runGCode(printer, conduct)
+            # TEMPORARY just don't run conductive rn
+            if probe.mode != "conductive":
+                sampling_service.runGCode(printer, conduct)
             # probe.gcodes.pop(0)
 
         # # Check if printer has made it to the expected height, remove moving flag
