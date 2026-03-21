@@ -204,11 +204,13 @@ class SamplingParameters(QWidget):
 
         self.input_X = QLineEdit()
         self.input_X.setValidator(QDoubleValidator(0, 150, 2)) # Set limit 
+        self.input_X.setMaxLength(3)
 
         self.label_Y = QLabel("Y: ")
 
         self.input_Y = QLineEdit()
         self.input_Y.setValidator(QDoubleValidator(0, 150, 2)) # Set limit
+        self.input_Y.setMaxLength(3)
 
         layout_row_1.addWidget(selections, alignment=Qt.AlignLeft)
 
@@ -227,6 +229,7 @@ class SamplingParameters(QWidget):
         label_dwell = QLabel("Dwell time (s): ")
         self.input_dwell = QLineEdit()
         self.input_dwell.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_dwell.setMaxLength(3)
 
         layout_row_2.addWidget(label_dwell, alignment=Qt.AlignLeft)
         layout_row_2.addWidget(self.input_dwell, alignment=Qt.AlignRight)
@@ -240,6 +243,7 @@ class SamplingParameters(QWidget):
         label_sampleTime = QLabel("Sample time (s): ")
         self.input_sampleTime = QLineEdit()
         self.input_sampleTime.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_sampleTime.setMaxLength(3)
 
         layout_row_3.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
         layout_row_3.addWidget(self.input_sampleTime, alignment=Qt.AlignRight)
@@ -253,6 +257,7 @@ class SamplingParameters(QWidget):
         label_transit = QLabel("Transit height (mm): ")
         self.input_transit = QLineEdit()
         self.input_transit.setValidator(QDoubleValidator(-180, 180, 2))
+        self.input_transit.setMaxLength(4)
 
         layout_row_4.addWidget(label_transit, alignment=Qt.AlignLeft)
         layout_row_4.addWidget(self.input_transit, alignment=Qt.AlignRight)
@@ -266,6 +271,7 @@ class SamplingParameters(QWidget):
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_sampleHeight = QLineEdit()
         self.input_sampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
+        self.input_sampleHeight.setMaxLength(4)
 
         layout_row_5.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_5.addWidget(self.input_sampleHeight, alignment=Qt.AlignRight)
@@ -278,6 +284,7 @@ class SamplingParameters(QWidget):
         label_ZstepSize = QLabel("Z Step Size (mm): ")
         self.input_ZstepSize = QLineEdit()
         self.input_ZstepSize.setValidator(QDoubleValidator(0, 5, 3))
+        self.input_ZstepSize.setMaxLength(5)
 
         layout_row_6.addWidget(label_ZstepSize, alignment=Qt.AlignLeft)
         layout_row_6.addWidget(self.input_ZstepSize, alignment=Qt.AlignRight)
@@ -462,6 +469,7 @@ class SamplingSpeeds(QWidget):
         label_XYSpeed = QLabel("XY Speed: ")
         self.input_XYSpeed = QLineEdit()
         self.input_XYSpeed.setValidator(QIntValidator(0, 1000))
+        self.input_XYSpeed.setMaxLength(4)
         self.input_XYSpeed.setText("500")
 
         layout_row_1.addWidget(label_XYSpeed, alignment=Qt.AlignLeft)
@@ -476,6 +484,7 @@ class SamplingSpeeds(QWidget):
         label_ZUpSpeed = QLabel("Z Up Speed: ")
         self.input_ZUpSpeed = QLineEdit()
         self.input_ZUpSpeed.setValidator(QIntValidator(0, 1000))
+        self.input_ZUpSpeed.setMaxLength(4)
         self.input_ZUpSpeed.setText("500")
 
         layout_row_2.addWidget(label_ZUpSpeed, alignment=Qt.AlignLeft)
@@ -489,6 +498,7 @@ class SamplingSpeeds(QWidget):
         label_ZDownSpeed = QLabel("Z Down Speed: ")
         self.input_ZDownSpeed = QLineEdit()
         self.input_ZDownSpeed.setValidator(QIntValidator(0, 1000))
+        self.input_ZDownSpeed.setMaxLength(4)
         self.input_ZDownSpeed.setText("100")
 
         layout_row_3.addWidget(label_ZDownSpeed, alignment=Qt.AlignLeft)
