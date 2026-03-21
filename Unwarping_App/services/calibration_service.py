@@ -326,7 +326,6 @@ def updateResult(img, result):
 
 
 def updateTag(transformation, val, type):
-    print(val)
     # Update X coordinate
     if type == "X":
         transformation.tag_bottom_left[0] = float(val)
@@ -338,7 +337,6 @@ def updateTag(transformation, val, type):
     # Update tag size (mm)
     elif type == "size":
         transformation.tag_size = float(val)
-
 
 
 def createTransformationFile(transformation):

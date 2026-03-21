@@ -61,6 +61,12 @@ class LandingPage(QWidget):
             if key == "tag_bottom_left":
                 if val[0] is not None or val[1] is not None:
                     in_progress = True
+
+            # photo_loc is a list
+            elif key == "photo_loc":
+                if val != [0,0,0]:
+                    in_progress = True
+
             # Check all other vals
             elif val is not None:
                 in_progress = True

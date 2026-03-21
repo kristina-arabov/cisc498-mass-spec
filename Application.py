@@ -45,7 +45,6 @@ waiting_for_signal = True
 def global_poll():
     global next_height, next_x, next_y, waiting_for_signal
     # If there are GCodes available (only when sampling run is started)
-    print(probe.moving)
     if len(probe.gcodes) > 0 and not probe.paused:
         # sampling_service.addData(printer, conduct)
         line = probe.gcodes[0]
@@ -141,8 +140,8 @@ def global_poll():
             probe.moving = False
 
 
-        if probe.mode == "conductive":
-            print(next_height, probe.moving)
+        # if probe.mode == "conductive":
+        #     print(next_height, probe.moving)
 
         if probe.moving and printer.pos[2] == next_height:
             probe.moving = False
