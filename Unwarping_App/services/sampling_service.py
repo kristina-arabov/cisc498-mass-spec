@@ -644,9 +644,9 @@ def stop(printer):
     # Move printer to original position
     p = samplingItem.originalLoc
 
-    # printer.cmd("G90")
-    # printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    # printer.cmd("G0 Z"+str(p[2]))
+    printer.cmd("G90")
+    printer.cmd(f"G0 X{str(p[0])} Y{str(p[1])} F1000")
+    printer.cmd(f"G0 Z{str(p[2])}")
 
     
 
@@ -659,19 +659,19 @@ def pause(printer):
     #     self.cmd("G0 X10 Y10 Z100 F3000")
     #     self.cmd("G91")
     # else:
-    # printer.cmd("G91")
-    # printer.cmd("G0 Z15 F3000")
-    # printer.cmd("G0 X10 Y10 F3000")
-    # printer.cmd("G90")
+    printer.cmd("G91")
+    printer.cmd("G0 Z15 F3000")
+    printer.cmd("G0 X5 Y5 F3000")
+    printer.cmd("G90")
     
     samplingItem.paused = True
 
 
 def resume(printer):
-    print("resuming")
-    print("sending to", printer.last_pos)
+    # print("resuming")
+    # print("sending to", printer.last_pos)
 
-    print(printer.last_pos)
+    # print(printer.last_pos)
 
     # if self.conductance_mode:
     #     self.cmd("G90")
@@ -679,9 +679,12 @@ def resume(printer):
     #     self.cmd("G91")
 
     samplingItem.paused = False
+    samplingItem.moving = False
+
+    print(samplingItem.gcodes)
 
     printer.cmd("G90")
-    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2]))
+    printer.cmd(f"G0 X{str(round(printer.last_pos[0], 2))} Y{str(round(printer.last_pos[1], 2))} Z{str(round(printer.last_pos[2], 2))} F1000")
 
     
 
