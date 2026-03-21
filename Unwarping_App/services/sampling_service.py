@@ -415,7 +415,13 @@ def getSampling(sampling):
 # Commands to move to the reference point
 def appendReferencePoint(sampling):
     appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
-    appendSampleHeight(sampling)            # Go to Z sampling height
+
+    if sampling.mode != "conductive":
+        appendSampleHeight(sampling)            # Go to Z sampling height
+    else:
+        # TODO TEMPORARY
+        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
+
     appendSampleTime(sampling)              # Sample for __ milliseconds
     appendTransitHeight(sampling)           # Return to Z transit height
     appendDwellTime(sampling)               # Dwell for __ milliseconds
@@ -590,8 +596,7 @@ def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
     pos = printer.pos if printer.pos is not None else [0, 0, 0]
-    # c = conductance.connection.read() if conductance is not None else 0
-    c = 0
+    c = device_service.getConductance(conductance)
     # pos = [1, 2, 3]
 
     # Open file and add row to it

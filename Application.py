@@ -19,9 +19,10 @@ from Printer_Control_App import oppscan2
 from Unwarping_App import unwarpingApp
 from Unwarping_App.components.common import Header
 
-from Unwarping_App.services import sampling_service
+from Unwarping_App.services import sampling_service, device_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import serialcon
 from Printer_Control_App.core import conductance 
 
 
@@ -32,17 +33,19 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
-conduct = conductance.ConThread()
+conduct = serialcon.SerialConnection()
 
 probe = sampling_service.samplingItem
 
 next_height = 0
 next_x = 0
 next_y = 0
+waiting_for_signal = True
 
 def global_poll():
-    global next_height, next_x, next_y
+    global next_height, next_x, next_y, waiting_for_signal
     # If there are GCodes available (only when sampling run is started)
+    print(probe.moving)
     if len(probe.gcodes) > 0 and not probe.paused:
         # sampling_service.addData(printer, conduct)
         line = probe.gcodes[0]
@@ -74,9 +77,45 @@ def global_poll():
                         match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
                         next_height = float(match.group(1))
 
-                    # Conductive mode
-                    elif probe.mode == "conductive":
-                        pass
+                    # # Conductive mode
+                    # # BUG HERE works for all z movements in conductive
+                    # elif probe.mode == "conductive" and conduct.status and waiting_for_signal:
+                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+
+                    #     print("runs here?")
+
+                    #     if match:
+                    #         next_height = printer.pos[2] - float(match.group(1))
+
+                    #         print(next_height)
+
+                    #         conductance_val = device_service.getConductance(conduct)
+
+                    #         print(conductance_val)
+
+                    #         if conductance_val < 99:
+                    #             printer.cmd(line)
+
+                    #         elif conductance_val >= 99:
+                    #             waiting_for_signal = False
+                    #             probe.gcodes.pop(0)
+                        
+                    #     else:
+                    #         pass
+
+
+                    # if re.match(pattern, line) and conduct.status:
+                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+                    #     next_height = printer.pos[2] - float(match.group(1))
+
+                    #     conductance_val = device_service.getConductance(conduct)
+
+                    #     if conductance_val < 99:
+                    #         printer.cmd(line)
+                    #         # sampling_service.samplingItem.moving = True
+                    #     else:
+                    #         print(conductance_val)
+                    #         sampling_service.samplingItem.gcodes.pop(0)
 
                 # (X, Y) adjustment (hold only for drag sampling)
                 elif "X" in line and "Y" in line and probe.mode == "drag":
@@ -87,7 +126,9 @@ def global_poll():
                     next_y = float(match_y.group(1))
 
 
-            sampling_service.runGCode(printer, conduct)
+            # TEMPORARY just don't run conductive rn
+            if probe.mode != "conductive":
+                sampling_service.runGCode(printer, conduct)
             # probe.gcodes.pop(0)
 
         # # Check if printer has made it to the expected height, remove moving flag
@@ -95,12 +136,19 @@ def global_poll():
         #     sampling_service.runGCode(printer)
         #     probe.moving = False
 
-        elif probe.moving and (printer.pos[0] == next_x) and (printer.pos[1] == next_y) and (probe.mode == "drag"):
+
+        if probe.moving and (printer.pos[0] == next_x) and (printer.pos[1] == next_y) and (probe.mode == "drag"):
             probe.moving = False
 
 
-        elif probe.moving and printer.pos[2] == next_height:
+        if probe.mode == "conductive":
+            print(next_height, probe.moving)
+
+        if probe.moving and printer.pos[2] == next_height:
             probe.moving = False
+
+        if probe.mode == "conductive" and probe.moving and (printer.pos[2] == probe.transitHeight):
+            waiting_for_signal = True
 
         sampling_service.addData(printer, conduct)
 
