@@ -321,6 +321,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(1000)  # every .5 seconds
+    global_timer.start(60)  # every .5 seconds
 
     sys.exit(app.exec_())
