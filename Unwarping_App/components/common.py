@@ -1353,12 +1353,10 @@ class ClickableImage(QLabel):
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
-                # Get drawing coordinates
                 start_x = self.rectangle.left()
                 start_y = self.rectangle.top()
-
-                end_x = self.rectangle.right()
-                end_y = self.rectangle.bottom()
+                end_x   = self.rectangle.right()
+                end_y   = self.rectangle.bottom()
 
                 width  = end_x - start_x
                 height = end_y - start_y
@@ -1368,32 +1366,33 @@ class ClickableImage(QLabel):
                 real_width  = x1 - x0
                 real_height = y1 - y0
 
-                # Vertical lines
+                # Vertical lines (unchanged)
                 for val in self.x_range:
-                    t = (val - x0) / real_width # Location as a percentage
-                    x = int(start_x + t * width) # Pixel location
+                    tx = (val - x0) / real_width
+                    x = int(start_x + tx * width)
 
-                    painter.drawLine(
-                        x, start_y,
-                        x, end_y
-                    )
+                    painter.drawLine(x, start_y, x, end_y)
 
-                # Horizontal lines
+                # Horizontal lines (FIXED Y FLIP)
                 for val in self.y_range:
-                    t = (val - y0) / real_height # Location as a percentage
-                    y = int(start_y + t * height) # Pixel location
+                    ty = (val - y0) / real_height
+                    y = int(start_y + (1 - ty) * height)
 
-                    painter.drawLine(
-                        start_x, y,
-                        end_x, y
-                    )
+                    painter.drawLine(start_x, y, end_x, y)
 
-                # Draw mid-points for each grid 
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
 
+                # Natural top → bottom iteration now works
                 for j in range(len(self.y_range) - 1):
-                    for i in range(len(self.x_range) - 1):
+
+                    # Serpentine direction
+                    if j % 2 == 0:
+                        x_indices = range(len(self.x_range) - 1)            # left → right
+                    else:
+                        x_indices = reversed(range(len(self.x_range) - 1))  # right → left
+
+                    for i in x_indices:
 
                         left  = self.x_range[i]
                         right = self.x_range[i + 1]
@@ -1401,7 +1400,7 @@ class ClickableImage(QLabel):
                         top    = self.y_range[j]
                         bottom = self.y_range[j + 1]
 
-                        # Calculated midpoint
+                        # Midpoint (real coords unchanged)
                         mid_x_real = (left + right) / 2
                         mid_y_real = (top + bottom) / 2
 
@@ -1409,40 +1408,39 @@ class ClickableImage(QLabel):
                         if location not in self.real_points:
                             self.real_points.append(location)
 
-                        # Normalized X and Y
-                        tx = (mid_x_real - x0) / (x1 - x0)
-                        ty = (mid_y_real - y0) / (y1 - y0)
+                        # Normalize midpoint
+                        tx = (mid_x_real - x0) / real_width
+                        ty = (mid_y_real - y0) / real_height
 
-                        # Midpoint X and Y in grid
+                        # Convert to pixel (FIXED Y)
                         mid_x = start_x + tx * width
-                        mid_y = start_y + ty * height
+                        mid_y = start_y + (1 - ty) * height
 
                         if location in self.visited_points:
-                            # Normalize corners
+
+                            # Corners (FIXED Y)
                             tx_left   = (left - x0) / real_width
                             tx_right  = (right - x0) / real_width
                             ty_top    = (top - y0) / real_height
                             ty_bottom = (bottom - y0) / real_height
 
-                            # Convert to pixel coordinates
                             px_left   = start_x + tx_left * width
                             px_right  = start_x + tx_right * width
-                            py_top    = start_y + ty_top * height
-                            py_bottom = start_y + ty_bottom * height
 
-                            # Rectangle dimensions
+                            py_top    = start_y + (1 - ty_top) * height
+                            py_bottom = start_y + (1 - ty_bottom) * height
+
                             rect_x = int(px_left)
-                            rect_y = int(py_top)
+                            rect_y = int(min(py_top, py_bottom))
                             rect_w = int(px_right - px_left)
-                            rect_h = int(py_bottom - py_top)
+                            rect_h = int(abs(py_bottom - py_top))
 
-                            painter.setPen(QPen(QColor("#FF0000"), 3))
+                            painter.setPen(Qt.NoPen)
                             painter.setOpacity(1.0)
                             painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
-                        
+
                         else:
                             painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                            painter.setOpacity(1.0)
                             painter.drawPoint(int(mid_x), int(mid_y))
 
             elif self.sample_overlay_y and self.rowsOnly:
@@ -1617,6 +1615,7 @@ class ClickableImage(QLabel):
 
     # Update all sampling variables for Sampling Progress page
     def setValsPage4(self, data):
+        self.visited_points = [] # Reset visited points at start of sample run
 
         if data.get("dot") is not None:
             self.dot = data["dot"]
@@ -1706,8 +1705,8 @@ class ClickableImage(QLabel):
         
         try:
             if self.rectangle: 
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                # self.probe_rectangle = sampling.rectangle
+                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
