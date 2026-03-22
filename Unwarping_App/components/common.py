@@ -1445,7 +1445,7 @@ class ClickableImage(QLabel):
                             painter.setPen(QPen(QColor("#EAFFC2"), 3))
                             painter.drawPoint(int(mid_x), int(mid_y))
 
-            elif self.sample_overlay_y and self.rowsOnly:
+            elif self.sample_overlay_y is not None and self.rowsOnly:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
@@ -1458,33 +1458,28 @@ class ClickableImage(QLabel):
                 height = end_y - start_y
 
                 x0, y0, x1, y1 = self.probe_rectangle
-                real_height = y1 - y0
-
-                # Draw rows only
-                for val in self.y_range:
-                    t = (val - y0) / real_height
-                    y = int(start_y + t * height)
-
-                    painter.drawLine(start_x, y, end_x, y)
-
-                
-                painter.setPen(QPen(QColor("#0FFFF3"), 3))
-                painter.setOpacity(1.0)
-
-                x0, y0, x1, y1 = self.probe_rectangle
                 real_width  = x1 - x0
                 real_height = y1 - y0
 
+                # Draw rows only 
+                for val in self.y_range:
+                    ty = (val - y0) / real_height
+                    y = int(start_y + (1 - ty) * height)
+
+                    painter.drawLine(start_x, y, end_x, y)
+
+                painter.setPen(QPen(QColor("#0FFFF3"), 3))
+                painter.setOpacity(1.0)
+
                 prev_point = None
 
-                for i, y_val in enumerate(self.y_range):
+                for row_idx, y_val in enumerate(reversed(self.y_range)):
 
-                    # Normalize Y
                     ty = (y_val - y0) / real_height
-                    py = start_y + ty * height
+                    py = start_y + (1 - ty) * height
 
-                    # Zig-zag direction
-                    if i % 2 == 0:
+                    # Serpentine direction
+                    if row_idx % 2 == 0:
                         x_start_real = x0
                         x_end_real   = x1
                     else:
@@ -1500,19 +1495,49 @@ class ClickableImage(QLabel):
                     if location2 not in self.real_points:
                         self.real_points.append(location2)
 
-                    # Convert to pixels
+                    # Convert X
                     tx_start = (x_start_real - x0) / real_width
                     tx_end   = (x_end_real - x0) / real_width
 
                     px_start = start_x + tx_start * width
                     px_end   = start_x + tx_end * width
 
-                    # Draw horizontal segment
+                    # Draw horizontal line
+                    painter.setPen(QPen(QColor("#26CCC4"), 3))
                     painter.drawLine(int(px_start), int(py), int(px_end), int(py))
 
-                    # Draw vertical connection to next row
+                    # Draw vertical connection
                     if prev_point:
-                        painter.drawLine(int(prev_point[0]), int(prev_point[1]), int(px_start), int(py))
+                        painter.drawLine(
+                            int(prev_point[0]), int(prev_point[1]),
+                            int(px_start), int(py)
+                        )
+
+                    
+                    # Check visited points
+                    # Start point
+                    if location1 in self.visited_points:
+                        painter.setPen(Qt.NoPen)
+                        painter.setBrush(QColor("#00FF00"))
+                        r = 7
+                        painter.drawEllipse(int(px_start - r), int(py - r), r * 2, r * 2)
+
+                    # End point
+                    if location2 in self.visited_points:
+                        painter.setPen(Qt.NoPen)
+                        painter.setBrush(QColor("#00FF00"))
+                        r = 7
+                        painter.drawEllipse(int(px_end - r), int(py - r), r * 2, r * 2)
+
+                    # Intersection point (vertical connection start)
+                    if prev_point:
+                        prev_location = (
+                            round((prev_point[0] - start_x) / width * real_width + x0, 2),
+                            round((1 - (prev_point[1] - start_y) / height) * real_height + y0, 2)
+                        )
+
+                        if prev_location in self.visited_points:
+                            painter.drawEllipse(int(prev_point[0] - r), int(prev_point[1] - r), r * 2, r * 2)
 
                     prev_point = (px_end, py)
 
@@ -1616,6 +1641,8 @@ class ClickableImage(QLabel):
     # Update all sampling variables for Sampling Progress page
     def setValsPage4(self, data):
         self.visited_points = [] # Reset visited points at start of sample run
+        self.sample_overlay_x = None 
+        self.sample_overlay_y = None
 
         if data.get("dot") is not None:
             self.dot = data["dot"]
@@ -1626,20 +1653,32 @@ class ClickableImage(QLabel):
         if data.get("probe_rect") is not None:
             self.probe_rectangle = data["probe_rect"]
 
-        if data.get("x_range") is not None:
-            self.x_range = data["x_range"]
-
-        if data.get("y_range") is not None:
-            self.y_range = data["y_range"]
-
-        if data.get("x_count") is not None:
-            self.sample_overlay_x = data["x_count"]
-
-        if data.get("y_count") is not None:
-            self.sample_overlay_y = data["y_count"]
-
         if data.get("rows") is not None:
             self.rowsOnly = data["rows"]
+
+        # Don't update X vals if doing drag sampling
+        if self.rowsOnly:
+            if data.get("y_range") is not None:
+                self.y_range = data["y_range"]
+
+            if data.get("y_count") is not None:
+                self.sample_overlay_y = data["y_count"]
+
+        # Update all
+        else:
+            if data.get("x_range") is not None:
+                self.x_range = data["x_range"]
+
+            if data.get("y_range") is not None:
+                self.y_range = data["y_range"]
+
+            if data.get("x_count") is not None:
+                self.sample_overlay_x = data["x_count"]
+
+            if data.get("y_count") is not None:
+                self.sample_overlay_y = data["y_count"]
+
+        
 
         self.update()
 
