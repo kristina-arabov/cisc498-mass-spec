@@ -1366,14 +1366,14 @@ class ClickableImage(QLabel):
                 real_width  = x1 - x0
                 real_height = y1 - y0
 
-                # Vertical lines (unchanged)
+                # Vertical lines
                 for val in self.x_range:
                     tx = (val - x0) / real_width
                     x = int(start_x + tx * width)
 
                     painter.drawLine(x, start_y, x, end_y)
 
-                # Horizontal lines (FIXED Y FLIP)
+                # Horizontal lines
                 for val in self.y_range:
                     ty = (val - y0) / real_height
                     y = int(start_y + (1 - ty) * height)
@@ -1388,9 +1388,11 @@ class ClickableImage(QLabel):
 
                     # Serpentine direction
                     if j % 2 == 0:
-                        x_indices = range(len(self.x_range) - 1)            # left → right
+                        # Left to right
+                        x_indices = range(len(self.x_range) - 1)
                     else:
-                        x_indices = reversed(range(len(self.x_range) - 1))  # right → left
+                        # Right to left
+                        x_indices = reversed(range(len(self.x_range) - 1))
 
                     for i in x_indices:
 
@@ -1400,7 +1402,7 @@ class ClickableImage(QLabel):
                         top    = self.y_range[j]
                         bottom = self.y_range[j + 1]
 
-                        # Midpoint (real coords unchanged)
+                        # Midpoint 
                         mid_x_real = (left + right) / 2
                         mid_y_real = (top + bottom) / 2
 
@@ -1412,13 +1414,13 @@ class ClickableImage(QLabel):
                         tx = (mid_x_real - x0) / real_width
                         ty = (mid_y_real - y0) / real_height
 
-                        # Convert to pixel (FIXED Y)
+                        # Convert to pixel 
                         mid_x = start_x + tx * width
                         mid_y = start_y + (1 - ty) * height
 
                         if location in self.visited_points:
 
-                            # Corners (FIXED Y)
+                            # Corners 
                             tx_left   = (left - x0) / real_width
                             tx_right  = (right - x0) / real_width
                             ty_top    = (top - y0) / real_height
