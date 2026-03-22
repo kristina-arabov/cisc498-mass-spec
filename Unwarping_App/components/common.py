@@ -1550,17 +1550,21 @@ class ClickableImage(QLabel):
         except:
             pass
         
-    def setNewPixmap(self, pixmap):
-        rgb_img = cv2.cvtColor(pixmap, cv2.COLOR_BGR2RGB)
-        self.original_pixmap = rgb_img
+    def setNewPixmap(self, pixmap=None):
+        if pixmap is not None:
+            rgb_img = cv2.cvtColor(pixmap, cv2.COLOR_BGR2RGB)
+            self.original_pixmap = rgb_img
 
-        h, w, ch = rgb_img.shape
-        bytes_per_line = ch * w
-        q_img = QImage(rgb_img.data, w, h, bytes_per_line, QImage.Format_RGB888)
+            h, w, ch = rgb_img.shape
+            bytes_per_line = ch * w
+            q_img = QImage(rgb_img.data, w, h, bytes_per_line, QImage.Format_RGB888)
 
-        self.scaled = q_img.scaled(int(1280 * self.scale_val), int(720 * self.scale_val), Qt.KeepAspectRatio)
-        self.scaled = QPixmap.fromImage(self.scaled)
-        self.setPixmap(self.scaled)
+            self.scaled = q_img.scaled(int(1280 * self.scale_val), int(720 * self.scale_val), Qt.KeepAspectRatio)
+            self.scaled = QPixmap.fromImage(self.scaled)
+            self.setPixmap(self.scaled)
+        
+        else:
+            self.setPixmap(QPixmap())
 
     def setVals(self, pt=None, rect=None, x=None, y=None, rows=False):
         self.dot = pt
