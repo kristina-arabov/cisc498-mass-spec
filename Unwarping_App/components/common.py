@@ -1150,6 +1150,7 @@ class ClickableImage(QLabel):
         self.probe_rectangle = []
         self.probe_dot = None
         self.real_points = []
+        self.visited_points = []
 
         self.sample_overlay_x = None
         self.sample_overlay_y = None
@@ -1416,7 +1417,33 @@ class ClickableImage(QLabel):
                         mid_x = start_x + tx * width
                         mid_y = start_y + ty * height
 
-                        painter.drawPoint(int(mid_x), int(mid_y))
+                        if location in self.visited_points:
+                            # Normalize corners
+                            tx_left   = (left - x0) / real_width
+                            tx_right  = (right - x0) / real_width
+                            ty_top    = (top - y0) / real_height
+                            ty_bottom = (bottom - y0) / real_height
+
+                            # Convert to pixel coordinates
+                            px_left   = start_x + tx_left * width
+                            px_right  = start_x + tx_right * width
+                            py_top    = start_y + ty_top * height
+                            py_bottom = start_y + ty_bottom * height
+
+                            # Rectangle dimensions
+                            rect_x = int(px_left)
+                            rect_y = int(py_top)
+                            rect_w = int(px_right - px_left)
+                            rect_h = int(py_bottom - py_top)
+
+                            painter.setPen(QPen(QColor("#FF0000"), 3))
+                            painter.setOpacity(1.0)
+                            painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
+                        
+                        else:
+                            painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                            painter.setOpacity(1.0)
+                            painter.drawPoint(int(mid_x), int(mid_y))
 
             elif self.sample_overlay_y and self.rowsOnly:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
@@ -1575,6 +1602,12 @@ class ClickableImage(QLabel):
 
         self.update()
 
+
+    def addVisitedLocation(self, location):
+        self.visited_points.append(location)
+        self.update()
+
+
     # Function to update the rectangle ROI overlay
     def updateOverlay(self, x, y, type, sampling):
         self.real_points = []
@@ -1583,8 +1616,8 @@ class ClickableImage(QLabel):
         # Likely to fix to use # of sampling spots instead.
         try:
             if self.rectangle:
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50]
+                # self.probe_rectangle = sampling.rectangle
+                self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
