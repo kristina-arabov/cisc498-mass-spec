@@ -349,9 +349,9 @@ def getSampling(sampling):
     print(f"path: {locations}")
 
     sampling.gcodes.append("G90") # Absolute positioning
-    # appendInitialTransit(sampling) # Set to transit height
+    appendInitialTransit(sampling) # Set to transit height
 
-    # appendReferencePoint(sampling)
+    appendReferencePoint(sampling)
 
     # Constant Z mode
     if sampling.mode == "constant":
@@ -397,10 +397,10 @@ def getSampling(sampling):
     # appendReferencePoint(sampling)
 
     # Return to original position
-    # p = sampling.originalLoc
-    # # p = [180.4, -3, 0]
-    # appendXYMove(sampling, p)
-    # appendZChange(sampling, p)
+    p = sampling.originalLoc
+    # p = [180.4, -3, 0]
+    appendXYMove(sampling, p)
+    appendZChange(sampling, p)
 
     # Start timer to begin run
     sampling.timestamps.append(time.time())
@@ -565,7 +565,7 @@ def getTime():
 
 # Function to send a GCode to the printer and remove it from the queue
 def runGCode(printer, conduct):
-    # addData(printer, conduct)
+    addData(printer, conduct)
 
     line = samplingItem.gcodes.pop(0)
 
@@ -575,8 +575,6 @@ def runGCode(printer, conduct):
     if "X" in line and "Y" in line:
         match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
         match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
-        
-        print((float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list)
 
         # If this is a sampling point
         if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
@@ -585,13 +583,13 @@ def runGCode(printer, conduct):
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
-    # printer.cmd(line)
+    printer.cmd(line)
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
         progress.samplingDone.emit()
 
-    # addData(printer, conduct)
+    addData(printer, conduct)
 
 
 # Function to add a row containing time + position data to the spreadsheet

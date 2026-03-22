@@ -1383,9 +1383,8 @@ class ClickableImage(QLabel):
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
 
-                # Natural top → bottom iteration now works
-                for j in range(len(self.y_range) - 1):
 
+                for j in range(len(self.y_range) - 1):
                     # Serpentine direction
                     if j % 2 == 0:
                         # Left to right
@@ -1684,8 +1683,6 @@ class ClickableImage(QLabel):
 
 
     def addVisitedLocation(self, location):
-        print("runs here??")
-
         self.visited_points.append(location)
         self.update()
 
@@ -1697,8 +1694,8 @@ class ClickableImage(QLabel):
 
         try:
             if self.rectangle:
-                # self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50]
+                self.probe_rectangle = sampling.rectangle
+                # self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1744,8 +1741,8 @@ class ClickableImage(QLabel):
         
         try:
             if self.rectangle: 
-                # self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                self.probe_rectangle = sampling.rectangle
+                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
