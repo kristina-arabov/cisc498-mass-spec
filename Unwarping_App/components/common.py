@@ -1602,8 +1602,6 @@ class ClickableImage(QLabel):
 
     # Only update shapes for Pre-run config page
     def setValsPage3(self, data):
-        print(data)
-
         if data.get("dot") is not None:
             self.dot = data["dot"]
 

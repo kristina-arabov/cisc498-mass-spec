@@ -119,13 +119,10 @@ def setTransformation(transformation, path, valid):
 
 
 def findLocations(transformation, sampling, img):
-    print("working!")
-
     rectangle = img.rectangle
     dot = img.dot
 
     sampling.originalLoc = transformation.photo_loc
-    print(sampling.originalLoc)
 
     # If no reference point + ROI then don't caluclate locations
     if not dot or not rectangle:
@@ -133,9 +130,6 @@ def findLocations(transformation, sampling, img):
 
     start_point = rectangle.topLeft()
     end_point = rectangle.bottomRight()
-
-    print(start_point, end_point)
-    print(dot)
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
@@ -584,11 +578,10 @@ def runGCode(printer, conduct):
         
         print((float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list)
 
+        # If this is a sampling point
         if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
-            
             samplingItem.sampled_points += 1
             location = (float(match_x.group(1)), float(match_y.group(1)))
-            print(location)
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
