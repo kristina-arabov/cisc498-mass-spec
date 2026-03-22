@@ -1133,7 +1133,7 @@ class TagOverlay(QWidget):
             painter.drawEllipse(x, y, diameter, diameter)
 
 class ClickableImage(QLabel):
-    roiSignal = pyqtSignal(object, object, object, object, bool)
+    roiSignal = pyqtSignal(object)
 
     # Overlay with unwarped image, else black screen
     def __init__(self):
@@ -1349,7 +1349,7 @@ class ClickableImage(QLabel):
                 painter.drawPoint(self.dot)
 
             # Pixel overlay
-            if self.sample_overlay_x and self.sample_overlay_y:
+            if self.sample_overlay_x is not None and self.sample_overlay_y is not None:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
@@ -1572,9 +1572,21 @@ class ClickableImage(QLabel):
                     painter.setBrush(Qt.NoBrush)
                     painter.drawEllipse(self.cursor_pos, self.eraser_radius, self.eraser_radius)
 
-            self.roiSignal.emit(self.dot, self.rectangle, self.sample_overlay_x, self.sample_overlay_y, self.rowsOnly)
 
-        except:
+            # Emit signal
+            self.roiSignal.emit({
+                "dot": self.dot,
+                "rect": self.rectangle,
+                "probe_rect": self.probe_rectangle,
+                "x_range": self.x_range,
+                "y_range": self.y_range,
+                "x_count": self.sample_overlay_x,
+                "y_count": self.sample_overlay_y,
+                "rows": self.rowsOnly
+            })
+
+        except Exception as e:
+            print(e)
             pass
         
     def setNewPixmap(self, pixmap):
@@ -1589,21 +1601,53 @@ class ClickableImage(QLabel):
         self.scaled = QPixmap.fromImage(self.scaled)
         self.setPixmap(self.scaled)
 
-    def setVals(self, pt=None, rect=None, x=None, y=None, rows=False):
-        self.dot = pt
-        self.rectangle = rect
 
-        if x and y:
-            self.sample_overlay_x = x
-            self.sample_overlay_y = y
+    # Only update shapes for Pre-run config page
+    def setValsPage3(self, data):
+        print(data)
 
-        if rows:
-            self.rowsOnly = rows
+        if data.get("dot") is not None:
+            self.dot = data["dot"]
+
+        if data.get("rect") is not None:
+            self.rectangle = data["rect"]
+
+        self.update()
+
+
+    # Update all sampling variables for Sampling Progress page
+    def setValsPage4(self, data):
+
+        if data.get("dot") is not None:
+            self.dot = data["dot"]
+
+        if data.get("rect") is not None:
+            self.rectangle = data["rect"]
+
+        if data.get("probe_rect") is not None:
+            self.probe_rectangle = data["probe_rect"]
+
+        if data.get("x_range") is not None:
+            self.x_range = data["x_range"]
+
+        if data.get("y_range") is not None:
+            self.y_range = data["y_range"]
+
+        if data.get("x_count") is not None:
+            self.sample_overlay_x = data["x_count"]
+
+        if data.get("y_count") is not None:
+            self.sample_overlay_y = data["y_count"]
+
+        if data.get("rows") is not None:
+            self.rowsOnly = data["rows"]
 
         self.update()
 
 
     def addVisitedLocation(self, location):
+        print("runs here??")
+
         self.visited_points.append(location)
         self.update()
 
@@ -1613,7 +1657,6 @@ class ClickableImage(QLabel):
         self.real_points = []
         # TODO update for polygon
 
-        # Likely to fix to use # of sampling spots instead.
         try:
             if self.rectangle:
                 # self.probe_rectangle = sampling.rectangle

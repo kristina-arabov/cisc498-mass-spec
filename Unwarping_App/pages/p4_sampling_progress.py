@@ -80,7 +80,7 @@ class SamplingProgress(QWidget):
         sampling_service.progress.pointUpdated.connect(lambda: self.updateLabels("points"))
         sampling_service.progress.samplingDone.connect(lambda: self.next.emit())
 
-        sampling_service.progress.visistedLocation.connect(lambda location: self.photo.addVisitedLocation(location))
+        sampling_service.progress.visitedLocation.connect(lambda location: self.photo.addVisitedLocation(location))
 
 
     def updateLabels(self, type):
