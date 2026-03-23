@@ -89,9 +89,16 @@ def global_poll():
                         # Downward movement
                         if match and probe.mode == "conductive" and positioning == "relative":
                             next_height = printer.pos[2] + float(match.group(1))
+                            state = "probing"
+
+                            probe.moving = True
+                            printer.cmd(line)
 
                         elif match and positioning == "absolute":
                             next_height = float(match.group(1))
+
+                            probe.moving = True
+                            sampling_service.runGCode(printer, conduct)
 
 
                         # if "Z-" in line:
@@ -110,8 +117,7 @@ def global_poll():
                         #     match = re.search(r"^G0 Z(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
                         #     next_height = float(match.group(1))
 
-                        probe.moving = True
-                        sampling_service.runGCode(printer, conduct)
+                        
                         # print(next_height)
 
 
@@ -137,10 +143,14 @@ def global_poll():
                         if conductance_val >= threshold:
                             state = "idle"
                             probe.moving = True
+                        
+                        if printer.pos[2] == next_height:
+                            state 
 
                 else:
                     if printer.pos[2] == next_height:
                         state = "idle"
+                        probe.gcodes.pop(0)
 
 
             # Upward movement state
