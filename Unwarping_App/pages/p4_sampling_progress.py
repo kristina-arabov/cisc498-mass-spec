@@ -78,13 +78,18 @@ class SamplingProgress(QWidget):
         self.operations.btn_abort.clicked.connect(lambda: self.stopSampling())
 
         sampling_service.progress.pointUpdated.connect(lambda: self.updateLabels("points"))
-        sampling_service.progress.samplingDone.connect(lambda: self.next.emit())
+        sampling_service.progress.samplingDone.connect(lambda: self.handleCompletion())
 
 
     def updateLabels(self, type):
         if type == "points":
             fraction = sampling_service.progress.fraction
             self.label_points.setText(f"{fraction} points sampled")
+
+    
+    def handleCompletion(self):
+        print("Sampling complete! Check the collectedData folder to view timestamped positional data files.")
+        self.next.emit()
 
     
     def handlePause(self, stopped):
