@@ -1437,7 +1437,7 @@ class ClickableImage(QLabel):
                             rect_h = int(abs(py_bottom - py_top))
 
                             painter.setPen(Qt.NoPen)
-                            painter.setOpacity(1.0)
+                            painter.setOpacity(0.6)
                             painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
 
                         else:
