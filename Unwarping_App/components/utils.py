@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QVBoxLayout, QFileDialog
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QColor, QPen
 from PyQt5.QtCore import Qt
 
 import itertools
@@ -16,8 +16,6 @@ import json
 import pprint
 
 from datetime import datetime
-
-from Unwarping_App.components.gcodeObject import gcodes
 
 
 global temp_vars
@@ -55,21 +53,6 @@ temp_vars = {
 R_cam2base_overlay = None
 t_cam2base_overlay = None
 
-# Page titles
-def setPageTitle(nav, index):
-    titles = [
-        "",
-        "Provide transformation",
-        "Camera",
-        "Move probe",
-        "Create new transformation",
-        "Checkerboard detection",
-        "Probe detection",
-        "",
-        ""
-    ]
-
-    nav.page_title.setText(titles[index])
 
 # General function to add a bunch of widgets in an horizontal/vertical layout
 def addAllWidgets(layout, widgets):
@@ -93,13 +76,53 @@ def controlToggle(checked, toggle, inner, outer, height):
         outer.setFixedHeight(height)
 
 
-def updateFrame(container, frame):
+# Update the front-end view to show the live camera feed
+def updateFrame(container, frame, crosshair=False):
     rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     h, w, ch = rgb_image.shape
     bytes_per_line = ch * w
     q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-    scaled = q_img.scaled(container.feed_width, container.feed_height, Qt.KeepAspectRatio)
-    container.image_label.setPixmap(QPixmap.fromImage(scaled))
+
+    scaled = q_img.scaled(
+        container.image_label.size(),
+        Qt.KeepAspectRatio,
+        Qt.SmoothTransformation
+    )
+
+    # Crosshair for probe detection page
+    if crosshair:
+        pixmap = QPixmap.fromImage(scaled)
+
+        painter = QPainter(pixmap)
+        pen = QPen(QColor(0, 255, 255))
+        pen.setWidth(2)
+        painter.setPen(pen)
+
+        label_w = pixmap.width()
+        label_h = pixmap.height()
+
+        center_x = label_w // 2
+        center_y = label_h // 2
+        crosshair_length = 10
+
+        # Horizontal
+        painter.drawLine(
+            center_x - crosshair_length, center_y,
+            center_x + crosshair_length, center_y
+        )
+
+        # Vertical
+        painter.drawLine(
+            center_x, center_y - crosshair_length,
+            center_x, center_y + crosshair_length
+        )
+
+        painter.end()
+
+        container.image_label.setPixmap(pixmap)
+    
+    else:
+        container.image_label.setPixmap(QPixmap.fromImage(scaled))
 
 def processUpload(item, type):
     if type == 'folder':
@@ -121,128 +144,7 @@ def setBrightness(dropdown, connection):
         print("didnt work!")
 
 
-'''
-    Functions for unwarping
-'''
-# Check that the checkerboard is readable and can generate unwarping variables for fisheye
-def checkFishReadability(img, checkerboard, objp, flags):
-    objpoints = [] # 3d point in real world space
-    imgpoints = [] # 2d points in image plane
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret, corners = cv2.findChessboardCorners(gray, checkerboard, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_NORMALIZE_IMAGE)
-
-    if ret:
-        objpoints.append(objp)
-        imgpoints.append(corners)
-
-    K = np.zeros((3, 3)) # intrinsic matrix
-    D = np.zeros((4, 1)) # distortion coefficients
-    rvecs = [np.zeros((1, 1, 3), dtype=np.float64)] # rotation vectors
-    tvecs = [np.zeros((1, 1, 3), dtype=np.float64)] # translation vectors
-
-    # usually where the issue of folder readability happens, will not run if it can't get one of these parameters
-    try:
-        retval, K, D, rvecs, tvecs = cv2.fisheye.calibrate(
-            objpoints,
-            imgpoints,
-            gray.shape[::-1],
-            K,
-            D,
-            rvecs,
-            tvecs,
-            flags,
-            (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 300, 1e-6)
-        )
-    except:
-        retval = False
-    
-    print(K, D)
-    return retval, K, D
-
-# Check that the checkerboard is readable and can generate unwarping variables for the second unwarping
-def checkSecondReadability(image, checkerboard, objp, subpix):
-    objpoints = []
-    imgpoints = []
-
-    gray = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    ret, corners = cv2.findChessboardCorners(gray, checkerboard, cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_NORMALIZE_IMAGE)
-
-    if ret:
-        objpoints.append(objp)
-        cv2.cornerSubPix(gray,corners,(3,3),(-1,-1), subpix)
-        imgpoints.append(corners)
-    
-    try:
-        ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-        return ret, mtx, dist
-    except:
-        return False, None, None
-    
-# Perform fisheye unwarping
-def fisheyeUnwarp(image, mtx, dist):
-    img_shape = image.shape[:2][::-1]
-
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(mtx, dist, np.eye(3), mtx, img_shape, cv2.CV_16SC2)
-    undist_image = cv2.remap(image, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-
-    return undist_image
-
-# Perform second unwarping
-def secondUnwarp(image, mtx, dist):
-    h, w = image.shape[:2]
-    newmatx, roi = cv2.getOptimalNewCameraMatrix(mtx, dist, (w,h), 1, (w,h))
-    undist_image = cv2.undistort(image, mtx, dist, None, newmatx)
-    return undist_image
-
-# Unwarp current view
-def getCheckerboardUnwarp(img, columns, rows, result, printer):
-    # First check that dimensions are provided
-    if not columns or not rows or int(columns) <= 1 or int(rows) <= 1:
-        result.image_label.clear()
-        result.image_label.setText("Cannot unwarp with missing or negative board dimensions.")
-        return
-
-    # Initialize constant stuff
-    CHECKERBOARD = (int(columns) - 1, int(rows) - 1) # index to 0
-    
-    objp = np.zeros((1, CHECKERBOARD[0]*CHECKERBOARD[1], 3), np.float32)
-    objp[0,:,:2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
-
-    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1)
-    calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_FIX_SKEW
-
-    # Actual checking and unwarping
-    retval, K, D = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
-    if retval:
-        image = fisheyeUnwarp(img, K, D)
-        retval, mtx, dist = checkSecondReadability(image, CHECKERBOARD, objp, subpix_criteria)
-        
-        if retval:
-            final = secondUnwarp(image, mtx, dist)
-
-            # Save params and image of successful unwarping
-            unwarping_vars = temp_vars["checkerboard"]
-            unwarping_vars["mtx1"] = K
-            unwarping_vars["dist1"] = D
-
-            unwarping_vars["mtx2"] = mtx
-            unwarping_vars["dist2"] = dist
-
-            unwarping_vars["size"] = CHECKERBOARD
-            unwarping_vars["location"] = getPrinterPosition(printer)
-            unwarping_vars["image"] = img
-
-            # Display unwarping results on result feed
-            rgb_image = cv2.cvtColor(final, cv2.COLOR_BGR2RGB)
-            h, w, ch = rgb_image.shape
-            bytes_per_line = ch * w
-            q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format_RGB888)
-            scaled = q_img.scaled(result.feed_width, result.feed_height, Qt.KeepAspectRatio)
-            result.image_label.setPixmap(QPixmap.fromImage(scaled))
-    else:
-        result.image_label.clear()
-        result.image_label.setText("Unwarping failed since checkerboard could not be read. Please retake the image or edit the board dimensions.")
 
 
 def saveUnwarping(vars):
@@ -274,8 +176,8 @@ def unwarpPhoto(img, vars):
     dist2 = np.asarray(vars["dist2"], dtype=np.float32)
 
     # Unwarp image (first step)
-    img = fisheyeUnwarp(img, mtx1, dist1)
-    img = secondUnwarp(img, mtx2, dist2)
+    # img = fisheyeUnwarp(img, mtx1, dist1)
+    # img = secondUnwarp(img, mtx2, dist2)
 
     return img
 
@@ -792,34 +694,34 @@ def generatePixelOverlay(result, locations, json_file):
 
     # result.sample_overlay = pixels
 
-def sendLocations(locations, dwell, transit):
-    # Create GCodes then send to main
-    # TODO temp values for now
-    locations = [(181.4, -2),
-                (182.4, -2),
-                (181.4, -1),
-                (182.4, -1)]
+# def sendLocations(locations, dwell, transit):
+#     # Create GCodes then send to main
+#     # TODO temp values for now
+#     locations = [(181.4, -2),
+#                 (182.4, -2),
+#                 (181.4, -1),
+#                 (182.4, -1)]
 
-    gcodes.gcode_list.append("G90")
+#     gcodes.gcode_list.append("G90")
 
-    for i in locations:
-        # Command to go to location
-        gcodes.gcode_list.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
-        gcodes.gcode_list.append("G0 Z"+ str(-5)) # TODO temp height
+#     for i in locations:
+#         # Command to go to location
+#         gcodes.gcode_list.append("G0 X"+str(round(i[0], 2))+" Y"+str(round(i[1], 2)))
+#         gcodes.gcode_list.append("G0 Z"+ str(-5)) # TODO temp height
 
-        # Command to dwell there (in milliseconds)
-        dwell_time = int(dwell) * 1000
-        gcodes.gcode_list.append(f"G4 P{str(dwell_time)}")
+#         # Command to dwell there (in milliseconds)
+#         dwell_time = int(dwell) * 1000
+#         gcodes.gcode_list.append(f"G4 P{str(dwell_time)}")
 
-        # Command to return to transit height
-        gcodes.gcode_list.append("G0 Z"+ str(transit))
+#         # Command to return to transit height
+#         gcodes.gcode_list.append("G0 Z"+ str(transit))
 
-    # Reset any pre-exisitng data
-    gcodes.completed_gcodes = []
-    gcodes.time_stamps = []
-    gcodes.readable_time_stamps = []
+#     # Reset any pre-exisitng data
+#     gcodes.completed_gcodes = []
+#     gcodes.time_stamps = []
+#     gcodes.readable_time_stamps = []
 
-    # Start the time stamp collection immediately once gcodes are ready
-    gcodes.time_stamps.append(time.time())
-    gcodes.readable_time_stamps.append(0)
-    print(gcodes.gcode_list)
+#     # Start the time stamp collection immediately once gcodes are ready
+#     gcodes.time_stamps.append(time.time())
+#     gcodes.readable_time_stamps.append(0)
+#     print(gcodes.gcode_list)

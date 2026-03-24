@@ -1,24 +1,29 @@
 import sys
 sys.dont_write_bytecode = True
 
+# Add Printer_Control_App/core to path so printrun can be imported
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Printer_Control_App', 'core'))
+
 from PyQt5.QtWidgets import QApplication, QTabWidget, QWidget, QVBoxLayout
-import sys
 import serial
 import time
-import os
 import cv2
 import threading
 import re
 import numpy as np
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QTimer
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QTimer, QObject
 
 from Printer_Control_App import oppscan2
 
 from Unwarping_App import unwarpingApp
 from Unwarping_App.components.common import Header
-from Unwarping_App.components.gcodeObject import gcodes
+
+from Unwarping_App.services import sampling_service, device_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import serialcon
+from Printer_Control_App.core import conductance 
 
 
 from PyQt5.QtWidgets import (
@@ -28,62 +33,129 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
+conduct = serialcon.SerialConnection()
 
-moving = False
+probe = sampling_service.samplingItem
+
 next_height = 0
-
-# function to get time stamp between operations
-def addTime():
-    gcodes.time_stamps.append(time.time())
-    achieved_time = gcodes.time_stamps[-1] - gcodes.time_stamps[-2]
-    gcodes.readable_time_stamps.append(gcodes.readable_time_stamps[-1] + achieved_time)
+next_x = 0
+next_y = 0
+waiting_for_signal = True
 
 def global_poll():
-    global moving, next_height
-    # If gcodes are ready
-    if len(gcodes.gcode_list) > 0:
-        line = gcodes.gcode_list[0]
+    global next_height, next_x, next_y, waiting_for_signal
+    # If there are GCodes available (only when sampling run is started)
+    if len(probe.gcodes) > 0 and not probe.paused:
+        # sampling_service.addData(printer, conduct)
+        line = probe.gcodes[0]
 
-        # Check if next step is to sample
-        if "G4" in line and not moving:
-            print("Sampling...")
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
-            addTime()
-            
-            printer.cmd(line)
-        
-        # Check if next step is to move to a position
-        elif "G0" in line and not moving:
-            print("Moving to position: ", line)
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
-            addTime()
-            
-            # If movement is a height adjustment, grab the value so we can compare if the printer is there
-            if "Z" in line:
-                match = re.search(r'Z(-?\d+)', line)
-                next_height = float(match.group(1))
+        # Check that printer is not moving
+        if not probe.moving:
+            # Sample/Dwell time
+            if "G4" in line:
+                print("Waiting...")
 
-            # Move to position and set flag as true
-            printer.cmd(line)
-            moving = True
-        
-        # Command to set absolute positioning, usually first line of gcode list
-        elif "G90" in line:
-            line = gcodes.gcode_list.pop(0)
-            gcodes.completed_gcodes.append(line)
+            # Absolute positioning
+            elif "G90" in line:
+                print("Absolute positioning")
 
-            addTime()
-            printer.cmd(line)
+            # Relative positioning
+            elif "G91" in line:
+                print("Relative positioning")
 
-        # Check if printer has made it to the expected height, remove moving flag
-        elif printer.pos[2] == next_height:
-            moving = False
+            # XY or Z change
+            elif "G0" in line or "G1" in line:
+                print(f"Moving to position: {line}")
+                probe.moving = True
+
+                # Height adjustment
+                if "Z" in line:
+
+                    # Constant-Z and Drag sampling modes
+                    if probe.mode == "constant" or probe.mode == "drag":
+                        match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
+                        next_height = float(match.group(1))
+
+                    # # Conductive mode
+                    # # BUG HERE works for all z movements in conductive
+                    # elif probe.mode == "conductive" and conduct.status and waiting_for_signal:
+                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+
+                    #     print("runs here?")
+
+                    #     if match:
+                    #         next_height = printer.pos[2] - float(match.group(1))
+
+                    #         print(next_height)
+
+                    #         conductance_val = device_service.getConductance(conduct)
+
+                    #         print(conductance_val)
+
+                    #         if conductance_val < 99:
+                    #             printer.cmd(line)
+
+                    #         elif conductance_val >= 99:
+                    #             waiting_for_signal = False
+                    #             probe.gcodes.pop(0)
+                        
+                    #     else:
+                    #         pass
+
+
+                    # if re.match(pattern, line) and conduct.status:
+                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+                    #     next_height = printer.pos[2] - float(match.group(1))
+
+                    #     conductance_val = device_service.getConductance(conduct)
+
+                    #     if conductance_val < 99:
+                    #         printer.cmd(line)
+                    #         # sampling_service.samplingItem.moving = True
+                    #     else:
+                    #         print(conductance_val)
+                    #         sampling_service.samplingItem.gcodes.pop(0)
+
+                # (X, Y) adjustment (hold only for drag sampling)
+                elif "X" in line and "Y" in line and probe.mode == "drag":
+                    match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+                    match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+                    next_x = float(match_x.group(1))
+                    next_y = float(match_y.group(1))
+
+
+            # TEMPORARY just don't run conductive rn
+            if probe.mode != "conductive":
+                sampling_service.runGCode(printer, conduct)
+            # probe.gcodes.pop(0)
+
+        # # Check if printer has made it to the expected height, remove moving flag
+        # elif probe.moving and "M400" in line:
+        #     sampling_service.runGCode(printer)
+        #     probe.moving = False
+
+
+        if probe.moving and (printer.pos[0] == next_x) and (printer.pos[1] == next_y) and (probe.mode == "drag"):
+            probe.moving = False
+
+
+        # if probe.mode == "conductive":
+        #     print(next_height, probe.moving)
+
+        if probe.moving and printer.pos[2] == next_height:
+            probe.moving = False
+
+        if probe.mode == "conductive" and probe.moving and (printer.pos[2] == probe.transitHeight):
+            waiting_for_signal = True
+
+        sampling_service.addData(printer, conduct)
 
     # Idle
-    elif len(gcodes.gcode_list) <= 0:
-        print("running...")
+    elif len(probe.gcodes) <= 0 or probe.paused:
+        pass
+
+
 
 class LightingThread(QThread):
     light_signal = pyqtSignal(str)
@@ -97,7 +169,7 @@ class LightingThread(QThread):
         self.running = False
         
     def run(self):
-        print("attempting connection: ", self.idx)
+        print("Attempting lights connection: ", self.idx)
         try:
             self.running = True
             self.serial_conn = serial.Serial(self.idx, self.baudrate, timeout=1)
@@ -112,6 +184,7 @@ class LightingThread(QThread):
             self.enable_buttons.emit(False)
             print(f"Serial error: {e}")
 
+    # TODO
     # Doesnt entirely work, will make a workaround
     def stop(self):
         self.running = False
@@ -127,7 +200,7 @@ class LightingThread(QThread):
 
             self.serial_conn = None
             self.idx = None
-        
+
 
 # Element to update camera feed 
 class CameraThread(QThread):
@@ -139,18 +212,19 @@ class CameraThread(QThread):
         cameras = QCameraInfo.availableCameras()
         self.running = False
         self.cap = None
-        self.idx = 0 if len(cameras) > 0 else None
+
+        self.idx = None
+        self.resolution = None
 
     # Start running feed
     def run(self):
         if self.idx is not None:
-            print("attempting connection: ", self.idx)
+            print("Attempting camera connection: ", self.idx)
             self.capture = cv2.VideoCapture(self.idx)
-            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
             self.running = True
-            self.enable_buttons.emit(True)
-            
+
             if self.capture.isOpened():
                 while self.running:
                     ret, img = self.capture.read()
@@ -162,18 +236,17 @@ class CameraThread(QThread):
 
             else:
                 self.running = False
-                self.enable_buttons.emit(False)
         else:
             print("No available cameras to connect to.")
     
     # Stop feed
     def stop(self):
         self.running = False
-        self.enable_buttons.emit(False)
         self.wait()
         if self.capture:
             self.capture.release()
 
+# The main application window
 class App(QWidget):
     def __init__(self):
         super().__init__()
@@ -181,7 +254,11 @@ class App(QWidget):
         with open(styling,"r") as file:
             self.setStyleSheet(file.read())
 
-        self.setWindowTitle("Unwarping Application 2025")
+        self.setWindowTitle("CISC 498 - Automated Mass Spectrometry Sampling")
+
+        screen = QApplication.primaryScreen()
+        self.screen_size = screen.size()
+        self.available = screen.availableGeometry()
 
         self.camera_feed = CameraThread()
         self.lighting_control = LightingThread()
@@ -189,18 +266,51 @@ class App(QWidget):
         # Tabs
         self.stack = QStackedWidget()
         self.stack.addWidget(unwarpingApp.Main(self.camera_feed, self.lighting_control, printer))
-        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer))
+        self.stack.addWidget(oppscan2.MyApp(self.camera_feed, printer, conduct))
+
+        # Set size
+        self.width = min(1400, int(self.available.width() * 0.75))
+        self.height = min(900, int(self.available.height() * 0.85))
+
+        if self.available.width() < 1400 and self.available.height() < 900:
+            self.width = self.available.width() - 50
+            self.height = self.available.height() - 50
+            
+        self.setFixedSize(self.width, self.height)
 
         # Header to switch tabs
-        self.header = Header(self.stack)
+        self.header = Header(self.stack, self.camera_feed, self.lighting_control)
 
         # Layout
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
         layout.addWidget(self.header)
         layout.addWidget(self.stack)
-        self.setLayout(layout)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        
+        self.stack.currentChanged.connect(self.on_tab_changed)
 
+        self.resize(self.width, self.height)
         self.stack.setCurrentIndex(0)
+
+    
+    # Handle resizing between unwarping and printer control apps
+    def on_tab_changed(self, index):
+        if index == 0:  # unwarpingApp tab
+            width = min(1400, int(self.available.width() * 0.75))
+            height = min(900, int(self.available.height() * 0.85))
+
+            if self.available.width() < 1400 and self.available.height() < 900:
+                width = self.available.width() - 50
+                height = self.available.height() - 50
+    
+            self.setFixedSize(width, height)
+        
+        elif index == 1:  # oppscan2 tab
+            width = min(1400, self.available.width())
+            height = min(900, self.available.height() - 50)
+
+            self.setFixedSize(width, height)
 
 
 if __name__ == "__main__":
@@ -210,6 +320,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(1000)  # every second?
+    global_timer.start(60)  # every .5 seconds
 
     sys.exit(app.exec_())
