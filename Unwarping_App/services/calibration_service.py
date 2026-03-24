@@ -10,6 +10,30 @@ from PyQt5.QtCore import Qt
 from Unwarping_App.services import device_service
 
 
+# ── Calibration constants ──────────────────────────────────────────────────────
+
+# Maximum acceptable reprojection RMS error (pixels).
+RMS_THRESHOLD: float = 2.0
+
+# Fisheye calibration flags.
+# FIX_K3/K4: higher-order terms not reliably observable with gantry-constrained
+# viewpoints (near head-on only) — fixing prevents overfitting.
+FISHEYE_CALIBRATION_FLAGS: int = (
+    cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC
+    + cv2.fisheye.CALIB_FIX_SKEW
+    + cv2.fisheye.CALIB_FIX_K3
+    + cv2.fisheye.CALIB_FIX_K4
+)
+
+# Corner sub-pixel refinement termination criteria.
+SUBPIX_CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1)
+
+# Fisheye calibration solver termination criteria.
+CALIBRATION_CRITERIA = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 1e-6)
+
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 class Transformation():
     def __init__(self):
         super().__init__()
@@ -69,6 +93,7 @@ def checkFishReadability(img, checkerboard, objp, flags):
 
     if ret:
         objpoints.append(objp)
+        cv2.cornerSubPix(gray, corners, (3, 3), (-1, -1), (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1))
         imgpoints.append(corners)
     else:
         msg = "Chessboard is unreadable. Issue may be caused by:\n- Incorrect board dimensions\n- Obscured board"
@@ -88,10 +113,9 @@ def checkFishReadability(img, checkerboard, objp, flags):
             rvecs,
             tvecs,
             flags,
-            (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 300, 1e-6)
+            CALIBRATION_CRITERIA,
         )
-    except:
-        # TODO correct message?
+    except Exception as e:
         msg = "Chessboard is unreadable. Issue may be caused by:\n- Lighting\n- Camera focus\n- Board position\n- Incorrect board dimensions"
         retval = False
         return retval, K, D, msg
@@ -99,23 +123,12 @@ def checkFishReadability(img, checkerboard, objp, flags):
     print(K, D)
 
 
-    error = fisheyeRMS(objpoints, imgpoints, rvecs, tvecs, K, D) * 0.1
-    print(error)
-    
-    # Error should not be greater than 0.6 (safest bet since we're only using one image)
+    error = fisheyeRMS(objpoints, imgpoints, rvecs, tvecs, K, D)
+    print(f"Fisheye RMS reprojection error: {error:.4f} px")
+
+    # Error should not be greater than 0.6 px
     if error <= 0.6:
-        objpoints = np.asarray(objpoints, dtype=np.float32).reshape(-1, 3)
-        imgpoints = np.asarray(imgpoints, dtype=np.float32).reshape(-1, 2)
-
-        stability_vals = poseStability(objpoints, imgpoints, K, D)   
-
-        # # TODO is this super necessary?
-        # if (stability_vals["translation_std"] > 0.0015 and 
-        #     stability_vals["translation_max"] > 0.005 and 
-        #     stability_vals["rotation_max_deg"] > 0.05):
-        #     msg = "?"
-        #     retval = False
-
+        pass
     else:
         msg = "RMS error is too high to accurately calculate the probe-to-camera offset."
         retval = False
@@ -139,7 +152,7 @@ def checkSecondReadability(image, checkerboard, objp, subpix):
     try:
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
         return ret, mtx, dist
-    except:
+    except Exception as e:
         return False, None, None
     
 
@@ -161,70 +174,121 @@ def secondUnwarp(image, mtx, dist):
     return undist_image
 
 
-# Unwarp current view
-def getCheckerboardUnwarp(camera, columns, rows, result, transformation, printer=None):
-    # First check that dimensions are provided
-    if not columns or not rows or int(columns) <= 1 or int(rows) <= 1:
-        result.image_label.clear()
-        result.image_label.setText("Cannot unwarp with missing or negative board dimensions.")
-        return
+def calibrate_fisheye(images: list, checkerboard: tuple, flags: int = FISHEYE_CALIBRATION_FLAGS):
+    """
+    Detect corners in each image and run multi-image fisheye calibration.
+    Frames where corners aren't found are skipped rather than failing outright.
 
-    # Initialize constant stuff
-    CHECKERBOARD = (int(columns) - 1, int(rows) - 1) # index to 0
-    
-    objp = np.zeros((1, CHECKERBOARD[0]*CHECKERBOARD[1], 3), np.float32)
-    objp[0,:,:2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
+    Returns (success, K, D, rms, message).
+    success is True when calibration converged and rms <= RMS_THRESHOLD.
+    K/D are None if cv2.fisheye.calibrate threw an exception.
+    """
+    objp = np.zeros((1, checkerboard[0] * checkerboard[1], 3), np.float32)
+    objp[0, :, :2] = np.mgrid[0:checkerboard[0], 0:checkerboard[1]].T.reshape(-1, 2)
 
-    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1)
-    calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_FIX_SKEW
+    objpoints = []
+    imgpoints = []
+    img_shape = None
 
-    # Set values
-    start = time.time()
-    end = start + 3 # Run for 3 seconds max
-    
-    retval = False
-    msg = "Board was unreadable. Ensure the correct dimensions are used and the entire board is visible."
+    for img in images:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_shape = gray.shape[::-1]   # (width, height)
 
-    # Actual checking and unwarping
-    # Loop here, run until end condition or until retval is true.
-    while time.time() < end and not retval:
-        img = camera.frame.copy()
-        retval, K, D, msg = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
-        if retval:
-            image = fisheyeUnwarp(img, K, D)
-            retval, mtx, dist = checkSecondReadability(image, CHECKERBOARD, objp, subpix_criteria)
-            
-            if retval:
-                final = secondUnwarp(image, mtx, dist)
+        ret, corners = cv2.findChessboardCorners(
+            gray, checkerboard,
+            cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE,
+        )
+        if ret:
+            cv2.cornerSubPix(gray, corners, (3, 3), (-1, -1), SUBPIX_CRITERIA)
+            objpoints.append(objp)
+            imgpoints.append(corners)
 
-                # Update transformation vars for chessboard
-                transformation.mtx1 = K
-                transformation.dist1 = D
+    if not objpoints:
+        return (
+            False, None, None, None,
+            "Chessboard not detected in any of the provided images.\n"
+            "Check board dimensions, lighting, and camera focus.",
+        )
 
-                transformation.mtx2 = mtx
-                transformation.dist2 = dist
+    K = np.zeros((3, 3))
+    D = np.zeros((4, 1))
+    rvecs = [np.zeros((1, 1, 3), dtype=np.float64) for _ in objpoints]
+    tvecs = [np.zeros((1, 1, 3), dtype=np.float64) for _ in objpoints]
 
-                transformation.chessboard_loc = device_service.getPrinterPosition(printer)
-                transformation.height = transformation.chessboard_loc[2]
-                transformation.chessboard_size = CHECKERBOARD
-                transformation.chessboard_img = img
+    try:
+        _, K, D, rvecs, tvecs = cv2.fisheye.calibrate(
+            objpoints, imgpoints, img_shape,
+            K, D, rvecs, tvecs,
+            flags, CALIBRATION_CRITERIA,
+        )
+    except Exception as e:
+        return (
+            False, K, D, None,
+            f"Fisheye calibration failed: {e}\n"
+            "Possible causes: too few corners, extreme lens distortion, or "
+            "insufficient viewpoint diversity across captured images.",
+        )
 
-                # # Save params and image of successful unwarping
-                # unwarping_vars = temp_vars["checkerboard"]
-                # unwarping_vars["mtx1"] = K
-                # unwarping_vars["dist1"] = D
+    rms = fisheyeRMS(objpoints, imgpoints, rvecs, tvecs, K, D)
+    print(f"Fisheye calibration RMS ({len(objpoints)}/{len(images)} images used): {rms:.4f} px")
 
-                # unwarping_vars["mtx2"] = mtx
-                # unwarping_vars["dist2"] = dist
+    if rms > RMS_THRESHOLD:
+        return (
+            False, K, D, rms,
+            f"Reprojection error {rms:.3f} px exceeds threshold ({RMS_THRESHOLD} px).\n"
+            "Try improving lighting, sharpening focus, or repositioning the board.",
+        )
 
-                # unwarping_vars["size"] = CHECKERBOARD
-                # unwarping_vars["location"] = getPrinterPosition(printer)
-                # unwarping_vars["image"] = img
+    return True, K, D, rms, None
 
-                # Display unwarping results on result feed
-                updateResult(final, result)
 
-    result.image_label.setText(msg)
+def getCheckerboardUnwarp(images: list, checkerboard: tuple, transformation):
+    """
+    Two-stage calibration on a pre-captured image list. Pure computation —
+    no camera or printer interaction.
+
+    Stage 1: multi-image fisheye calibration → K, D.
+    Stage 2: perspective correction on the first (home) frame → mtx2, dist2.
+
+    Updates transformation in-place on success.
+    Returns (success, final_image, message).
+    """
+    if not images:
+        return False, None, "No images provided for calibration."
+
+    objp = np.zeros((1, checkerboard[0] * checkerboard[1], 3), np.float32)
+    objp[0, :, :2] = np.mgrid[0:checkerboard[0], 0:checkerboard[1]].T.reshape(-1, 2)
+
+    # ── Stage 1: fisheye calibration across all captured frames ───────────────
+    success, K, D, rms, msg = calibrate_fisheye(images, checkerboard)
+    if not success:
+        return False, None, msg
+
+    # ── Stage 2: perspective correction on the home (first) frame ─────────────
+    home_frame          = images[0]
+    undistorted_fisheye = fisheyeUnwarp(home_frame, K, D)
+
+    ret2, mtx2, dist2 = checkSecondReadability(
+        undistorted_fisheye, checkerboard, objp, SUBPIX_CRITERIA
+    )
+    if not ret2:
+        return (
+            False, None,
+            "Second-stage perspective calibration failed after fisheye undistortion.\n"
+            "Ensure the board is fully visible in the home-position frame.",
+        )
+
+    final_image = secondUnwarp(undistorted_fisheye, mtx2, dist2)
+
+    # ── Update transformation ──────────────────────────────────────────────────
+    transformation.mtx1           = K
+    transformation.dist1          = D
+    transformation.mtx2           = mtx2
+    transformation.dist2          = dist2
+    transformation.chessboard_size = checkerboard
+    transformation.chessboard_img  = home_frame
+
+    return True, final_image, None
 
 def rvec_tvec_to_transform(rvec, tvec):
     R, _ = cv2.Rodrigues(rvec)
@@ -311,7 +375,7 @@ def fisheyeRMS(objpoints, imgpoints, rvecs, tvecs, K, D):
         error_sq = np.sum(error ** 2, axis=1)
 
         total_error_sq += np.sum(error_sq)
-        total_points += len(objpoints[i])
+        total_points += objpoints[i].reshape(-1, 3).shape[0]
 
     rms_error = np.sqrt(total_error_sq / total_points)
     return rms_error
