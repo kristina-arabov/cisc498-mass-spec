@@ -69,6 +69,7 @@ class SamplingItem():
 
 class SamplingFrontEnd(QObject):
     pointUpdated = pyqtSignal(str)
+    visitedLocation = pyqtSignal(object)
     samplingDone = pyqtSignal()
 
     def __init__(self):
@@ -76,9 +77,12 @@ class SamplingFrontEnd(QObject):
         self.fraction = "0/0"
 
 
-    def updatePoints(self, numerator, denominator):
+    def updatePoints(self, numerator, denominator, location=None):
         self.fraction = f"{numerator}/{denominator}"
         self.pointUpdated.emit(self.fraction)
+
+        if location:
+            self.visitedLocation.emit(location)
         
 
 samplingItem = SamplingItem()
@@ -115,13 +119,10 @@ def setTransformation(transformation, path, valid):
 
 
 def findLocations(transformation, sampling, img):
-    print("working!")
-
     rectangle = img.rectangle
     dot = img.dot
 
     sampling.originalLoc = transformation.photo_loc
-    print(sampling.originalLoc)
 
     # If no reference point + ROI then don't caluclate locations
     if not dot or not rectangle:
@@ -129,9 +130,6 @@ def findLocations(transformation, sampling, img):
 
     start_point = rectangle.topLeft()
     end_point = rectangle.bottomRight()
-
-    print(start_point, end_point)
-    print(dot)
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
@@ -578,9 +576,12 @@ def runGCode(printer, conduct):
         match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
         match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
 
+        # If this is a sampling point
         if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
             samplingItem.sampled_points += 1
-            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
+            location = (float(match_x.group(1)), float(match_y.group(1)))
+
+            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
     printer.cmd(line)
 
