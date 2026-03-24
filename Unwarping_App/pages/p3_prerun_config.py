@@ -405,6 +405,10 @@ class SamplingParameters(QWidget):
             photo.rowsOnly = True
             photo.updateOverlayRows(y, type, sampling)
 
+        elif photo.polygon_active and photo.polygon_points:
+            photo.rowsOnly = False
+            photo.updateOverlayPolygon(x, y, type, sampling)
+
         else:
             photo.rowsOnly = False
             photo.updateOverlay(x, y, type, sampling)
