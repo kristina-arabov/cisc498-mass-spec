@@ -40,16 +40,18 @@ probe = sampling_service.samplingItem
 next_height = 0
 next_x = 0
 next_y = 0
-waiting_for_signal = True
+waiting_for_signal = False
 
 state = "idle"
 positioning = "absolute"
+
+delta_z = 0
 
 threshold = 99
 
 
 def global_poll():
-    global state, positioning, next_height, next_x, next_y
+    global state, positioning, next_height, next_x, next_y, delta_z, waiting_for_signal
 
     if len(probe.gcodes) <= 0 or probe.paused:
         pass
@@ -58,6 +60,10 @@ def global_poll():
     else:
         line = probe.gcodes[0]
         sampling_service.addData(printer, conduct)
+
+        # print(line)
+        # print(f"moving: {probe.moving}")
+        # print(f"state: {state}")
 
         # print(probe.moving)
 
@@ -88,11 +94,11 @@ def global_poll():
 
                         # Downward movement
                         if match and probe.mode == "conductive" and positioning == "relative":
-                            next_height = printer.pos[2] + float(match.group(1))
-                            state = "probing"
+                            delta_z = float(match.group(1))
+                            next_height = printer.pos[2] + delta_z
 
                             probe.moving = True
-                            printer.cmd(line)
+                            waiting_for_signal = True
 
                         elif match and positioning == "absolute":
                             next_height = float(match.group(1))
@@ -133,40 +139,57 @@ def global_poll():
                         sampling_service.runGCode(printer, conduct)
                 # probe.gcodes.pop(0)
 
-            # Downward movement state
-            elif state == "probing":
-                if probe.moving:
-                    if probe.mode == "conductive" and conduct.status:
-                        conductance_val = device_service.getConductance(conduct)
+            # # Downward movement state
+            # elif state == "probing":
+            #     if probe.moving:
+            #         print(probe.mode, conduct.status)
+            #         if probe.mode == "conductive" and conduct.status:
+            #             conductance_val = device_service.getConductance(conduct)
 
-                        # Signal detected, stop reading it
-                        if conductance_val >= threshold:
-                            state = "idle"
-                            probe.moving = True
+            #             print(f"val: {conductance_val}")
+
+            #             # Signal detected, stop reading it
+            #             if conductance_val >= threshold:
+            #                 probe.gcodes.pop(0)
+
+            #             if printer.pos[2] == next_height:
+            #                 probe.moving = False
+            #                 state = "idle"
+
+                        # if conductance_val < threshold and printer.pos[2] == next_height:
+                        #     state = "idle"
+                        #     probe.moving = False
+
+                        # elif conductance_val >= threshold:
+                        #     probe.gcodes.pop(0)
+                        #     state = "idle"
+                        #     probe.moving = False
                         
-                        if printer.pos[2] == next_height:
-                            state 
+                        # if printer.pos[2] == next_height:
 
-                else:
-                    if printer.pos[2] == next_height:
-                        state = "idle"
-                        probe.gcodes.pop(0)
+                # else:
+                #     if printer.pos[2] == next_height:
+                #         state = "idle"
+                #         probe.gcodes.pop(0)
 
-
-            # Upward movement state
-            elif state == "transit":
-                if printer.pos[2] == next_height:
-                    state = "idle"
 
         elif probe.moving:
             # Check for movement
             # print(printer.pos[2], next_height)
             # print(printer.pos[2] == round(next_height, 2))
-            if printer.pos[2] == next_height:
-                probe.moving = False
-                state = "idle"
+            if probe.mode == "constant":
+                if printer.pos[2] == next_height:
+                    print("height reached")
+                    probe.moving = False
+                    state = "idle"
+
 
             elif probe.mode == "drag":
+                if printer.pos[2] == next_height:
+                    print("height reached")
+                    probe.moving = False
+                    state = "idle"
+
                 if printer.pos[2] == round(next_height, 2) and printer.pos[0] == next_x and printer.pos[1] == next_y:
                     probe.moving = False
                     state = "idle"
@@ -176,6 +199,64 @@ def global_poll():
                 #     state = "idle"
                 else:
                     pass
+
+            elif probe.mode == "conductive":
+                # print(state)
+                # print(printer.pos[2], next_height)
+                # if printer.pos[2] == next_height:
+                #     probe.moving = False
+                #     state = "idle"
+
+                # print(conduct.status)
+                if conduct.status:
+                    conductance_val = device_service.getConductance(conduct)
+                    # print(conductance_val)
+
+                    print(next_x, next_y, next_height)
+                    print(printer.pos)
+
+                    if positioning == "relative":
+                        if conductance_val >= threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height, 2)]:
+                            waiting_for_signal = False
+                            probe.moving = False
+                            state = "idle"
+                            probe.gcodes.pop(0)
+                        
+                        elif conductance_val < threshold:
+                            probe.moving = True
+                            next_height = printer.pos[2] + delta_z
+                            printer.cmd(line)
+
+                        
+
+                    elif positioning == "absolute":
+                        probe.moving = False
+                        state = "idle"
+
+                    # if conductance_val >= threshold and waiting_for_signal and printer.pos[2] == next_x and printer.pos[1] == next_y and printer.pos[2] == next_height:
+                    #     waiting_for_signal = False
+                    #     probe.moving = False
+                    #     state = "idle"
+                    #     probe.gcodes.pop(0)
+                    
+                    # elif printer.pos[2] == next_height and conductance_val < threshold and positioning == "relative":
+                    #     probe.moving = True
+                    #     next_height = printer.pos[2] + delta_z
+                    #     # printer.cmd(line)
+                    
+                    # elif printer.pos[2] == next_height and positioning == "absolute":
+                    #     probe.moving = False
+                    #     state = "idle"
+                    
+                    # else:
+                    #     printer.cmd(line)
+                
+                else:
+                    print("No condutance detected. Will not perform sampling run.")
+                    probe.gcodes = []
+
+                # probe.moving = False
+                # state = "idle"
                 
                 # elif printer.pos[0] == next_x and printer.pos[1] == next_y:
                 #     probe.moving = False
@@ -184,6 +265,8 @@ def global_poll():
                 # elif printer.pos[0] == next_x and printer.pos[1] == next_y:
                 #     probe.moving = False
                 #     state = "idle"
+            
+            
 
 
 
@@ -447,6 +530,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(60)  # every .5 seconds
+    global_timer.start(500)  # every .5 seconds
 
     sys.exit(app.exec_())
