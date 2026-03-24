@@ -596,7 +596,7 @@ def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
     pos = printer.pos if printer.pos is not None else [0, 0, 0]
-    c = device_service.getConductance(conductance)
+    c = device_service.getConductance(conductance) if conductance.status else 0
     # pos = [1, 2, 3]
 
     # Open file and add row to it
