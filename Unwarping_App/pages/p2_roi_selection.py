@@ -42,7 +42,7 @@ class ROISelection(QWidget):
         
         self.ROI = DrawROISection()    
 
-        button_clear = QPushButton("Clear all", objectName="headerBlue")
+        button_clear = QPushButton("Clear all", objectName="red")
 
         button_next = QPushButton("Next", objectName="blue")
 
@@ -136,6 +136,9 @@ class ROISelection(QWidget):
         if type == "Rectangle":
             self.ROI.row_2.hide()
             self.ROI.row_3.hide()
+            self.ROI.row_4.hide()
+            self.ROI.row_5.hide()
+
             self.photo.type = "Rectangle"
             self.photo.draw_mode = None
             # Clear any draw history when switching to Rectangle
@@ -148,6 +151,9 @@ class ROISelection(QWidget):
         elif type == "Draw":
             self.ROI.row_2.show()
             self.ROI.row_3.show()
+            self.ROI.row_4.show()
+            self.ROI.row_5.show()
+
             self.photo.type = "Draw"
             # Clear any rectangle when switching to Draw
             self.photo.rectangle = None
@@ -192,11 +198,15 @@ class ROISelection(QWidget):
         img.sample_overlay_x = None
         img.sample_overlay_y = None
 
+        img.resetROI()
+
         # Reset buttons, user needs to select reference point again
         self.ROI.button_draw.setEnabled(False)
         self.ROI.button_rectangle.setEnabled(False)
         self.ROI.row_2.hide()
         self.ROI.row_3.hide()
+        self.ROI.row_4.hide()
+        self.ROI.row_5.hide()
 
         self.referencePoint.button_action.setText("Select")
 
@@ -290,25 +300,44 @@ class DrawROISection(QWidget):
         layout_row_2.addWidget(self.button_pencil)
         layout_row_2.addWidget(self.button_eraser)
 
+        layout_row_2.setContentsMargins(0,0,0,0)
+
 
         # ROW 3 - convert / reset + instructions
         self.row_3 = QWidget()
         layout_row_3 = QHBoxLayout(self.row_3)
 
-        self.button_convert = QPushButton("⬡  Convert to Polygon", objectName="blue")
-        self.button_reset = QPushButton("Reset", objectName="clear")
         label_instructions = QLabel("Draw an enclosed shape to continue")
 
-        layout_row_3.addWidget(self.button_convert)
-        layout_row_3.addWidget(self.button_reset)
-        layout_row_3.addStretch()
-        layout_row_3.addWidget(label_instructions, alignment=Qt.AlignRight)
+        layout_row_3.addWidget(label_instructions, alignment=Qt.AlignCenter)
+        layout_row_3.setContentsMargins(0,10,0,0)
+
+        # ROW 4 - Convert button
+        self.row_4 = QWidget()
+        layout_row_4 = QHBoxLayout(self.row_4)
+
+        self.button_convert = QPushButton("⬡  Convert to Polygon", objectName="headerBlue")
+
+        layout_row_4.addWidget(self.button_convert)
+        layout_row_4.setContentsMargins(0,0,0,0)
+
+        # ROW 5 - Reset button
+        self.row_5 = QWidget()
+        layout_row_5 = QHBoxLayout(self.row_5)
+
+        self.button_reset = QPushButton("Reset", objectName="clear")
+        
+        layout_row_5.addWidget(self.button_reset)
+        layout_row_5.setContentsMargins(0,0,0,0)
 
 
         # COMPOSE --------------------------------------
         layout_container.addWidget(row_1, alignment=Qt.AlignLeft)
         layout_container.addWidget(self.row_2)
+        layout_container.addStretch()
         layout_container.addWidget(self.row_3)
+        layout_container.addWidget(self.row_4)
+        layout_container.addWidget(self.row_5)
 
         layout.addWidget(container)
         layout.setContentsMargins(0,0,0,0)
@@ -318,6 +347,7 @@ class DrawROISection(QWidget):
             QWidget { background-color: #C8D3F1; }
             QPushButton#blue { background-color: #2A54F6; }
             QPushButton#clear { background-color: #F0F0F0; }
+            QPushButton#headerBlue { background-color: #132C49; }
         """)
 
         # INITIALIZATION --------------------------------------
@@ -325,5 +355,7 @@ class DrawROISection(QWidget):
         self.button_rectangle.setEnabled(False)
         self.row_2.hide()
         self.row_3.hide()
+        self.row_4.hide()
+        self.row_5.hide()
 
 

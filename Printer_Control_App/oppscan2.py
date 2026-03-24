@@ -61,7 +61,7 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
     
     """
     
-    def __init__(self, camera, printer):  # this init part runs every time an object of MainWin is created
+    def __init__(self, camera, printer, conduct):  # this init part runs every time an object of MainWin is created
         """
         This init part runs every time an object of MainWin is created (from pyqt5)
         """
@@ -72,7 +72,7 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
 
         #self.initStdoutCapture()
         
-        self.serConductance = serialcon.SerialConnection() # Calls class for serial connection
+        self.serConductance = conduct # Calls class for serial connection
         self.conThread = conductance.ConThread() # Calls class for conductance
         self.Printer = printer # Calls class for printer
         self.Pump=pump.Pump_control() # Calls class for pump
@@ -579,20 +579,20 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
             if self.serConductance.type == 'c\r\n':
                 print("Connected to %s @%s" % (self.serConductance.port, self.serConductance.baud))
 
-                my_app.messagebox(typ="connectionOk", icon="i") #sends message box with connectionOk
+                self.messagebox(typ="connectionOk", icon="i") #sends message box with connectionOk
                 self.serConductance.status = True
                 # Enable buttons
-                my_app.con_disconnect_bt.setEnabled(True)
-                my_app.con_connect_bt.setEnabled(False)
-                my_app.conThread_start_btn.setEnabled(True)
-                app.processEvents()
+                self.con_disconnect_bt.setEnabled(True)
+                self.con_connect_bt.setEnabled(False)
+                self.conThread_start_btn.setEnabled(True)
+                # app.processEvents()
                 self.enable_con_buttons(True)
             else:
 
-                my_app.messagebox(typ="connectionWrong", icon="w")
+                self.messagebox(typ="connectionWrong", icon="w")
                 self.serConductance.ser.close()
         else:
-            my_app.messagebox(typ="connectionErr", icon="w")
+            self.messagebox(typ="connectionErr", icon="w")
             # self.serConductance.ser.close()
         
     def enable_con_buttons(self, enable):
@@ -614,9 +614,9 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
         try:
             self.serConductance.disconnect()
             self.messagebox("disconnect", "i")
-            my_app.con_disconnect_bt.setEnabled(False)
-            my_app.con_connect_bt.setEnabled(True)
-            my_app.conThread_start_btn.setEnabled(False)
+            self.con_disconnect_bt.setEnabled(False)
+            self.con_connect_bt.setEnabled(True)
+            self.conThread_start_btn.setEnabled(False)
             self.enable_con_buttons(False)
             
         except:
@@ -639,15 +639,16 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
 
             self.conThread.start()  # start conductance thread
 
-            self.widgetenable(my_app.conThread_start_btn, False)
-            self.widgetenable(my_app.conThread_stop_btn, True)
-            self.widgetenable(my_app.conPltRange, True)
+            self.widgetenable(self.conThread_start_btn, False)
+            self.widgetenable(self.conThread_stop_btn, True)
+            self.widgetenable(self.conPltRange, True)
 
             self.conThread.timer = QTimer(self)  # Timer to trigger display fuction
             self.conThread.timer.timeout.connect(lambda: self.readconqueue(
                 self.conThread.conductance_queue))  # when timer is over values in queue are plotted
             self.conThread.timer.start(self.conThread.ratems)
-        except:
+        except Exception as e:
+            print(e)
             self.messagebox("connectionFirst", "w")
 
     # Stop conductance meter
@@ -710,7 +711,7 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
         
         self.graphicsCap.plot([item[0] for item in self.convaluesplot],
     [item[1]-self.conductance_min if item[1] > self.conductance_min else 0 for item in self.convaluesplot], pen=pg.mkPen(width=2.5))  # Define plotted time window
-        app.processEvents()#to avoid flickering
+        # app.processEvents()#to avoid flickering
 
     def zeroCon(self):
         """

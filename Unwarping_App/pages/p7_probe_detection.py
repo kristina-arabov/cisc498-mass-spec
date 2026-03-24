@@ -106,6 +106,15 @@ class ProbeDetection(QWidget):
     def clearAll(self):
         # Reset tag diagram and progress bar
         self.component_tag.corners_imaged = [False, False, False, False]
+        self.component_tag.idx = 0
+        self.component_tag.setProbedColors()
+
+        self.component_tag.button_nextCorner.setEnabled(True)
+        self.component_tag.button_previousCorner.setEnabled(False)
+        self.component_tag.component_tagOverlay.corner_colours[0] = QColor("#212D99")
+        self.component_tag.label_instructions.setText("Please manually align the highlighted blue corner with the crosshair.")
+        
+
         self.component_tag.line_progressBar.setValue(0)
         self.component_tag.update()
 

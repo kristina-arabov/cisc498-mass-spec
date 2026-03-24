@@ -19,7 +19,8 @@ from Unwarping_App.pages.p8_transformation_review import TransformationReview
 import Unwarping_App.components.utils as utils
 from Unwarping_App.components.common import NavBar
 
-from Unwarping_App.services.sampling_service import SamplingItem
+
+from Unwarping_App.services.sampling_service import samplingItem
 from Unwarping_App.services.calibration_service import Transformation
 
 ''' Main window for the unwarping section of the application'''
@@ -42,16 +43,15 @@ class Main(QWidget):
         # Objects to store transformation variables
         transformation = Transformation()
         sampling_transformation = Transformation()
-        sampling_item = SamplingItem()
 
         self.stacked = QStackedWidget()
 
         # connect pages for application
         self.page0 = LandingPage(transformation)
         self.page1 = ProvideTransformation(self.camera,self.light_connection, self.printer, sampling_transformation)
-        self.page2 = ROISelection(sampling_transformation, sampling_item)
-        self.page3 = PrerunConfig(sampling_item)
-        self.page4 = SamplingProgress()
+        self.page2 = ROISelection(sampling_transformation, samplingItem)
+        self.page3 = PrerunConfig(samplingItem)
+        self.page4 = SamplingProgress(self.printer, samplingItem)
         self.page5 = SamplingComplete()
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
         self.page7 = ProbeDetection(self.camera, self.light_connection, self.printer, transformation)
@@ -98,10 +98,10 @@ class Main(QWidget):
         self.page1.resultAvailable.connect(lambda img: self.page3.photo.setNewPixmap(img))
         self.page1.resultAvailable.connect(lambda img: self.page4.photo.setNewPixmap(img))
 
-        self.page2.photo.roiSignal.connect(lambda dot, rect, x, y: self.page3.photo.setVals(dot, rect))
+        self.page2.photo.roiSignal.connect(lambda dot, rect, x, y, rows: self.page3.photo.setVals(dot, rect))
         self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
 
-        self.page3.photo.roiSignal.connect(lambda dot, rect, x, y: self.page4.photo.setVals(dot, rect, x, y))
+        self.page3.photo.roiSignal.connect(lambda dot, rect, x, y, rows: self.page4.photo.setVals(dot, rect, x, y, rows))
 
         self.page4.returnToConfig.connect(lambda: self.stacked.setCurrentIndex(3))
 

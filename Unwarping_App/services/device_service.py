@@ -15,14 +15,14 @@ def toggle(row, device):
         pass # TODO signal?
 
     # Lights
-    elif row.kind == "light":
+    elif row.kind == "lights":
         connect_lights(row, device) if row.toggle.isChecked() else disconnect_lights(row, device)
 
     else:
         pass
 
 
-''' CAMERA '''
+# CAMERA FUNCTIONS ---------------------------------------
 # Connect camera
 def connect_camera(row, camera, resolution=(1280, 720), fps=None, name=None):
     idx = row.port_combo.currentIndex() - 1
@@ -51,7 +51,7 @@ def disconnect_camera(row, camera):
     row.port_combo.setEnabled(True)
 
 
-''' LIGHTS '''
+# LIGHTS CONTROL FUNCTIONS -------------------------
 # Connect lights
 def connect_lights(row, lights):
     lights.idx = row.port_combo.currentData()
@@ -60,6 +60,7 @@ def connect_lights(row, lights):
         try:
             lights.start()
             row.set_connected(True)
+            row.port_combo.setEnabled(False)
         except:
             pass
 
@@ -72,19 +73,22 @@ def disconnect_lights(row, lights):
         lights.stop()
 
     row.set_connected(False)
+    row.port_combo.setEnabled(False)
+
 
 # Adjust brightness intensity
 def set_brightness(value, lights):
     percent = value / 100
     brightness = int(percent * 255)
     try:
-        print(brightness)
         if 0 <= brightness <= 255:
             lights.serial_conn.write(str(brightness).encode())
             lights.serial_conn.write(b'\n')
     except:
         pass
 
+
+# PRINTER FUNCTIONS ----------------------------------------
 def getPrinterPosition(printer):
     pos = None
 
@@ -95,3 +99,15 @@ def getPrinterPosition(printer):
             break
 
     return pos
+
+
+def getConductance(conductance):
+    try:
+        conductance.sync()
+        cap=conductance.read()#reads the conductance value
+        capDecode= int(cap.decode("utf-8")) #to decode the value
+
+        return capDecode
+
+    except:
+        return 0
