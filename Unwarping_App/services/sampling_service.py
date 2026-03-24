@@ -112,6 +112,17 @@ def setTransformation(transformation, path, valid):
         file.close()
     
     except:
+        transformation.mtx1 = None
+        transformation.dist1 = None
+
+        transformation.mtx2 = None
+        transformation.dist2 = None
+
+        transformation.height = None
+
+        transformation.offset_x = None
+        transformation.offset_y = None
+
         valid = False
 
     return valid
