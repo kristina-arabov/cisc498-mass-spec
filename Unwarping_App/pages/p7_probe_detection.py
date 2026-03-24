@@ -208,7 +208,7 @@ class TagInstructions(QWidget):
         self.button_previousCorner = QPushButton("Previous corner", objectName="clear")
         self.button_previousCorner.setEnabled(False)
 
-        self.button_probeLocation = QPushButton("Probe at location", objectName="blue")
+        self.button_probeLocation = QPushButton("Corner at crosshair", objectName="blue")
 
         layout_column_2.addStretch()
         layout_column_2.addWidget(self.button_nextCorner)
