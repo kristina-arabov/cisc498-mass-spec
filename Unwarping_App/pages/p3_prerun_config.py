@@ -107,11 +107,12 @@ class PrerunConfig(QWidget):
         self.component_refMode.button_conductive.clicked.connect(lambda: self.handleReferenceMode("conductive"))
 
 
-        self.button_ROI.clicked.connect(lambda: self.handleShowParams("roi"))
-        self.button_ref.clicked.connect(lambda: self.handleShowParams("ref"))
+        self.button_ROI.clicked.connect(lambda: self.handleShowRefParams("roi"))
+        self.button_ref.clicked.connect(lambda: self.handleShowRefParams("ref"))
 
     
-    def handleShowParams(self, type):
+    # Function to show the parameters for the ROI and reference sections
+    def handleShowRefParams(self, type):
         # Hide all components initially
         self.component_samplingMode.hide()
         self.component_samplingParams.hide()
@@ -131,6 +132,7 @@ class PrerunConfig(QWidget):
             self.component_samplingParams.show()
             self.component_speed.show()
             
+
         # Reference point parameters
         elif type == "ref":
             # Change button colours
@@ -141,17 +143,14 @@ class PrerunConfig(QWidget):
             self.component_refMode.show()
             self.component_refParams.show()
 
-            # Mode (Constant, conductive)
-            # Sample Z (hide if conductive)
-            # Dwell
-            # Sample
 
+        # Update buttons on frontend
         for btn in (self.button_ROI, self.button_ref):
             btn.style().unpolish(btn)
             btn.style().polish(btn)
             btn.update()
-            
 
+        
 
     # Function to handle the sampling type
     def handleSamplingType(self, type=None, drag=False):
@@ -210,6 +209,8 @@ class PrerunConfig(QWidget):
         elif type == "conductive":
             params.row_3.hide()
             params.input_refSampleHeight.clear()
+
+        self.sampling.ref_mode = type
 
         
     # Function to clear all sampling parameter inputs
@@ -680,12 +681,12 @@ class ReferenceParameters(QWidget):
         layout_row_1 = QHBoxLayout(self.row_1)
 
         label_dwell = QLabel("Dwell time (s): ")
-        self.ref_dwell = QLineEdit()
-        self.ref_dwell.setValidator(QDoubleValidator(0, 250, 2))
-        self.ref_dwell.setMaxLength(3)
+        self.input_refDwell = QLineEdit()
+        self.input_refDwell.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_refDwell.setMaxLength(3)
 
         layout_row_1.addWidget(label_dwell, alignment=Qt.AlignLeft)
-        layout_row_1.addWidget(self.ref_dwell, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(self.input_refDwell, alignment=Qt.AlignRight)
         layout_row_1.setContentsMargins(0, 5, 0, 0)
 
 
@@ -734,3 +735,35 @@ class ReferenceParameters(QWidget):
             QWidget { background-color: #C8D3F1; }
             QLineEdit, QComboBox { background-color: white; }
         """)
+
+
+        # FUNCTIONS ------------------------------
+        # Dwell time
+        self.input_refDwell.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refDwell.text(), "dwell_time"))
+
+        # Sample time
+        self.input_refSampleTime.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refSampleTime.text(), "sample_time"))
+
+        # Sample height
+        self.input_refSampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refSampleHeight.text(), "sample_height"))
+
+
+    # Function to set the sampling variables (reference)
+    def setVars(self, sampling, val, type):
+        i = float(val)
+        print("hello...")
+
+        # Dwell time
+        if type == "dwell_time":
+            sampling.ref_dwellTime = i
+
+        # Sample time
+        elif type == "sample_time":
+            sampling.ref_sampleTime = i
+
+        # Sample height
+        elif type == "sample_height":
+            sampling.ref_sampleHeight = i
+
+        else:
+            pass
