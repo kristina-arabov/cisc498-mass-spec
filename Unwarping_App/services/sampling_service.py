@@ -464,7 +464,7 @@ def appendXYMove(sampling, loc):
 
 # Command: Go to a specific height
 def appendZChange(sampling, loc):
-    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+    sampling.gcodes.append(f"G0 Z{str(loc[2])} F{str(sampling.z_up_speed)}")
 
 
 # Command: Move back to transit height
