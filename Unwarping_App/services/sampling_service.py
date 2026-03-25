@@ -226,14 +226,13 @@ def findLocations(transformation, sampling, img):
     # PROCESS DOT ----------------------------------------------
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
-
     # PROCESS RECTANGLE --------------------------------------
-    # sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
 
     # print(sampling.rectangle)
     print(sampling.dot)
-    # print(sampling.rectangle)
+    print(sampling.rectangle)
 
 
 
