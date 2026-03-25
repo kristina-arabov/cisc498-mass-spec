@@ -12,6 +12,8 @@ from Unwarping_App.services import device_service
 import csv
 from datetime import datetime
 
+from PyQt5.QtCore import QObject, pyqtSignal
+
 
 class SamplingItem():
     def __init__(self):
@@ -23,7 +25,7 @@ class SamplingItem():
 
         self.real_points_list = None
 
-        # Sampling parameters
+        # Sampling parameters (ROI)
         self.spatialRes_X = None
         self.spatialRes_Y = None
 
@@ -33,17 +35,26 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # Reference parameters
+        self.ref_dwellTime = None
+        self.ref_sampleTime = None
+        self.ref_sampleHeight = None
+
         # Speed + Step size
         self.xy_speed = None
         self.z_down_speed = None
         self.z_up_speed = None
+        
         self.stepSize = None
+        self.ref_stepSize = None
 
 
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
+        # Sampling modes (ROI and reference)
         self.mode = "constant"
+        self.ref_mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -63,9 +74,28 @@ class SamplingItem():
         # File info
         self.csv_filename = None
         self.csv_rows = []
+
+
+class SamplingFrontEnd(QObject):
+    pointUpdated = pyqtSignal(str)
+    visitedLocation = pyqtSignal(object)
+    samplingDone = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.fraction = "0/0"
+
+
+    def updatePoints(self, numerator, denominator, location=None):
+        self.fraction = f"{numerator}/{denominator}"
+        self.pointUpdated.emit(self.fraction)
+
+        if location:
+            self.visitedLocation.emit(location)
         
 
 samplingItem = SamplingItem()
+progress = SamplingFrontEnd()
 
 def setTransformation(transformation, path, valid):
 
@@ -91,6 +121,17 @@ def setTransformation(transformation, path, valid):
         file.close()
     
     except:
+        transformation.mtx1 = None
+        transformation.dist1 = None
+
+        transformation.mtx2 = None
+        transformation.dist2 = None
+
+        transformation.height = None
+
+        transformation.offset_x = None
+        transformation.offset_y = None
+
         valid = False
 
     return valid
@@ -98,15 +139,12 @@ def setTransformation(transformation, path, valid):
 
 
 def findLocations(transformation, sampling, img):
-    print("working!")
-
     rectangle = img.rectangle
     dot = img.dot
     polygon_active = getattr(img, 'polygon_active', False)
     polygon_points = getattr(img, 'polygon_points', [])
 
     sampling.originalLoc = transformation.photo_loc
-    print(sampling.originalLoc)
 
     # Need at least a reference point and one ROI type
     has_roi = rectangle or (polygon_active and polygon_points)
@@ -115,9 +153,6 @@ def findLocations(transformation, sampling, img):
 
     start_point = rectangle.topLeft()
     end_point = rectangle.bottomRight()
-
-    print(start_point, end_point)
-    print(dot)
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
@@ -226,7 +261,10 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
     else:
         dot_x += transformation.offset_x
     
-    dot_y -= transformation.offset_y
+    if transformation.offset_y < 0:
+        dot_y += transformation.offset_y
+    else:
+        dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -254,23 +292,27 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     start_x = pos[0] + (start_point_in_base[0] * 10)
     start_y = pos[1] + (start_point_in_base[1] * 10)
 
-    if transformation.offset_x < 0:
-        start_x -= transformation.offset_x
-    else:
-        start_x += transformation.offset_x
-    
-    start_y -= transformation.offset_y
-
     # 3D end position
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
+    # Apply X offset
     if transformation.offset_x < 0:
+        start_x -= transformation.offset_x
         end_x -= transformation.offset_x
     else:
+        start_x += transformation.offset_x
         end_x += transformation.offset_x
     
-    end_y -= transformation.offset_y
+    # Apply Y offset
+    if transformation.offset_y < 0:
+        start_y += transformation.offset_y
+        end_y += transformation.offset_y
+    else:
+        start_y -= transformation.offset_y
+        end_y -= transformation.offset_y
+
+    
 
 
     # Reverse?
@@ -349,6 +391,8 @@ def getSampling(sampling):
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
 
+    progress.updatePoints(sampling.sampled_points, sampling.total_points)
+
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
@@ -358,7 +402,7 @@ def getSampling(sampling):
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
 
-    # TODO GO TO REFERENCE HERE
+    # appendReferencePoint(sampling)
 
     # Constant Z mode
     if sampling.mode == "constant":
@@ -373,8 +417,6 @@ def getSampling(sampling):
 
     # Conductive mode
     elif sampling.mode == "conductive":
-        print("conductive selected")
-
         # Loop through calculated locations
         for i in locations:
             appendXYMove(sampling, i)       # Go to (X, Y) location
@@ -395,16 +437,17 @@ def getSampling(sampling):
 
         for i in locations:
             appendXYMove(sampling, i)   # Go to (X, Y) location
-            appendWait(sampling)
+            sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight + 0.0000001)} F{str(sampling.z_up_speed)}") 
+            sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
             
         appendTransitHeight(sampling)   # Return to Z transit height
 
     
-    # TODO GO TO REFERENCE HERE
+    # appendReferencePoint(sampling)
 
     # Return to original position
-    # p = sampling.originalLoc
-    p = [180.4, -3, 0]
+    p = sampling.originalLoc
+    # p = [180.4, -3, 0]
     appendXYMove(sampling, p)
     appendZChange(sampling, p)
 
@@ -414,6 +457,24 @@ def getSampling(sampling):
 
     for row in sampling.gcodes:
         print(row)
+
+
+# Commands to move to the reference point
+def appendReferencePoint(sampling):
+    # sampling.dot = [100, 100, 0]
+    appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
+
+    # Constant Z
+    if sampling.ref_mode == "constant":
+        appendSampleHeight_Ref(sampling)    # Go to reference sampling height
+    
+    # Conductive mode
+    elif sampling.ref_mode == "conductive":
+        appendConductanceZ_Ref(sampling)        # Use relative positioning with step size
+
+    appendSampleTime_Ref(sampling)          # Use reference sample time
+    appendTransitHeight(sampling)           # Return to transit height
+    appendDwellTime_Ref(sampling)           # Use reference dwell time
 
 
 # Command: Movement to transit height before starting X,Y movements
@@ -434,7 +495,7 @@ def appendXYMove(sampling, loc):
 
 # Command: Go to a specific height
 def appendZChange(sampling, loc):
-    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+    sampling.gcodes.append(f"G0 Z{str(loc[2])} F{str(sampling.z_up_speed)}")
 
 
 # Command: Move back to transit height
@@ -444,7 +505,12 @@ def appendTransitHeight(sampling):
 
 # Command: Go to Z sampling height
 def appendSampleHeight(sampling):
-    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
+
+
+# Command: Go to Z sampling height (defined in reference parameters) 
+def appendSampleHeight_Ref(sampling):
+    sampling.gcodes.append(f"G0 Z{str(sampling.ref_sampleHeight)} F{str(sampling.z_down_speed)}")
 
 
 # Command: Move down until conductance detected
@@ -454,15 +520,34 @@ def appendConductanceZ(sampling):
     sampling.gcodes.append("G90")
 
 
-# Command: Dwell for __ milliseconds
+# Command: Move down until conductance detected (defined in reference parameters)
+def appendConductanceZ_Ref(sampling):
+    sampling.gcodes.append("G91")
+    sampling.gcodes.append(f"G0 Z-{str(sampling.ref_stepSize)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append("G90")
+
+
+# Command: Dwell for __ seconds
 def appendDwellTime(sampling):
     dwell_time = int(sampling.dwellTime) * 1000
     sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
-# Command: Sample for __ milliseconds
+# Command: Dwell for __ seconds (defined in reference parameters)
+def appendDwellTime_Ref(sampling):
+    dwell_time = int(sampling.ref_dwellTime) * 1000
+    sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+# Command: Sample for __ seconds
 def appendSampleTime(sampling):
     sample_time = int(sampling.sampleTime) * 1000 
+    sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
+
+# Command: Sample for __ seconds (defined in reference parameters)
+def appendSampleTime_Ref(sampling):
+    sample_time = int(sampling.ref_sampleTime) * 1000 
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
 
@@ -555,14 +640,32 @@ def getTime():
 
 
 # Function to send a GCode to the printer and remove it from the queue
-def runGCode(printer):
+def runGCode(printer, conduct):
+    addData(printer, conduct)
+
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
 
+    # Check if point is in the ROI
+    if "X" in line and "Y" in line:
+        match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+        match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+        # If this is a sampling point
+        if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
+            samplingItem.sampled_points += 1
+            location = (float(match_x.group(1)), float(match_y.group(1)))
+
+            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
+
     printer.cmd(line)
 
     # emit signal for completed points? time?
+    if len(samplingItem.gcodes) == 0:
+        progress.samplingDone.emit()
+
+    addData(printer, conduct)
 
 
 # Function to add a row containing time + position data to the spreadsheet
@@ -570,9 +673,8 @@ def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
     pos = printer.pos if printer.pos is not None else [0, 0, 0]
-    # c = conductance.connection.read() if conductance is not None else 0
-    c = 0
-    # pos = [1, 2, 3]
+
+    c = device_service.getConductance(conductance) if conductance.status else 0
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
@@ -619,9 +721,9 @@ def stop(printer):
     # Move printer to original position
     p = samplingItem.originalLoc
 
-    # printer.cmd("G90")
-    # printer.cmd("G0 X"+str(p[0])+" Y"+str(p[1]))
-    # printer.cmd("G0 Z"+str(p[2]))
+    printer.cmd("G90")
+    printer.cmd(f"G0 X{str(p[0])} Y{str(p[1])} F1000")
+    printer.cmd(f"G0 Z{str(p[2])}")
 
     
 
@@ -634,19 +736,19 @@ def pause(printer):
     #     self.cmd("G0 X10 Y10 Z100 F3000")
     #     self.cmd("G91")
     # else:
-    # printer.cmd("G91")
-    # printer.cmd("G0 Z15 F3000")
-    # printer.cmd("G0 X10 Y10 F3000")
-    # printer.cmd("G90")
+    printer.cmd("G91")
+    printer.cmd("G0 Z15 F3000")
+    printer.cmd("G0 X5 Y5 F3000")
+    printer.cmd("G90")
     
     samplingItem.paused = True
 
 
 def resume(printer):
-    print("resuming")
-    print("sending to", printer.last_pos)
+    # print("resuming")
+    # print("sending to", printer.last_pos)
 
-    print(printer.last_pos)
+    # print(printer.last_pos)
 
     # if self.conductance_mode:
     #     self.cmd("G90")
@@ -654,9 +756,12 @@ def resume(printer):
     #     self.cmd("G91")
 
     samplingItem.paused = False
+    samplingItem.moving = False
+
+    print(samplingItem.gcodes)
 
     printer.cmd("G90")
-    printer.cmd("G0 X"+str(printer.last_pos[0])+" Y"+str(printer.last_pos[1])+ " Z"+str(printer.last_pos[2]))
+    printer.cmd(f"G0 X{str(round(printer.last_pos[0], 2))} Y{str(round(printer.last_pos[1], 2))} Z{str(round(printer.last_pos[2], 2))} F1000")
 
     
 

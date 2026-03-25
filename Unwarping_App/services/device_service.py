@@ -140,3 +140,16 @@ def move_printer_absolute(printer, x, y, z, feed_rate):
     printer.cmd(f"G0 X{x:.3f} Y{y:.3f} Z{z:.3f} F{feed_rate}")
     printer.cmd("M400")
     printer.cmd("M114")
+    return pos
+
+
+def getConductance(conductance):
+    try:
+        conductance.sync()
+        cap=conductance.read()#reads the conductance value
+        capDecode= int(cap.decode("utf-8")) #to decode the value
+
+        return capDecode
+
+    except:
+        return 0

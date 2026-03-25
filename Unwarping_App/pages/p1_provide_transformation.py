@@ -93,6 +93,9 @@ class ProvideTransformation(QWidget):
         self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
 
         # self.checkAllowNext()
+        self.component_unwarpComparison.result.image_label.clear()
+    
+        self.resultAvailable.emit(None)
 
 
     # Apply a selected transformation on the current camera frame

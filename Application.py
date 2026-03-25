@@ -19,9 +19,10 @@ from Printer_Control_App import oppscan2
 from Unwarping_App import unwarpingApp
 from Unwarping_App.components.common import Header
 
-from Unwarping_App.services import sampling_service
+from Unwarping_App.services import sampling_service, device_service
 
 from Printer_Control_App.core import printer as prt
+from Printer_Control_App.core import serialcon
 from Printer_Control_App.core import conductance 
 
 
@@ -32,66 +33,142 @@ from PyQt5.QtMultimedia import QCameraInfo
 import sys
 
 printer = prt.console_control()
-conduct = conductance.ConThread()
+conduct = serialcon.SerialConnection()
 
 probe = sampling_service.samplingItem
 
 next_height = 0
+next_x = 0
+next_y = 0
+waiting_for_signal = False
+
+# state = "idle"
+positioning = "absolute"
+
+delta_z = 0
+
+
 
 def global_poll():
-    global next_height
-    # If there are GCodes available (only when sampling run is started)
-    if len(probe.gcodes) > 0 and not probe.paused:
-        # sampling_service.addData(printer, conduct)
+    global positioning, next_height, next_x, next_y, delta_z, waiting_for_signal
+
+    if len(probe.gcodes) <= 0 or probe.paused:
+        pass
+        
+
+    else:
         line = probe.gcodes[0]
-
-        # Check that printer is not moving
-        if not probe.moving:
-            # Sample/Dwell time
-            if "G4" in line:
-                print("Waiting...")
-
-            # Absolute positioning
-            elif "G90" in line:
-                print("Absolute positioning")
-
-            # Relative positioning
-            elif "G91" in line:
-                print("Relative positioning")
-
-            # XY or Z change
-            elif "G0" in line or "G1" in line:
-                print(f"Moving to position: {line}")
-                probe.moving = True
-
-                # Height adjustment
-                if "Z" in line:
-
-                    # Constant-Z and Drag sampling modes
-                    if probe.mode == "constant" or probe.mode == "drag":
-                        match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
-                        next_height = float(match.group(1))
-
-                    # Conductive mode
-                    elif probe.mode == "conductive":
-                        pass
-
-            sampling_service.runGCode(printer)
-
-        # # Check if printer has made it to the expected height, remove moving flag
-        # elif probe.moving and "M400" in line:
-        #     sampling_service.runGCode(printer)
-        #     probe.moving = False
-
-
-        elif probe.moving and printer.pos[2] == next_height:
-            probe.moving = False
-
         sampling_service.addData(printer, conduct)
 
-    # Idle
-    elif len(probe.gcodes) <= 0 or probe.paused:
-        pass
+        # Probe is ready to move
+        if not probe.moving:
+            # Absolute positioning
+            if "G90" in line:
+                positioning = "absolute"
+                print("ABSOLUTE POSITIONING")
+                sampling_service.runGCode(printer, conduct)
+            
+            # Relative positioning
+            elif "G91" in line:
+                positioning = "relative"
+                print("RELATIVE POSITIONING")
+                sampling_service.runGCode(printer, conduct)
+
+            elif "G4" in line:
+                print("Waiting...")
+                sampling_service.runGCode(printer, conduct)
+
+            # Printer ready for movement
+            # if state == "idle":
+            elif "G0" in line or "G1" in line:
+                print(f"Moving to position: {line}")
+                
+                # Z position change
+                if "Z" in line:
+                    match = re.search(r"^G0 Z(-?\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+
+                    # Downward movement
+                    if match and probe.mode == "conductive" and positioning == "relative":
+                        delta_z = float(match.group(1))
+                        next_height = printer.pos[2] + delta_z
+
+                        probe.moving = True
+                        waiting_for_signal = True
+                        printer.cmd(line) # send inital step
+
+                    elif match and positioning == "absolute":
+                        next_height = float(match.group(1))
+
+                        probe.moving = True
+                        sampling_service.runGCode(printer, conduct)
+
+                # X and Y position change
+                elif "X" in line and "Y" in line:
+                    match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+                    match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+                    next_x = float(match_x.group(1))
+                    next_y = float(match_y.group(1))
+
+                    probe.moving = True
+                    sampling_service.runGCode(printer, conduct)
+
+        # Probe is moving
+        elif probe.moving:
+            
+            # Checks for Constant-Z sampling mode
+            if probe.mode == "constant":
+                if printer.pos[2] == next_height:
+                    probe.moving = False
+                    # state = "idle"
+
+
+            # Checks for Drag sampling mode
+            elif probe.mode == "drag":
+                if printer.pos[2] == next_height:
+                    probe.moving = False
+                    # state = "idle"
+
+                if printer.pos[2] == round(next_height, 2) and printer.pos[0] == next_x and printer.pos[1] == next_y:
+                    probe.moving = False
+                    # state = "idle"
+
+                else:
+                    pass
+
+
+            # Checks for Conductive mode
+            elif probe.mode == "conductive":
+                if conduct.status:
+                    conductance_val = device_service.getConductance(conduct)
+
+                    # Relative positioning handling
+                    if positioning == "relative":
+
+                        # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos[0] == next_x and printer.pos[1] == next_y:
+                            waiting_for_signal = False
+                            probe.moving = False
+
+                            probe.gcodes.pop(0)
+                        
+                        # If conductance threshold has not been reached, keep moving down
+                        elif conductance_val < printer.con_threshold:
+                            probe.moving = True
+                            next_height = printer.pos[2] + delta_z
+
+                            printer.cmd(line)
+
+                    # Absolute positioning handling
+                    # TODO printer height?
+                    elif positioning == "absolute":
+                        probe.moving = False
+                        # state = "idle"
+
+                # If no conductance connected, do not perform sampling!!!
+                else:
+                    print("No condutance detected. Will not perform sampling run.")
+                    probe.gcodes = []
 
 
 
@@ -322,6 +399,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(60)  # every .5 seconds
+    global_timer.start(100)  # every .5 seconds
 
     sys.exit(app.exec_())
