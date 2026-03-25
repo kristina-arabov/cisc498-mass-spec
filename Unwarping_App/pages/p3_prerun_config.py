@@ -33,11 +33,27 @@ class PrerunConfig(QWidget):
 
         label_prerun = QLabel("Pre-run Config", objectName="page_title")
 
+        button_row = QWidget()
+        layout_button_row = QHBoxLayout(button_row)
+
+        self.button_ROI = QPushButton("Sampling ROI", objectName="blue")
+        self.button_ref = QPushButton("Reference Point", objectName="clear")
+
+        layout_button_row.addWidget(self.button_ROI)
+        layout_button_row.addWidget(self.button_ref)
+
+        layout_button_row.setContentsMargins(0,0,0,0)
+
+
         # SAMPLING MODE SELECTION -----------------------------
-        component_samplingMode = ModeSelection()
+        self.component_samplingMode = ModeSelection(roi=True)
+        self.component_refMode = ModeSelection()
+        self.component_refMode.hide()
 
         # PARAMETER INPUTS  -----------------------------------
         self.component_samplingParams = SamplingParameters(self.photo, self.sampling)
+        self.component_refParams = ReferenceParameters(self.sampling)
+        self.component_refParams.hide()
         
         # SPEED INPUTS ----------------------------------------
         self.component_speed = SamplingSpeeds(self.sampling)
@@ -48,8 +64,15 @@ class PrerunConfig(QWidget):
         # RIGHT COLUMN ----------------------------------------
         layout_right.addStretch()
         layout_right.addWidget(label_prerun, alignment=Qt.AlignLeft)
-        layout_right.addWidget(component_samplingMode)
+
+        layout_right.addWidget(button_row)
+
+        layout_right.addWidget(self.component_samplingMode)
+        layout_right.addWidget(self.component_refMode)
+
         layout_right.addWidget(self.component_samplingParams)
+        layout_right.addWidget(self.component_refParams)
+
         layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
         layout_right.addWidget(button_startRun)
@@ -58,7 +81,7 @@ class PrerunConfig(QWidget):
         layout_right.setContentsMargins(0,0,0,0)
         layout_right.setSpacing(10)
 
-        self.component_samplingParams.setFixedWidth(component_samplingMode.sizeHint().width())
+        self.component_samplingParams.setFixedWidth(self.component_samplingMode.sizeHint().width())
 
         # COMPOSE ----------------------------------------
         layout.addWidget(self.photo)
@@ -69,13 +92,65 @@ class PrerunConfig(QWidget):
 
 
         # FUNCTIONS ----------------------------------------
+        # Start sampling run
         button_startRun.clicked.connect(self.next.emit)
         button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
         button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
-        component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
-        component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
-        component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
+        # ROI sampling mode
+        self.component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
+        self.component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
+        self.component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
+
+        # Reference sampling mode
+        self.component_refMode.button_constantZ.clicked.connect(lambda: self.handleReferenceMode("constant"))
+        self.component_refMode.button_conductive.clicked.connect(lambda: self.handleReferenceMode("conductive"))
+
+
+        self.button_ROI.clicked.connect(lambda: self.handleShowParams("roi"))
+        self.button_ref.clicked.connect(lambda: self.handleShowParams("ref"))
+
+    
+    def handleShowParams(self, type):
+        # Hide all components initially
+        self.component_samplingMode.hide()
+        self.component_samplingParams.hide()
+        self.component_speed.hide()
+
+        self.component_refMode.hide()
+        self.component_refParams.hide()
+
+        # ROI parameters
+        if type == "roi":
+            # Change button colours
+            self.button_ROI.setObjectName("blue")
+            self.button_ref.setObjectName("clear")
+
+            # Show only ROI parameters
+            self.component_samplingMode.show()
+            self.component_samplingParams.show()
+            self.component_speed.show()
+            
+        # Reference point parameters
+        elif type == "ref":
+            # Change button colours
+            self.button_ROI.setObjectName("clear")
+            self.button_ref.setObjectName("blue")
+
+            # Show only Reference point parameters
+            self.component_refMode.show()
+            self.component_refParams.show()
+
+            # Mode (Constant, conductive)
+            # Sample Z (hide if conductive)
+            # Dwell
+            # Sample
+
+        for btn in (self.button_ROI, self.button_ref):
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
+            btn.update()
+            
 
 
     # Function to handle the sampling type
@@ -122,6 +197,20 @@ class PrerunConfig(QWidget):
         self.photo.update()
         self.clearInputs()
 
+
+    # Function to handle the reference sampling type
+    def handleReferenceMode(self, type=None):
+        params = self.component_refParams
+
+        # Constant Z mode
+        if type == "constant":
+            params.row_3.show()
+
+        # Conductive mode (Hide and clear sampling height)
+        elif type == "conductive":
+            params.row_3.hide()
+            params.input_refSampleHeight.clear()
+
         
     # Function to clear all sampling parameter inputs
     def clearInputs(self):
@@ -144,7 +233,7 @@ class PrerunConfig(QWidget):
 
 
 class ModeSelection(QWidget):
-    def __init__(self):
+    def __init__(self, roi=False):
         super().__init__()
         
         layout = QVBoxLayout(self)
@@ -157,19 +246,23 @@ class ModeSelection(QWidget):
 
         self.button_constantZ = QRadioButton("Constant-Z")
         self.button_conductive = QRadioButton("Conductive")
-        self.button_drag = QRadioButton("Drag")
 
         mode_group = QButtonGroup()
         mode_group.addButton(self.button_constantZ, 0)
         mode_group.addButton(self.button_conductive, 1)
-        mode_group.addButton(self.button_drag, 2)
-
+        
         self.button_constantZ.setChecked(True)
 
         layout_container.addWidget(label_mode)
         layout_container.addWidget(self.button_constantZ)
         layout_container.addWidget(self.button_conductive)
-        layout_container.addWidget(self.button_drag)
+
+        # If this is for the ROI
+        if roi:
+            self.button_drag = QRadioButton("Drag")
+            mode_group.addButton(self.button_drag, 2)
+            layout_container.addWidget(self.button_drag)
+        
 
         layout.addWidget(container)
 
@@ -568,3 +661,76 @@ class SamplingSpeeds(QWidget):
 
         except ValueError:
             pass
+
+class ReferenceParameters(QWidget):
+    def __init__(self, sampling_item):
+        super().__init__()
+        
+        layout = QVBoxLayout(self)
+
+        self.container = QWidget(objectName="light_blue_box")
+        layout_container = QVBoxLayout(self.container)
+
+
+        label_refParameters = QLabel("Parameters: ", objectName="larger")
+        label_refParameters.setStyleSheet("font-weight: bold;")
+
+        # ROW 1 (Dwell time) ----------------------------------------
+        self.row_1 = QWidget()
+        layout_row_1 = QHBoxLayout(self.row_1)
+
+        label_dwell = QLabel("Dwell time (s): ")
+        self.ref_dwell = QLineEdit()
+        self.ref_dwell.setValidator(QDoubleValidator(0, 250, 2))
+        self.ref_dwell.setMaxLength(3)
+
+        layout_row_1.addWidget(label_dwell, alignment=Qt.AlignLeft)
+        layout_row_1.addWidget(self.ref_dwell, alignment=Qt.AlignRight)
+        layout_row_1.setContentsMargins(0, 5, 0, 0)
+
+
+        # ROW 2 (Sample time) ----------------------------------------
+        self.row_2 = QWidget()
+        layout_row_2 = QHBoxLayout(self.row_2)
+
+        label_sampleTime = QLabel("Sample time (s): ")
+        self.input_refSampleTime = QLineEdit()
+        self.input_refSampleTime.setValidator(QDoubleValidator(0, 250, 2))
+        self.input_refSampleTime.setMaxLength(3)
+
+        layout_row_2.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(self.input_refSampleTime, alignment=Qt.AlignRight)
+        layout_row_2.setContentsMargins(0, 5, 0, 0)
+
+    
+        # ROW 3 (Sample height) ----------------------------------------
+        self.row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(self.row_3)
+
+        label_sampleHeight = QLabel("Sample height (mm): ")
+        self.input_refSampleHeight = QLineEdit()
+        self.input_refSampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
+        self.input_refSampleHeight.setMaxLength(4)
+
+        layout_row_3.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
+        layout_row_3.addWidget(self.input_refSampleHeight, alignment=Qt.AlignRight)
+        layout_row_3.setContentsMargins(0, 5, 0, 0)
+
+
+        # COMPOSE ALL ------------------------------------------------
+        layout_container.addWidget(label_refParameters)
+        layout_container.addWidget(self.row_1)
+        layout_container.addWidget(self.row_2)
+        layout_container.addWidget(self.row_3)
+
+        self.container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
+
+        layout.addWidget(self.container)
+        layout.setContentsMargins(0, 0, 0, 0) 
+        layout.setSpacing(0)  
+
+
+        self.setStyleSheet("""
+            QWidget { background-color: #C8D3F1; }
+            QLineEdit, QComboBox { background-color: white; }
+        """)
