@@ -108,7 +108,7 @@ class Main(QWidget):
         self.page5.goToPrerun.connect(lambda: self.stacked.setCurrentIndex(3))
         self.page5.goToROI.connect(lambda: self.stacked.setCurrentIndex(2))
 
-        self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
+        self.page7.offsetAvailable.connect(lambda: self.page8.calculateOffset())
         
 
         self.nav = NavBar(self.stacked)
