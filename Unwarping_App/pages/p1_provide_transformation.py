@@ -94,7 +94,7 @@ class ProvideTransformation(QWidget):
 
         # self.checkAllowNext()
         self.component_unwarpComparison.result.image_label.clear()
-    
+        # TODO Actually clear values too....
         self.resultAvailable.emit(None)
 
 

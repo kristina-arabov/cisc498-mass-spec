@@ -25,7 +25,7 @@ class SamplingItem():
 
         self.real_points_list = None
 
-        # Sampling parameters (ROI)
+        # Sampling parameters
         self.spatialRes_X = None
         self.spatialRes_Y = None
 
@@ -35,26 +35,17 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
-        # Reference parameters
-        self.ref_dwellTime = None
-        self.ref_sampleTime = None
-        self.ref_sampleHeight = None
-
         # Speed + Step size
         self.xy_speed = None
         self.z_down_speed = None
         self.z_up_speed = None
-        
         self.stepSize = None
-        self.ref_stepSize = None
 
 
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
-        # Sampling modes (ROI and reference)
         self.mode = "constant"
-        self.ref_mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -121,17 +112,6 @@ def setTransformation(transformation, path, valid):
         file.close()
     
     except:
-        transformation.mtx1 = None
-        transformation.dist1 = None
-
-        transformation.mtx2 = None
-        transformation.dist2 = None
-
-        transformation.height = None
-
-        transformation.offset_x = None
-        transformation.offset_y = None
-
         valid = False
 
     return valid
@@ -386,6 +366,8 @@ def getSampling(sampling):
 
     # Conductive mode
     elif sampling.mode == "conductive":
+        print("conductive selected")
+
         # Loop through calculated locations
         for i in locations:
             appendXYMove(sampling, i)       # Go to (X, Y) location
@@ -430,20 +412,17 @@ def getSampling(sampling):
 
 # Commands to move to the reference point
 def appendReferencePoint(sampling):
-    # sampling.dot = [100, 100, 0]
     appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
 
-    # Constant Z
-    if sampling.ref_mode == "constant":
-        appendSampleHeight_Ref(sampling)    # Go to reference sampling height
-    
-    # Conductive mode
-    elif sampling.ref_mode == "conductive":
-        appendConductanceZ_Ref(sampling)        # Use relative positioning with step size
+    if sampling.mode != "conductive":
+        appendSampleHeight(sampling)            # Go to Z sampling height
+    else:
+        # TODO TEMPORARY
+        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
 
-    appendSampleTime_Ref(sampling)          # Use reference sample time
-    appendTransitHeight(sampling)           # Return to transit height
-    appendDwellTime_Ref(sampling)           # Use reference dwell time
+    appendSampleTime(sampling)              # Sample for __ milliseconds
+    appendTransitHeight(sampling)           # Return to Z transit height
+    appendDwellTime(sampling)               # Dwell for __ milliseconds
 
 
 # Command: Movement to transit height before starting X,Y movements
@@ -474,12 +453,7 @@ def appendTransitHeight(sampling):
 
 # Command: Go to Z sampling height
 def appendSampleHeight(sampling):
-    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
-
-
-# Command: Go to Z sampling height (defined in reference parameters) 
-def appendSampleHeight_Ref(sampling):
-    sampling.gcodes.append(f"G0 Z{str(sampling.ref_sampleHeight)} F{str(sampling.z_down_speed)}")
+    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
 
 
 # Command: Move down until conductance detected
@@ -489,34 +463,15 @@ def appendConductanceZ(sampling):
     sampling.gcodes.append("G90")
 
 
-# Command: Move down until conductance detected (defined in reference parameters)
-def appendConductanceZ_Ref(sampling):
-    sampling.gcodes.append("G91")
-    sampling.gcodes.append(f"G0 Z-{str(sampling.ref_stepSize)} F{str(sampling.z_down_speed)}") 
-    sampling.gcodes.append("G90")
-
-
-# Command: Dwell for __ seconds
+# Command: Dwell for __ milliseconds
 def appendDwellTime(sampling):
     dwell_time = int(sampling.dwellTime) * 1000
     sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
-# Command: Dwell for __ seconds (defined in reference parameters)
-def appendDwellTime_Ref(sampling):
-    dwell_time = int(sampling.ref_dwellTime) * 1000
-    sampling.gcodes.append(f"G4 P{str(dwell_time)}")
-
-
-# Command: Sample for __ seconds
+# Command: Sample for __ milliseconds
 def appendSampleTime(sampling):
     sample_time = int(sampling.sampleTime) * 1000 
-    sampling.gcodes.append(f"G4 P{str(sample_time)}")
-
-
-# Command: Sample for __ seconds (defined in reference parameters)
-def appendSampleTime_Ref(sampling):
-    sample_time = int(sampling.ref_sampleTime) * 1000 
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
 
