@@ -25,7 +25,7 @@ class SamplingItem():
 
         self.real_points_list = None
 
-        # Sampling parameters
+        # Sampling parameters (ROI)
         self.spatialRes_X = None
         self.spatialRes_Y = None
 
@@ -34,6 +34,11 @@ class SamplingItem():
 
         self.transitHeight = None
         self.sampleHeight = None
+
+        # Reference parameters
+        self.ref_dwellTime = None
+        self.ref_sampleTime = None
+        self.ref_sampleHeight = None
 
         # Speed + Step size
         self.xy_speed = None
@@ -45,7 +50,9 @@ class SamplingItem():
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
+        # Sampling modes (ROI and reference)
         self.mode = "constant"
+        self.ref_mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -366,8 +373,6 @@ def getSampling(sampling):
 
     # Conductive mode
     elif sampling.mode == "conductive":
-        print("conductive selected")
-
         # Loop through calculated locations
         for i in locations:
             appendXYMove(sampling, i)       # Go to (X, Y) location
@@ -412,17 +417,20 @@ def getSampling(sampling):
 
 # Commands to move to the reference point
 def appendReferencePoint(sampling):
+    # sampling.dot = [100, 100, 0]
     appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
 
-    if sampling.mode != "conductive":
-        appendSampleHeight(sampling)            # Go to Z sampling height
-    else:
-        # TODO TEMPORARY
-        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
+    # Constant Z
+    if sampling.ref_mode == "constant":
+        appendSampleHeight_Ref(sampling)    # Go to reference sampling height
+    
+    # Conductive mode
+    elif sampling.ref_mode == "conductive":
+        appendConductanceZ(sampling)        # Use relative positioning with step size
 
-    appendSampleTime(sampling)              # Sample for __ milliseconds
-    appendTransitHeight(sampling)           # Return to Z transit height
-    appendDwellTime(sampling)               # Dwell for __ milliseconds
+    appendSampleTime_Ref(sampling)          # Use reference sample time
+    appendTransitHeight(sampling)           # Return to transit height
+    appendDwellTime_Ref(sampling)           # Use reference dwell time
 
 
 # Command: Movement to transit height before starting X,Y movements
@@ -453,7 +461,12 @@ def appendTransitHeight(sampling):
 
 # Command: Go to Z sampling height
 def appendSampleHeight(sampling):
-    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
+
+
+# Command: Go to Z sampling height (defined in reference parameters) 
+def appendSampleHeight_Ref(sampling):
+    sampling.gcodes.append(f"G0 Z{str(sampling.ref_sampleHeight)} F{str(sampling.z_down_speed)}")
 
 
 # Command: Move down until conductance detected
@@ -463,15 +476,27 @@ def appendConductanceZ(sampling):
     sampling.gcodes.append("G90")
 
 
-# Command: Dwell for __ milliseconds
+# Command: Dwell for __ seconds
 def appendDwellTime(sampling):
     dwell_time = int(sampling.dwellTime) * 1000
     sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
-# Command: Sample for __ milliseconds
+# Command: Dwell for __ seconds (defined in reference parameters)
+def appendDwellTime_Ref(sampling):
+    dwell_time = int(sampling.ref_dwellTime) * 1000
+    sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+# Command: Sample for __ seconds
 def appendSampleTime(sampling):
     sample_time = int(sampling.sampleTime) * 1000 
+    sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
+
+# Command: Sample for __ seconds (defined in reference parameters)
+def appendSampleTime_Ref(sampling):
+    sample_time = int(sampling.ref_sampleTime) * 1000 
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
 
@@ -583,7 +608,7 @@ def runGCode(printer, conduct):
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
-    printer.cmd(line)
+    # printer.cmd(line)
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
