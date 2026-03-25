@@ -52,7 +52,7 @@ class Main(QWidget):
         self.page2 = ROISelection(sampling_transformation, samplingItem)
         self.page3 = PrerunConfig(samplingItem)
         self.page4 = SamplingProgress(self.printer, samplingItem)
-        self.page5 = SamplingComplete()
+        self.page5 = SamplingComplete(samplingItem)
         self.page6 = CheckerboardDetection(self.camera, self.light_connection, self.printer, transformation)
         self.page7 = ProbeDetection(self.camera, self.light_connection, self.printer, transformation)
         self.page8 = TransformationReview(transformation)
@@ -104,6 +104,9 @@ class Main(QWidget):
         self.page3.photo.roiSignal.connect(lambda dot, rect, x, y, rows: self.page4.photo.setVals(dot, rect, x, y, rows))
 
         self.page4.returnToConfig.connect(lambda: self.stacked.setCurrentIndex(3))
+
+        self.page5.goToPrerun.connect(lambda: self.stacked.setCurrentIndex(3))
+        self.page5.goToROI.connect(lambda: self.stacked.setCurrentIndex(2))
 
         self.page7.component_tag.offsetAvailable.connect(lambda: self.page8.calculateOffset())
         
