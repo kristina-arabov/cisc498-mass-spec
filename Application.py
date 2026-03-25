@@ -146,7 +146,7 @@ def global_poll():
                     if positioning == "relative":
 
                         # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
-                        if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height,2)]:
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos[0] == next_x and printer.pos[1] == next_y:
                             waiting_for_signal = False
                             probe.moving = False
 
