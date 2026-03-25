@@ -201,12 +201,17 @@ class PrerunConfig(QWidget):
     def handleReferenceMode(self, type=None):
         params = self.component_refParams
 
-        # Constant Z mode
+        # Constant Z mode (Hide and clear step size)
         if type == "constant":
             params.row_3.show()
 
+            params.row_4.hide()
+            params.input_refZstepSize.clear()
+
         # Conductive mode (Hide and clear sampling height)
         elif type == "conductive":
+            params.row_4.show()
+
             params.row_3.hide()
             params.input_refSampleHeight.clear()
 
@@ -718,11 +723,28 @@ class ReferenceParameters(QWidget):
         layout_row_3.setContentsMargins(0, 5, 0, 0)
 
 
+        # ROW 4 (Z-step size) ----------------------------------------
+        self.row_4 = QWidget()
+        layout_row_4 = QHBoxLayout(self.row_4)
+
+        label_ZstepSize = QLabel("Z Step Size (mm): ")
+        self.input_refZstepSize = QLineEdit()
+        self.input_refZstepSize.setValidator(QDoubleValidator(0, 5, 3))
+        self.input_refZstepSize.setMaxLength(5)
+
+        layout_row_4.addWidget(label_ZstepSize, alignment=Qt.AlignLeft)
+        layout_row_4.addWidget(self.input_refZstepSize, alignment=Qt.AlignRight)
+        layout_row_4.setContentsMargins(0, 5, 0, 0)
+
+        self.row_4.hide()
+
+
         # COMPOSE ALL ------------------------------------------------
         layout_container.addWidget(label_refParameters)
         layout_container.addWidget(self.row_1)
         layout_container.addWidget(self.row_2)
         layout_container.addWidget(self.row_3)
+        layout_container.addWidget(self.row_4)
 
         self.container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
 
@@ -747,6 +769,9 @@ class ReferenceParameters(QWidget):
         # Sample height
         self.input_refSampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refSampleHeight.text(), "sample_height"))
 
+        # Step size
+        self.input_refZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refZstepSize.text(), "step_size"))
+
 
     # Function to set the sampling variables (reference)
     def setVars(self, sampling, val, type):
@@ -764,6 +789,10 @@ class ReferenceParameters(QWidget):
         # Sample height
         elif type == "sample_height":
             sampling.ref_sampleHeight = i
+
+        # Step size
+        elif type == "step_size":
+            sampling.ref_stepSize = i
 
         else:
             pass

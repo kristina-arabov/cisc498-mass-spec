@@ -44,7 +44,9 @@ class SamplingItem():
         self.xy_speed = None
         self.z_down_speed = None
         self.z_up_speed = None
+        
         self.stepSize = None
+        self.ref_stepSize = None
 
 
         self.startLoc = None
@@ -426,7 +428,7 @@ def appendReferencePoint(sampling):
     
     # Conductive mode
     elif sampling.ref_mode == "conductive":
-        appendConductanceZ(sampling)        # Use relative positioning with step size
+        appendConductanceZ_Ref(sampling)        # Use relative positioning with step size
 
     appendSampleTime_Ref(sampling)          # Use reference sample time
     appendTransitHeight(sampling)           # Return to transit height
@@ -473,6 +475,13 @@ def appendSampleHeight_Ref(sampling):
 def appendConductanceZ(sampling):
     sampling.gcodes.append("G91")
     sampling.gcodes.append(f"G0 Z-{str(sampling.stepSize)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append("G90")
+
+
+# Command: Move down until conductance detected (defined in reference parameters)
+def appendConductanceZ_Ref(sampling):
+    sampling.gcodes.append("G91")
+    sampling.gcodes.append(f"G0 Z-{str(sampling.ref_stepSize)} F{str(sampling.z_down_speed)}") 
     sampling.gcodes.append("G90")
 
 
