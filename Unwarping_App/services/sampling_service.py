@@ -464,7 +464,7 @@ def appendXYMove(sampling, loc):
 
 # Command: Go to a specific height
 def appendZChange(sampling, loc):
-    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+    sampling.gcodes.append(f"G0 Z{str(loc[2])} F{str(sampling.z_up_speed)}")
 
 
 # Command: Move back to transit height
@@ -642,8 +642,8 @@ def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
     pos = printer.pos if printer.pos is not None else [0, 0, 0]
+
     c = device_service.getConductance(conductance) if conductance.status else 0
-    # pos = [1, 2, 3]
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
