@@ -144,105 +144,128 @@ def findLocations(transformation, sampling, img):
 
     sampling.originalLoc = transformation.photo_loc
 
+    # If no reference point + ROI then don't caluclate locations
     if not dot or not rectangle:
         return
 
+    start_point = rectangle.topLeft()
+    end_point = rectangle.bottomRight()
+
+    # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
+
+    # Get printer position from photo
     pos = transformation.photo_loc
 
+    # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
-    dist1 = transformation.dist1.copy()  # Use real dist1, don't zero it
+
+    mtx1[0][0] = mtx1[0][0]
+    mtx1[1][1] = mtx1[1][1]
+
+    while mtx1[0][0] > 1000 and mtx1[1][1] > 1000:
+        mtx1[0][0] *= 0.1
+        mtx1[1][1] *= 0.1
+
+    dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
+    # dist1 = transformation.dist1.copy()
+
     mtx2 = transformation.mtx2.copy()
     dist2 = transformation.dist2.copy()
 
-    # --- Step 1: Undistort the raw image fully before ArUco detection ---
-    # Undistort with first calibration
-    h, w = image.shape[:2]
-    map1x, map1y = cv2.initUndistortRectifyMap(mtx1, dist1, None, mtx1, (w, h), cv2.CV_32FC1)
-    image_rect1 = cv2.remap(image, map1x, map1y, cv2.INTER_LINEAR)
 
-    # Undistort with second calibration
-    map2x, map2y = cv2.initUndistortRectifyMap(mtx2, dist2, None, mtx2, (w, h), cv2.CV_32FC1)
-    image_rect2 = cv2.remap(image_rect1, map2x, map2y, cv2.INTER_LINEAR)
-
-    # --- Step 2: Detect tag in the FULLY rectified image ---
+    # Detect tag in the image
     dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
     parameters = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(dictionary, parameters)
-    corners, ids, _ = detector.detectMarkers(image_rect2)
 
+    corners, ids, _ = detector.detectMarkers(image)
     if not corners or len(corners) == 0:
         print("Tag not detected")
         return
 
     image_points = corners[0].reshape(-1, 2).astype(np.float32)
+    
 
+    # Apply tag size
     tag_size = transformation.tag_size
     object_points = np.array([
-        [tag_size, 0, 0],
+        [tag_size, 0, 0], 
         [0, 0, 0],
         [0, tag_size, 0],
         [tag_size, tag_size, 0]], dtype=np.float32)
 
-    # --- Step 3: solvePnP using mtx2 (camera model of rectified image),
-    #             with zero distortion since we already undistorted ---
-    retval, rvec, tvec = cv2.solvePnP(
-        object_points, image_points,
-        mtx2, np.zeros((1, 5), dtype=np.float32),  # zero dist: image is already rectified
-        flags=cv2.SOLVEPNP_ITERATIVE
-    )
-    rvec, tvec = cv2.solvePnPRefineLM(
-        object_points, image_points,
-        mtx2, np.zeros((1, 5), dtype=np.float32), rvec, tvec
-    )
-
-    R_tag2cam, _ = cv2.Rodrigues(rvec)
-    R_cam2tag = R_tag2cam.T
-    t_cam2tag = -R_tag2cam.T @ tvec
-
     t = transformation.tag_bottom_left
     tag_corner = np.array([t[0], t[1], 0], dtype=np.float32)
 
+
+    retval, rvec, tvec = cv2.solvePnP(object_points, image_points, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)
+    rvec, tvec = cv2.solvePnPRefineLM(object_points, image_points, mtx1, dist1, rvec, tvec)
+    rvec, tvec = cv2.solvePnPRefineVVS(object_points, image_points, mtx1, dist1, rvec, tvec)
+    R_tag2cam, _ = cv2.Rodrigues(rvec) # convert to matrix
+
+    # Get camera to tag (invert transformation)
+    R_cam2tag = R_tag2cam.T
+    t_cam2tag = -R_tag2cam.T @ tvec
+
+    # Get tag to base
     R_base2tag = np.eye(3)
     t_base2tag = tag_corner.reshape(-1, 1)
 
-    R_cam2base = R_base2tag @ R_cam2tag
-    t_cam2base = R_base2tag @ t_cam2tag + t_base2tag
+    # Get camera to tag, tag to base = camera to base
+    R_cam2base_overlay = R_base2tag @ R_cam2tag
+    t_cam2base_overlay = R_base2tag @ t_cam2tag + t_base2tag
+
+    R_base2cam = R_cam2base_overlay.T
+    t_base2cam = -R_cam2base_overlay.T @ t_cam2base_overlay
+
 
     scale = img.scale_val
+    print(f"FIND LOCATIONS: {scale}")
 
-    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base, mtx2)
+    # PROCESS DOT ----------------------------------------------
+    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    
+
+    # PROCESS RECTANGLE --------------------------------------
+    # sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
 
-    print("Dot location")
+    # print(sampling.rectangle)
     print(sampling.dot)
+    # print(sampling.rectangle)
+
 
 
 # Function to get the 3D location of the reference point from a 2D location
-def processDot(scale, transformation, dot, pos, cam2base, mtx):
-    # Unscale the display pixel back to image pixel
+def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
     dot_unscaled = (int(dot.x() / scale), int(dot.y() / scale))
 
-    # Get ray direction from the final rectified image using mtx2
-    direction = getDirectionFromPixel(dot_unscaled[0], dot_unscaled[1], mtx)
+    new_dot = calibration_service.undoSecondUnwarp(dot_unscaled, mtx2, dist2)
 
-    dot_in_base = cam2base @ direction
+    dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
+
+    dot_in_base = cam2base @ dot_from_cam_principal
+
+    print(dot_in_base)
 
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
-
+    
+    # Add probe offset to dot position
     if transformation.offset_x < 0:
         dot_x -= transformation.offset_x
     else:
         dot_x += transformation.offset_x
-
+    
     if transformation.offset_y < 0:
         dot_y += transformation.offset_y
     else:
         dot_y -= transformation.offset_y
 
-    return [float(dot_x.item()), float(dot_y.item())]
+    probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
+    return probe_dot
 
 
 # Function to get the 3D range of the rectangle from 2D points
@@ -280,11 +303,11 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     
     # Apply Y offset
     if transformation.offset_y < 0:
-        start_y += transformation.offset_y
-        end_y += transformation.offset_y
-    else:
         start_y -= transformation.offset_y
         end_y -= transformation.offset_y
+    else:
+        start_y += transformation.offset_y
+        end_y += transformation.offset_y
 
     
 
@@ -297,11 +320,17 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
 
 # Returns direction for a location from the camera principal point
 def getDirectionFromPixel(u, v, mtx):
+    # (u, v) are pixel coordinates in the image
     fx = mtx[0, 0]
     fy = mtx[1, 1]
     cx = mtx[0, 2]
     cy = mtx[1, 2]
-    direction = np.array([(u - cx) / fx, (v - cy) / fy, 1.0])
+
+    x = (u - cx) / fx
+    y = (v - cy) / fy
+    z = 1.0
+
+    direction = np.array([x, y, z])
     return direction
 
 

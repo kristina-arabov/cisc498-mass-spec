@@ -103,7 +103,7 @@ def checkFishReadability(img, checkerboard, objp, flags):
     print(error)
     
     # Error should not be greater than 0.6 (safest bet since we're only using one image)
-    if error <= 0.6:
+    if error <= 0.6 and K[0][0] > 0 and K[1][1] > 0:
         objpoints = np.asarray(objpoints, dtype=np.float32).reshape(-1, 3)
         imgpoints = np.asarray(imgpoints, dtype=np.float32).reshape(-1, 2)
 
