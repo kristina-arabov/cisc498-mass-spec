@@ -144,7 +144,7 @@ def global_poll():
 
                     # Relative positioning handling
                     if positioning == "relative":
-                        
+
                         # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
                         if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height,2)]:
                             waiting_for_signal = False
@@ -335,6 +335,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(300)  # every .5 seconds
+    global_timer.start(100)  # every .5 seconds
 
     sys.exit(app.exec_())
