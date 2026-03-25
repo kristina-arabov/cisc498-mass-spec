@@ -42,7 +42,7 @@ next_x = 0
 next_y = 0
 waiting_for_signal = False
 
-state = "idle"
+# state = "idle"
 positioning = "absolute"
 
 delta_z = 0
@@ -51,7 +51,7 @@ threshold = 99
 
 
 def global_poll():
-    global state, positioning, next_height, next_x, next_y, delta_z, waiting_for_signal
+    global positioning, next_height, next_x, next_y, delta_z, waiting_for_signal
 
     if len(probe.gcodes) <= 0 or probe.paused:
         pass
@@ -61,6 +61,7 @@ def global_poll():
         line = probe.gcodes[0]
         sampling_service.addData(printer, conduct)
 
+        # Probe is ready to move
         if not probe.moving:
             # Absolute positioning
             if "G90" in line:
@@ -79,79 +80,79 @@ def global_poll():
                 sampling_service.runGCode(printer, conduct)
 
             # Printer ready for movement
-            if state == "idle":
-                if "G0" in line or "G1" in line:
-                    print(f"Moving to position: {line}")
-                    
-                    # Z position change
-                    if "Z" in line:
-                        match = re.search(r"^G0 Z(-?\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+            # if state == "idle":
+            elif "G0" in line or "G1" in line:
+                print(f"Moving to position: {line}")
+                
+                # Z position change
+                if "Z" in line:
+                    match = re.search(r"^G0 Z(-?\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
 
-                        # Downward movement
-                        if match and probe.mode == "conductive" and positioning == "relative":
-                            delta_z = float(match.group(1))
-                            next_height = printer.pos[2] + delta_z
+                    # Downward movement
+                    if match and probe.mode == "conductive" and positioning == "relative":
+                        delta_z = float(match.group(1))
+                        next_height = printer.pos[2] + delta_z
 
-                            probe.moving = True
-                            waiting_for_signal = True
+                        probe.moving = True
+                        waiting_for_signal = True
 
-                        elif match and positioning == "absolute":
-                            next_height = float(match.group(1))
-
-                            probe.moving = True
-                            sampling_service.runGCode(printer, conduct)
-
-                    # X and Y position change
-                    elif "X" in line and "Y" in line:
-                        match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
-                        match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
-
-                        next_x = float(match_x.group(1))
-                        next_y = float(match_y.group(1))
+                    elif match and positioning == "absolute":
+                        next_height = float(match.group(1))
 
                         probe.moving = True
                         sampling_service.runGCode(printer, conduct)
 
+                # X and Y position change
+                elif "X" in line and "Y" in line:
+                    match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
+                    match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
+
+                    next_x = float(match_x.group(1))
+                    next_y = float(match_y.group(1))
+
+                    probe.moving = True
+                    sampling_service.runGCode(printer, conduct)
+
+        # Probe is moving
         elif probe.moving:
             
             # Checks for Constant-Z sampling mode
             if probe.mode == "constant":
                 if printer.pos[2] == next_height:
                     probe.moving = False
-                    state = "idle"
+                    # state = "idle"
 
 
             # Checks for Drag sampling mode
             elif probe.mode == "drag":
                 if printer.pos[2] == next_height:
                     probe.moving = False
-                    state = "idle"
+                    # state = "idle"
 
                 if printer.pos[2] == round(next_height, 2) and printer.pos[0] == next_x and printer.pos[1] == next_y:
                     probe.moving = False
-                    state = "idle"
+                    # state = "idle"
 
                 else:
                     pass
+
 
             # Checks for Conductive mode
             elif probe.mode == "conductive":
                 # If conductance reader is active
                 if conduct.status:
                     conductance_val = device_service.getConductance(conduct)
-                    # print(conductance_val)
-
-                    print(next_x, next_y, next_height)
-                    print(printer.pos)
 
                     # Relative positioning handling
                     if positioning == "relative":
+                        # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
                         if conductance_val >= threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height, 2)]:
                             waiting_for_signal = False
                             probe.moving = False
-                            state = "idle"
+                            # state = "idle"
                             probe.gcodes.pop(0)
                         
+                        # If conductance threshold has not been reached, keep moving down
                         elif conductance_val < threshold:
                             probe.moving = True
                             next_height = printer.pos[2] + delta_z
@@ -161,9 +162,8 @@ def global_poll():
                     # TODO printer height?
                     elif positioning == "absolute":
                         probe.moving = False
-                        state = "idle"
+                        # state = "idle"
 
-                
                 # If no conductance connected, do not perform sampling!!!
                 else:
                     print("No condutance detected. Will not perform sampling run.")
