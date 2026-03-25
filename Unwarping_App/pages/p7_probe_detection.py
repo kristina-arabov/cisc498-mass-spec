@@ -10,6 +10,7 @@ from Unwarping_App.services import device_service, calibration_service
 
 class ProbeDetection(QWidget):
     next = pyqtSignal()
+    offsetAvailable = pyqtSignal()
 
     def __init__(self, camera, lights, printer, transformation):
         super().__init__()
@@ -100,7 +101,27 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_tagSize.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, 
                                                                                                               self.component_tagInformation.input_tagSize.text(), 
                                                                                                               "size"))
+        
+
+        # Check ability to calculate offset
+        self.component_tagInformation.input_bottomLeftX.textChanged.connect(lambda: self.checkOffset())
+        self.component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: self.checkOffset())
+        self.component_tagInformation.input_tagSize.textChanged.connect(lambda: self.checkOffset())
+
+        self.component_tag.checkOffset.connect(lambda: self.checkOffset())
     
+
+    # Function to check if offset can be calculated
+    def checkOffset(self):
+        # All inputs and corners must not be None/False
+        x_coord = self.component_tagInformation.input_bottomLeftX.text()
+        y_coord = self.component_tagInformation.input_bottomLeftY.text()
+        tag_size = self.component_tagInformation.input_tagSize.text()
+
+        if x_coord and y_coord and tag_size and not False in self.component_tag.corners_imaged:
+            self.offsetAvailable.emit()
+
+
 
     # Function to reset front-end
     def clearAll(self):
@@ -144,7 +165,7 @@ class ProbeDetection(QWidget):
 
 
 class TagInstructions(QWidget):
-    offsetAvailable = pyqtSignal()
+    checkOffset = pyqtSignal()
 
     def __init__(self, camera, printer, transformation):
         super().__init__()
@@ -187,7 +208,7 @@ class TagInstructions(QWidget):
         self.button_previousCorner = QPushButton("Previous corner", objectName="clear")
         self.button_previousCorner.setEnabled(False)
 
-        self.button_probeLocation = QPushButton("Probe at location", objectName="blue")
+        self.button_probeLocation = QPushButton("Corner at crosshair", objectName="blue")
 
         layout_column_2.addStretch()
         layout_column_2.addWidget(self.button_nextCorner)
@@ -269,7 +290,7 @@ class TagInstructions(QWidget):
 
         # Send signal to calculate probe-to-camera offset with available values
         if not False in self.corners_imaged:
-            self.offsetAvailable.emit()
+            self.checkOffset.emit()
 
 
     # Function to set colours to probed or not probed corners
