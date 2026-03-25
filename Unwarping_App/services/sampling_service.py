@@ -418,7 +418,7 @@ def appendReferencePoint(sampling):
         appendSampleHeight(sampling)            # Go to Z sampling height
     else:
         # TODO TEMPORARY
-        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
+        sampling.gcodes.append(f"G0 Z{str(sampling.transitHeight - 1)} F{str(sampling.z_down_speed)}")
 
     appendSampleTime(sampling)              # Sample for __ milliseconds
     appendTransitHeight(sampling)           # Return to Z transit height
@@ -443,7 +443,7 @@ def appendXYMove(sampling, loc):
 
 # Command: Go to a specific height
 def appendZChange(sampling, loc):
-    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+    sampling.gcodes.append(f"G0 Z{str(loc[2])} F{str(sampling.z_up_speed)}")
 
 
 # Command: Move back to transit height
