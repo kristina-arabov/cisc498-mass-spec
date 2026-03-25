@@ -47,7 +47,6 @@ positioning = "absolute"
 
 delta_z = 0
 
-threshold = 99
 
 
 def global_poll():
@@ -95,6 +94,7 @@ def global_poll():
 
                         probe.moving = True
                         waiting_for_signal = True
+                        printer.cmd(line) # send inital step
 
                     elif match and positioning == "absolute":
                         next_height = float(match.group(1))
@@ -139,23 +139,24 @@ def global_poll():
 
             # Checks for Conductive mode
             elif probe.mode == "conductive":
-                # If conductance reader is active
                 if conduct.status:
                     conductance_val = device_service.getConductance(conduct)
 
                     # Relative positioning handling
                     if positioning == "relative":
+                        
                         # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
-                        if conductance_val >= threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height, 2)]:
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos == [next_x, next_y, round(next_height,2)]:
                             waiting_for_signal = False
                             probe.moving = False
-                            # state = "idle"
+
                             probe.gcodes.pop(0)
                         
                         # If conductance threshold has not been reached, keep moving down
-                        elif conductance_val < threshold:
+                        elif conductance_val < printer.con_threshold:
                             probe.moving = True
                             next_height = printer.pos[2] + delta_z
+
                             printer.cmd(line)
 
                     # Absolute positioning handling

@@ -371,7 +371,7 @@ def getSampling(sampling):
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
 
-    appendReferencePoint(sampling)
+    # appendReferencePoint(sampling)
 
     # Constant Z mode
     if sampling.mode == "constant":
