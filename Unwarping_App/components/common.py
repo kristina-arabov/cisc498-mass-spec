@@ -1650,7 +1650,8 @@ class ClickableImage(QLabel):
                 "y_range": self.y_range,
                 "x_count": self.sample_overlay_x,
                 "y_count": self.sample_overlay_y,
-                "rows": self.rowsOnly
+                "rows": self.rowsOnly,
+                "polygon": self.polygon_points
             })
 
         except Exception as e:
@@ -1683,8 +1684,11 @@ class ClickableImage(QLabel):
             self.rectangle = data["rect"]
 
         if data.get("polygon") is not None:
-            self.polygon_points = list(data)
-            self.polygon_active = bool(data)
+            self.polygon_points = list(data["polygon"])
+            self.polygon_active = bool(data["polygon"])
+
+            print(self.polygon_points)
+            print(self.polygon_active)
 
         self.update()
 
