@@ -617,7 +617,7 @@ def runGCode(printer, conduct):
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
-    # printer.cmd(line)
+    printer.cmd(line)
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
