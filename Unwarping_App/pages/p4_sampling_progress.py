@@ -21,7 +21,6 @@ class SamplingProgress(QWidget):
         
         self.initUI()
 
-    
     def initUI(self):
         styling = "Unwarping_App/components/style.css"
         with open(styling,"r") as file:
@@ -86,32 +85,31 @@ class SamplingProgress(QWidget):
             fraction = sampling_service.progress.fraction
             self.label_points.setText(f"{fraction} points sampled")
 
+            # Update the grid coloration based on sampled points.
+            if hasattr(self.photo, "setSampledPoints"):
+                try:
+                    self.photo.setSampledPoints(getattr(self.sampling, "sampled_points_set", set()))
+                except Exception:
+                    pass
+
     
     def handlePause(self, stopped):
         if stopped:
-            
-            # TODO Check this works?
             try:
                 sampling_service.pause(self.printer)
             except:
                 pass
 
             self.img_loadingCircle.hide()
-            # self.label_estimatedTime.hide()
             self.label_points.hide()
             self.button_pause.hide()
-
             self.operations.show()
-        
         else:
             self.img_loadingCircle.show()
-            # self.label_estimatedTime.show()
             self.label_points.show()
             self.button_pause.show()
-
             self.operations.hide()
-            
-            # TODO check this works?
+
             try:
                 sampling_service.resume(self.printer)
             except:
@@ -127,6 +125,13 @@ class SamplingProgress(QWidget):
         self.button_pause.show()
 
         self.operations.hide()
+
+        # Clear any highlighted grid cells.
+        if hasattr(self.photo, "setSampledPoints"):
+            try:
+                self.photo.setSampledPoints(set())
+            except Exception:
+                pass
 
         # Return to previous page (signal)
         self.returnToConfig.emit()

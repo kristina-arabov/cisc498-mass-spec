@@ -55,6 +55,8 @@ class SamplingItem():
 
         self.total_points = 0
         self.sampled_points = 0
+        # Track which grid cells that have been sampled for colouring
+        self.sampled_points_set = set()
 
         self.timestamps = []
         self.readable_timestamps = []
@@ -341,6 +343,7 @@ def getSampling(sampling):
     # Reset values
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
+    sampling.sampled_points_set = set()
 
     progress.updatePoints(sampling.sampled_points, sampling.total_points)
 
@@ -578,8 +581,15 @@ def runGCode(printer, conduct):
         match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
         match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
 
-        if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
+        try:
+            # Round to match how grid midpoints are stored in ClickableImage.
+            pt = (round(float(match_x.group(1)), 2), round(float(match_y.group(1)), 2))
+        except Exception:
+            pt = None
+
+        if pt is not None and samplingItem.real_points_list and pt in samplingItem.real_points_list:
             samplingItem.sampled_points += 1
+            samplingItem.sampled_points_set.add(pt)
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
 
     printer.cmd(line)
@@ -633,6 +643,7 @@ def stop(printer):
 
     samplingItem.total_points = 0
     samplingItem.sampled_points = 0
+    samplingItem.sampled_points_set = set()
 
     samplingItem.timestamps = []
     samplingItem.readable_timestamps = []

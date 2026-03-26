@@ -1150,6 +1150,8 @@ class ClickableImage(QLabel):
         self.probe_rectangle = []
         self.probe_dot = None
         self.real_points = []
+        # points for highlighted grid cells
+        self.sampled_points_set = set()
 
         self.sample_overlay_x = None
         self.sample_overlay_y = None
@@ -1390,6 +1392,7 @@ class ClickableImage(QLabel):
                 # Draw mid-points for each grid 
                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
+                sampled_points_set = getattr(self, "sampled_points_set", set())
 
                 for j in range(len(self.y_range) - 1):
                     for i in range(len(self.x_range) - 1):
@@ -1408,6 +1411,34 @@ class ClickableImage(QLabel):
                         if location not in self.real_points:
                             self.real_points.append(location)
 
+                        # If this grid cell's midpoint was sampled, fill the entire cell.
+                        if location in sampled_points_set:
+                            tx_left = (left - x0) / (x1 - x0)
+                            tx_right = (right - x0) / (x1 - x0)
+                            ty_top = (top - y0) / (y1 - y0)
+                            ty_bottom = (bottom - y0) / (y1 - y0)
+
+                            px_left = start_x + tx_left * width
+                            px_right = start_x + tx_right * width
+                            py_top = start_y + ty_top * height
+                            py_bottom = start_y + ty_bottom * height
+
+                            cell_left = int(min(px_left, px_right))
+                            cell_right = int(max(px_left, px_right))
+                            cell_top = int(min(py_top, py_bottom))
+                            cell_bottom = int(max(py_top, py_bottom))
+
+                            cell_w = cell_right - cell_left
+                            cell_h = cell_bottom - cell_top
+                            if cell_w > 0 and cell_h > 0:
+                                painter.fillRect(
+                                    cell_left,
+                                    cell_top,
+                                    cell_w,
+                                    cell_h,
+                                    QColor(0, 200, 0, 70),
+                                )
+
                         # Normalized X and Y
                         tx = (mid_x_real - x0) / (x1 - x0)
                         ty = (mid_y_real - y0) / (y1 - y0)
@@ -1416,7 +1447,6 @@ class ClickableImage(QLabel):
                         mid_x = start_x + tx * width
                         mid_y = start_y + ty * height
 
-                        painter.drawPoint(int(mid_x), int(mid_y))
 
             elif self.sample_overlay_y and self.rowsOnly:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
@@ -1573,6 +1603,10 @@ class ClickableImage(QLabel):
         if rows:
             self.rowsOnly = rows
 
+        self.update()
+
+    def setSampledPoints(self, points):
+        self.sampled_points_set = set(points) if points else set()
         self.update()
 
     # Function to update the rectangle ROI overlay
