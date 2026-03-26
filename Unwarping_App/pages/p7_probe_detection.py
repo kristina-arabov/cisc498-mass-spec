@@ -276,6 +276,11 @@ class TagInstructions(QWidget):
 
         position = device_service.getPrinterPosition(self.printer)
 
+        # Enforce same printer height
+        if position[2] != self.transformation.height:
+            self.label_instructions.setText(f"Cannot image corner. Ensure the printer height is set to Z={self.transformation.height} for all crosshair alignments.")
+            return
+
         setattr(self.transformation, f"loc{self.idx}", position)
         setattr(self.transformation, f"img{self.idx}", img)
 

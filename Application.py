@@ -88,7 +88,7 @@ def global_poll():
                     match = re.search(r"^G0 Z(-?\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
 
                     # Downward movement
-                    if match and probe.mode == "conductive" and positioning == "relative":
+                    if match and (probe.mode == "conductive" or probe.ref_mode == "conductive") and positioning == "relative":
                         delta_z = float(match.group(1))
                         next_height = printer.pos[2] + delta_z
 
@@ -117,7 +117,7 @@ def global_poll():
         elif probe.moving:
             
             # Checks for Constant-Z sampling mode
-            if probe.mode == "constant":
+            if probe.mode == "constant" or probe.ref_mode == "constant":
                 if printer.pos[2] == next_height:
                     probe.moving = False
                     # state = "idle"
@@ -138,7 +138,7 @@ def global_poll():
 
 
             # Checks for Conductive mode
-            elif probe.mode == "conductive":
+            elif probe.mode == "conductive" or probe.ref_mode == "conductive":
                 if conduct.status:
                     conductance_val = device_service.getConductance(conduct)
 

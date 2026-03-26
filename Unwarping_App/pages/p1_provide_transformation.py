@@ -101,16 +101,12 @@ class ProvideTransformation(QWidget):
     # Apply a selected transformation on the current camera frame
     def applyTransformation(self):
         try:
-            # TODO uncomment after testing
-            try:
-                pos = device_service.getPrinterPosition(self.printer)
-            
-            except:
-                pos = [0,0,0]
+            pos = device_service.getPrinterPosition(self.printer)
 
-            # if pos[2] != self.transformation.height:
-            #     print("height not same")
-            #     return
+            # Enforce same printer height
+            if pos[2] != self.transformation.height:
+                self.component_unwarpComparison.result.image_label.setText(f"   Please set the printer height to Z={self.transformation.height} before proceeding.")
+                return
 
             self.transformation.photo_loc = pos
 
@@ -125,6 +121,7 @@ class ProvideTransformation(QWidget):
             # Send signal to other pages in sampling workflow
             self.resultAvailable.emit(unwarped)
             # self.checkAllowNext()
+        
         except:
             pass
 
