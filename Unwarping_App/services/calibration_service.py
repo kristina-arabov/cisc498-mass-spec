@@ -127,7 +127,7 @@ def checkFishReadability(img, checkerboard, objp, flags):
     print(f"Fisheye RMS reprojection error: {error:.4f} px")
 
     # Error should not be greater than 0.6 px
-    if error <= 0.6:
+    if error <= 0.6 and K[0][0] > 0 and K[1][1] > 0:
         pass
     else:
         msg = "RMS error is too high to accurately calculate the probe-to-camera offset."
