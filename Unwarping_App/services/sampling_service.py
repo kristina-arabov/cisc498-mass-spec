@@ -157,16 +157,18 @@ def findLocations(transformation, sampling, img):
     # Get printer position from photo
     pos = transformation.photo_loc
 
-    # cv2.imshow("wat", image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
-    mtx1[0][0] = mtx1[0][0] * 0.01
-    mtx1[1][1] = mtx1[1][1] * 0.01
+
+    mtx1[0][0] = mtx1[0][0]
+    mtx1[1][1] = mtx1[1][1]
+
+    while mtx1[0][0] > 1000 and mtx1[1][1] > 1000:
+        mtx1[0][0] *= 0.1
+        mtx1[1][1] *= 0.1
 
     dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
+    # dist1 = transformation.dist1.copy()
 
     mtx2 = transformation.mtx2.copy()
     dist2 = transformation.dist2.copy()
@@ -224,7 +226,6 @@ def findLocations(transformation, sampling, img):
     # PROCESS DOT ----------------------------------------------
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
-
     # PROCESS RECTANGLE --------------------------------------
     sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
@@ -245,6 +246,8 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
 
     dot_in_base = cam2base @ dot_from_cam_principal
 
+    print(dot_in_base)
+
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
     
@@ -255,9 +258,9 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
         dot_x += transformation.offset_x
     
     if transformation.offset_y < 0:
-        dot_y += transformation.offset_y
-    else:
         dot_y -= transformation.offset_y
+    else:
+        dot_y += transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -299,11 +302,11 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     
     # Apply Y offset
     if transformation.offset_y < 0:
-        start_y += transformation.offset_y
-        end_y += transformation.offset_y
-    else:
         start_y -= transformation.offset_y
         end_y -= transformation.offset_y
+    else:
+        start_y += transformation.offset_y
+        end_y += transformation.offset_y
 
     
 
