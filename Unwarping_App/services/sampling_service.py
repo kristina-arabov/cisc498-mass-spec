@@ -258,9 +258,9 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
         dot_x += transformation.offset_x
     
     if transformation.offset_y < 0:
-        dot_y += transformation.offset_y
-    else:
         dot_y -= transformation.offset_y
+    else:
+        dot_y += transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
