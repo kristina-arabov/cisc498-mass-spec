@@ -1292,6 +1292,7 @@ class ClickableImage(QLabel):
         self._polygon_valid_pixels = []
         self.sample_overlay_x = None
         self.sample_overlay_y = None
+        
         self.update()
 
     def convertToPolygon(self):
@@ -1385,13 +1386,75 @@ class ClickableImage(QLabel):
                     py = int(py_min + t * py_span)
                     painter.drawLine(px_min, py, px_max, py)
 
-                # Midpoint dot for each cell inside the polygon
-                painter.setPen(QPen(QColor("#EAFFC2"), 5))
+                painter.setPen(QPen(QColor("#EAFFC2"), 3))
                 painter.setOpacity(1.0)
-                for px, py in self._polygon_valid_pixels:
-                    painter.drawPoint(px, py)
 
+                # Grids
+                rows = list(range(len(self.y_range) - 1))
+                rows = list(reversed(rows))
 
+                for row_idx, j in enumerate(rows):
+
+                    if row_idx % 2 == 0:
+                        x_indices = range(len(self.x_range) - 1)
+                    else:
+                        x_indices = reversed(range(len(self.x_range) - 1))
+
+                    for i in x_indices:
+
+                        left  = self.x_range[i]
+                        right = self.x_range[i + 1]
+
+                        top = self.y_range[j + 1]
+                        bottom = self.y_range[j]
+
+                        # Real midpoint
+                        mid_x_real = (left + right) / 2
+                        mid_y_real = (top + bottom) / 2
+
+                        # Normalized
+                        tx = (mid_x_real - bx0) / real_w
+                        ty = (mid_y_real - by0) / real_h
+
+                        # Midpoint as a pixel
+                        mid_x = px_min + tx * px_span
+                        mid_y = py_min + (1 - ty) * py_span
+
+                        location = (round(mid_x_real, 2), round(mid_y_real, 2))
+
+                        if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+
+                            # Corners (FIXED)
+                            tx_left   = (left - bx0) / real_w
+                            tx_right  = (right - bx0) / real_w
+                            ty_top    = (top - by0) / real_h
+                            ty_bottom = (bottom - by0) / real_h
+
+                            px_left   = px_min + tx_left * px_span
+                            px_right  = px_min + tx_right * px_span
+
+                            py_top = py_min + (1 - ty_top) * py_span
+                            py_bottom = py_min + (1 - ty_bottom) * py_span
+
+                            rect_x = int(px_left)
+                            rect_y = int(min(py_top, py_bottom))
+                            rect_w = int(px_right - px_left)
+                            rect_h = int(abs(py_bottom - py_top))
+
+                            painter.setPen(Qt.NoPen)
+                            painter.setOpacity(0.6)
+                            painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
+
+                        # Draw sampling location (midpoint of grid)
+                        elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                            painter.drawPoint(int(mid_x), int(mid_y))
+
+                            # Add midpoint to real locations
+                            if location not in self.real_points:
+                                self.real_points.append(location)
+
+                        
             # Pixel overlay (Rectangle)
             if self.sample_overlay_x is not None and self.sample_overlay_y is not None and not self.polygon_active:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
@@ -1488,7 +1551,7 @@ class ClickableImage(QLabel):
                             painter.setPen(QPen(QColor("#EAFFC2"), 3))
                             painter.drawPoint(int(mid_x), int(mid_y))
 
-            elif self.sample_overlay_y is not None and self.rowsOnly:
+            elif self.rectangle is not None and self.sample_overlay_y is not None and self.rowsOnly:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
@@ -1651,7 +1714,9 @@ class ClickableImage(QLabel):
                 "x_count": self.sample_overlay_x,
                 "y_count": self.sample_overlay_y,
                 "rows": self.rowsOnly,
-                "polygon": self.polygon_points
+                "polygon": self.polygon_points,
+                "probe_polygon": self.probe_polygon,
+                "probe_polygon_valid_pts": self._polygon_valid_pixels
             })
 
         except Exception as e:
@@ -1705,6 +1770,12 @@ class ClickableImage(QLabel):
         if data.get("rect") is not None:
             self.rectangle = data["rect"]
 
+        if data.get("polygon") is not None:
+            self.polygon_points = list(data["polygon"])
+            self.polygon_active = bool(data["polygon"])
+            self.probe_polygon = data["probe_polygon"]
+            self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
+
         if data.get("probe_rect") is not None:
             self.probe_rectangle = data["probe_rect"]
 
@@ -1746,7 +1817,6 @@ class ClickableImage(QLabel):
     # Function to update the rectangle ROI overlay
     def updateOverlay(self, x, y, type, sampling):
         self.real_points = []
-        # TODO update for polygon
 
         try:
             if self.rectangle:
@@ -1899,7 +1969,7 @@ class ClickableImage(QLabel):
                     py = int(py_min + ty * py_span)
 
                     if cv2.pointPolygonTest(poly_pts_np, (float(px), float(py)), False) >= 0:
-                        self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
+                        # self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
                         valid_pixels.append((px, py))
 
             self._polygon_valid_pixels = valid_pixels
