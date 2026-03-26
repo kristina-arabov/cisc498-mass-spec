@@ -60,7 +60,7 @@ class SamplingProgress(QWidget):
         # layout_right.addWidget(self.label_estimatedTime,alignment=Qt.AlignCenter)
         layout_right.addStretch()
         layout_right.addWidget(self.button_pause)
-        layout_right.addWidget(button_temp, alignment=Qt.AlignCenter)
+        # layout_right.addWidget(button_temp, alignment=Qt.AlignCenter)
         layout_right.addStretch()
 
 
