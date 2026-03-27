@@ -47,8 +47,7 @@ class ProvideTransformation(QWidget):
 
         self.button_next = QPushButton("Next", objectName="blue")
         self.button_next.clicked.connect(self.next.emit)
-        # TODO will uncomment after testing
-        # self.button_next.setEnabled(False) 
+        self.button_next.setEnabled(False)
 
         right_layout.addStretch()
         right_layout.addWidget(label, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -74,14 +73,9 @@ class ProvideTransformation(QWidget):
         self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.updateTransformation("x"))
         self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.updateTransformation("y"))
         self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.updateTransformation("size"))
-
-
-
-        # TODO will uncomment after testing
-        # Check allow next
-        # self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
-        # self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
-        # self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
+        self.component_tagInfo.input_bottomLeftX.textChanged.connect(lambda: self.checkAllowNext())
+        self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.checkAllowNext())
+        self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.checkAllowNext())
 
 
     # Function to handle file selection
@@ -92,10 +86,10 @@ class ProvideTransformation(QWidget):
         # Update transformation vars
         self.valid_transformation = sampling_service.setTransformation(self.transformation, path, self.valid_transformation)
 
-        # self.checkAllowNext()
         self.component_unwarpComparison.result.image_label.clear()
     
         self.resultAvailable.emit(None)
+        self.checkAllowNext()
 
 
     # Apply a selected transformation on the current camera frame
@@ -120,7 +114,7 @@ class ProvideTransformation(QWidget):
 
             # Send signal to other pages in sampling workflow
             self.resultAvailable.emit(unwarped)
-            # self.checkAllowNext()
+            self.checkAllowNext()
         
         except:
             pass
@@ -161,14 +155,11 @@ class ProvideTransformation(QWidget):
     # Function to check if the user has provided the necessary information to proceed
     def checkAllowNext(self):
         allow_next = True
-        self.button_next.setEnabled(True)
-
-
         img = self.component_unwarpComparison.result.image_label.pixmap()
 
-        tag_X = self.component_tagInfo.input_bottomLeftX.text()
-        tag_Y = self.component_tagInfo.input_bottomLeftY.text()
-        tag_size = self.component_tagInfo.input_tagSize.text()
+        tag_X = self.component_tagInfo.input_bottomLeftX.text().strip()
+        tag_Y = self.component_tagInfo.input_bottomLeftY.text().strip()
+        tag_size = self.component_tagInfo.input_tagSize.text().strip()
 
         # Check if image is not empty
         if img is None or img.isNull():
@@ -178,33 +169,35 @@ class ProvideTransformation(QWidget):
         if not self.valid_transformation:
             allow_next = False
 
-        # Check if tag inputs are valid
-        try:
-            tag_X = float(tag_X)
-            tag_Y = float(tag_Y)
-            tag_size = float(tag_size)
-
-        except:
+        # Check if all required tag inputs are filled in.
+        if not tag_X or not tag_Y or not tag_size:
             allow_next = False
 
-        # Disable next button if any issues
-        if not allow_next:
-            self.button_next.setEnabled(False)
+        self.button_next.setEnabled(allow_next)
 
 
     # Update transformation variables on input
     def updateTransformation(self, type=None):
         if type == "x":
             val = self.component_tagInfo.input_bottomLeftX.text()
-            self.transformation.tag_bottom_left[0] = float(val)
+            try:
+                self.transformation.tag_bottom_left[0] = float(val)
+            except ValueError:
+                self.transformation.tag_bottom_left[0] = None
 
         elif type == "y":
             val = self.component_tagInfo.input_bottomLeftY.text()
-            self.transformation.tag_bottom_left[1] = float(val)
+            try:
+                self.transformation.tag_bottom_left[1] = float(val)
+            except ValueError:
+                self.transformation.tag_bottom_left[1] = None
 
         elif type == "size":
             val = self.component_tagInfo.input_tagSize.text()
-            self.transformation.tag_size = float(val)
+            try:
+                self.transformation.tag_size = float(val)
+            except ValueError:
+                self.transformation.tag_size = None
 
 
 
