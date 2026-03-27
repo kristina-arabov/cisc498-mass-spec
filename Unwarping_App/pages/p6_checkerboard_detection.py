@@ -318,6 +318,7 @@ class CheckerboardDetection(QWidget):
 
         self._worker         = None   # CalibrationWorker
         self._preview_worker = None   # CornerPreviewWorker
+        self._has_unwarp_result = False
 
         # Latest corner-detection result — applied to every incoming camera frame.
         self._latest_corners       = None
@@ -351,7 +352,9 @@ class CheckerboardDetection(QWidget):
         self.label_status.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         button_next = QPushButton("Next", objectName="blue")
+        button_next.setEnabled(False)
         button_next.clicked.connect(self.next.emit)
+        self.button_next = button_next
 
         layout_right.addStretch()
         layout_right.addWidget(label_title,                       alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -417,6 +420,10 @@ class CheckerboardDetection(QWidget):
         if self._worker and self._worker.isRunning():
             return  # Don't interfere while calibration is running.
 
+        # Require a fresh successful unwarp when board dimensions change.
+        self._has_unwarp_result = False
+        self.button_next.setEnabled(False)
+
         checkerboard = self._parse_checkerboard()
         if checkerboard:
             self._start_preview(checkerboard)
@@ -462,6 +469,9 @@ class CheckerboardDetection(QWidget):
         if self._worker and self._worker.isRunning():
             return
 
+        self._has_unwarp_result = False
+        self.button_next.setEnabled(False)
+
         # Stop the preview worker but keep the last corners visible in the top
         # panel so the user can see what was detected when calibration started.
         self._stop_preview(clear_corners=False)
@@ -480,6 +490,8 @@ class CheckerboardDetection(QWidget):
     def _on_result_ready(self, final_image):
         """Show the undistorted image in the bottom panel."""
         calibration_service.updateResult(final_image, self.component_unwarpComparison.result)
+        self._has_unwarp_result = True
+        self.button_next.setEnabled(True)
 
     def _on_worker_finished(self, success: bool, message: str):
         self.component_unwarpComparison.arrow.button.setEnabled(True)
@@ -490,6 +502,8 @@ class CheckerboardDetection(QWidget):
             self._latest_corners       = None
             self._latest_corners_found = False
         else:
+            self._has_unwarp_result = False
+            self.button_next.setEnabled(False)
             # Show error in bottom panel and restart corner preview so the user
             # can reposition the board and try again without re-entering dims.
             self.component_unwarpComparison.result.image_label.setText(message)
@@ -522,6 +536,8 @@ class CheckerboardDetection(QWidget):
         self.component_unwarpComparison.result.image_label.setText(
             "Undistorted image will appear here."
         )
+        self._has_unwarp_result = False
+        self.button_next.setEnabled(False)
         self.label_status.setText("Enter board dimensions to begin.")
 
 

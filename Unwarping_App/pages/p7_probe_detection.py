@@ -64,6 +64,8 @@ class ProbeDetection(QWidget):
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
+        button_next.setEnabled(False)
+        self.button_next = button_next
 
         layout_right.addStretch()
         layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -118,8 +120,12 @@ class ProbeDetection(QWidget):
         y_coord = self.component_tagInformation.input_bottomLeftY.text()
         tag_size = self.component_tagInformation.input_tagSize.text()
 
+        # Permit page transition if all corners mapped
         if x_coord and y_coord and tag_size and not False in self.component_tag.corners_imaged:
             self.offsetAvailable.emit()
+            self.button_next.setEnabled(True)
+        else:
+            self.button_next.setEnabled(False)
 
 
 
