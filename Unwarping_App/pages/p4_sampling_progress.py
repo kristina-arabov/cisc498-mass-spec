@@ -157,7 +157,7 @@ class OperationButtons(QWidget):
         """)
 
         self.btn_resume = QPushButton("Resume", objectName="blue")
-        self.btn_abort = QPushButton("Abort", objectName="red")
+        self.btn_abort = QPushButton("Return to Configuration", objectName="blue")
 
         layout.addWidget(label, alignment=Qt.AlignCenter)
         layout.addStretch()
