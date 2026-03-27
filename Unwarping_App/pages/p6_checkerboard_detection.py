@@ -6,7 +6,8 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QThread
+from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
+from PyQt5.QtGui import QMovie
 
 from Unwarping_App.components.utils import updateFrame
 from Unwarping_App.components.common import LightingDropdown, UnwarpComparison
@@ -320,6 +321,9 @@ class CheckerboardDetection(QWidget):
         self._preview_worker = None   # CornerPreviewWorker
         self._has_unwarp_result = False
 
+        self._loading_movie = QMovie("Unwarping_App/components/images/Loading.gif")
+        self._loading_movie.setScaledSize(QSize(100, 100))
+
         # Latest corner-detection result — applied to every incoming camera frame.
         self._latest_corners       = None
         self._latest_corners_found = False
@@ -476,6 +480,12 @@ class CheckerboardDetection(QWidget):
         # panel so the user can see what was detected when calibration started.
         self._stop_preview(clear_corners=False)
 
+        # Show loading spinner in the result panel while calibration runs.
+        result_label = self.component_unwarpComparison.result.image_label
+        result_label.setAlignment(Qt.AlignCenter)
+        result_label.setMovie(self._loading_movie)
+        self._loading_movie.start()
+
         self.component_unwarpComparison.arrow.button.setEnabled(False)
         self.label_status.setText("Starting calibration…")
 
@@ -494,6 +504,7 @@ class CheckerboardDetection(QWidget):
         self.button_next.setEnabled(True)
 
     def _on_worker_finished(self, success: bool, message: str):
+        self._loading_movie.stop()
         self.component_unwarpComparison.arrow.button.setEnabled(True)
         self.label_status.setText(message)
 
