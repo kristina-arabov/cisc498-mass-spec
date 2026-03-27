@@ -1,3 +1,16 @@
+import time
+
+
+# ── Printer polling constants ──────────────────────────────────────────────────
+
+# Maximum seconds to wait for a position report before giving up.
+POSITION_POLL_TIMEOUT_S: float = 15.0
+
+# Interval between polling attempts (seconds).
+POSITION_POLL_INTERVAL_S: float = 0.05
+
+# ──────────────────────────────────────────────────────────────────────────────
+
 
 # Toggle handling for devices
 def toggle(row, device):
@@ -89,16 +102,44 @@ def set_brightness(value, lights):
 
 
 # PRINTER FUNCTIONS ----------------------------------------
+
 def getPrinterPosition(printer):
-    pos = None
-
+    """Block indefinitely until a position report is received from the printer."""
     while True:
-        if printer.line.find('Count') != -1:
+        if printer.line and printer.line.find('Count') != -1:
             line = printer.line.split()
-            pos = [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
-            break
+            return [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
 
-    return pos
+
+def get_printer_position_timeout(printer, timeout_s=POSITION_POLL_TIMEOUT_S):
+    """Poll for a position report, returning [x, y, z] or None on timeout.
+    Use this instead of getPrinterPosition() in worker threads.
+    """
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        line = printer.line
+        if line and line.find('Count') != -1:
+            try:
+                parts = line.split()
+                return [float(parts[0][2:]), float(parts[1][2:]), float(parts[2][2:])]
+            except (IndexError, ValueError):
+                pass
+        time.sleep(POSITION_POLL_INTERVAL_S)
+    return None
+
+
+def move_printer_absolute(printer, x, y, z, feed_rate):
+    """
+    Command the printer to move to an absolute XYZ position.
+
+    Switches to absolute mode (G90), issues the G0 move at feed_rate (mm/min),
+    then sends M400 (wait for moves) and M114 (position report request).
+    Call get_printer_position_timeout() afterwards to confirm arrival.
+    """
+    printer.cmd("G90")
+    printer.cmd(f"G0 X{x:.3f} Y{y:.3f} Z{z:.3f} F{feed_rate}")
+    printer.cmd("M400")
+    printer.cmd("M114")
 
 
 def getConductance(conductance):

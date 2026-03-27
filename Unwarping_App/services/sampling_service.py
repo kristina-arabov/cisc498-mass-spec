@@ -141,11 +141,14 @@ def setTransformation(transformation, path, valid):
 def findLocations(transformation, sampling, img):
     rectangle = img.rectangle
     dot = img.dot
+    polygon_active = getattr(img, 'polygon_active', False)
+    polygon_points = getattr(img, 'polygon_points', [])
 
     sampling.originalLoc = transformation.photo_loc
 
-    # If no reference point + ROI then don't caluclate locations
-    if not dot or not rectangle:
+    # Need at least a reference point and one ROI type
+    has_roi = rectangle or (polygon_active and polygon_points)
+    if not dot or not has_roi:
         return
 
     start_point = rectangle.topLeft()
@@ -227,12 +230,16 @@ def findLocations(transformation, sampling, img):
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
     # PROCESS RECTANGLE --------------------------------------
-    sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    if rectangle:
+        sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
+    # PROCESS POLYGON --------------------------------------
+    if polygon_active and polygon_points:
+        sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
-    # print(sampling.rectangle)
     print(sampling.dot)
     print(sampling.rectangle)
+    print(sampling.drawn)
 
 
 
@@ -315,6 +322,31 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
 
     return probe_rectangle
+
+
+def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, mtx2, dist2):
+    """Transform polygon pixel vertices (QPoint list) to real-world stage coordinates.
+    Returns a list of (x_mm, y_mm) tuples — one per vertex.
+    """
+    real_vertices = []
+    for qpt in polygon_points:
+        unscaled = (int(qpt.x() / scale), int(qpt.y() / scale))
+        undone = calibration_service.undoSecondUnwarp(unscaled, mtx2, dist2)
+        direction = getDirectionFromPixel(undone[0], undone[1], mtx1)
+        in_base = cam2base @ direction
+
+        x = pos[0] + (in_base[0] * 10)
+        y = pos[1] + (in_base[1] * 10)
+
+        if transformation.offset_x < 0:
+            x -= transformation.offset_x
+        else:
+            x += transformation.offset_x
+        y -= transformation.offset_y
+
+        real_vertices.append((float(x.item()), float(y.item())))
+
+    return real_vertices
 
 
 # Returns direction for a location from the camera principal point

@@ -217,49 +217,113 @@ class LightingThread(QThread):
             self.idx = None
 
 
-# Element to update camera feed 
+# Backends tried in order. CAP_DSHOW bypasses the MSMF stack and is faster/
+# more reliable for most USB webcams on Windows.
+_CAMERA_BACKENDS = [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_ANY]
+
+# Frames discarded after open to flush the driver buffer and let AE/AWB settle.
+_CAMERA_WARMUP_FRAMES = 5
+
+# Consecutive failed reads before the thread treats the camera as lost.
+_MAX_READ_FAILURES = 10
+
+
 class CameraThread(QThread):
     change_pixmap_signal = pyqtSignal(np.ndarray)
     enable_buttons = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
-        cameras = QCameraInfo.availableCameras()
         self.running = False
-        self.cap = None
-
-        self.idx = None
+        self.capture = None   # set before run() so device_service can call isOpened()
+        self.frame   = None   # set before run() so workers never get AttributeError
+        self.idx        = None
         self.resolution = None
 
-    # Start running feed
+    # ── Connection ────────────────────────────────────────────────────────────
+
     def run(self):
-        if self.idx is not None:
-            print("Attempting camera connection: ", self.idx)
-            self.capture = cv2.VideoCapture(self.idx)
-            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-            self.running = True
+        if self.idx is None:
+            print("CameraThread: no camera index set.")
+            return
 
-            if self.capture.isOpened():
-                while self.running:
-                    ret, img = self.capture.read()
-                    if ret:
-                        self.frame = img
-                        self.change_pixmap_signal.emit(img)
-                    elif not ret:
-                        self.stop()
+        w, h = self.resolution if self.resolution else (1280, 720)
+        print(f"Attempting camera connection: {self.idx}  ({w}×{h})")
 
+        self.capture = self._open_capture(self.idx, w, h)
+
+        if self.capture is None:
+            print(f"CameraThread: could not open camera {self.idx} on any backend.")
+            self.running = False
+            self.enable_buttons.emit(False)
+            return
+
+        self.running = True
+        self.enable_buttons.emit(True)
+
+        consecutive_failures = 0
+        while self.running:
+            ret, img = self.capture.read()
+            if ret:
+                consecutive_failures = 0
+                self.frame = img
+                self.change_pixmap_signal.emit(img)
             else:
-                self.running = False
-        else:
-            print("No available cameras to connect to.")
-    
-    # Stop feed
+                consecutive_failures += 1
+                if consecutive_failures >= _MAX_READ_FAILURES:
+                    print(f"CameraThread: camera {self.idx} stopped responding — disconnecting.")
+                    break
+
+        self.running = False
+        self.capture.release()
+        self.capture = None
+
+    def _open_capture(self, idx, w, h):
+        """
+        Try each backend in _CAMERA_BACKENDS until one produces a valid frame.
+        Returns an open VideoCapture, or None if all backends fail.
+        """
+        for backend in _CAMERA_BACKENDS:
+            try:
+                cap = cv2.VideoCapture(idx, backend)
+            except Exception as e:
+                print(f"  Backend {backend}: exception during open — {e}")
+                continue
+
+            if not cap.isOpened():
+                cap.release()
+                continue
+
+            # Set resolution before reading so the driver negotiates the right mode.
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH,  w)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+
+            # Warmup: discard frames to flush stale buffer data and let
+            # auto-exposure / auto-white-balance converge.
+            for _ in range(_CAMERA_WARMUP_FRAMES):
+                cap.read()
+
+            # Confirm we can actually get a frame on this backend.
+            ret, _ = cap.read()
+            if ret:
+                print(f"  Camera {idx} opened with backend {backend}.")
+                return cap
+
+            cap.release()
+
+        return None
+
+    # ── Disconnection ─────────────────────────────────────────────────────────
+
     def stop(self):
         self.running = False
-        self.wait()
+        # Calling wait() from within the thread itself deadlocks — Qt warns about
+        # this and the thread never exits.  Only block when called externally.
+        if QThread.currentThread() is not self:
+            self.wait()
         if self.capture:
             self.capture.release()
+            self.capture = None
 
 # The main application window
 class App(QWidget):

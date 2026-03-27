@@ -98,9 +98,11 @@ class Main(QWidget):
         self.page1.resultAvailable.connect(lambda img: self.page3.photo.setNewPixmap(img))
         self.page1.resultAvailable.connect(lambda img: self.page4.photo.setNewPixmap(img))
 
+        #self.page2.photo.roiSignal.connect(lambda dot, rect, x, y, rows, poly: self.page3.photo.setVals(dot, rect, polygon=poly))
         self.page2.photo.roiSignal.connect(lambda vals: self.page3.photo.setValsPage3(vals))
         self.page2.clearSignal.connect(lambda: self.page3.clearInputs())
 
+        # self.page3.photo.roiSignal.connect(lambda dot, rect, x, y, rows, poly: self.page4.photo.setVals(dot, rect, x, y, rows))
         self.page3.photo.roiSignal.connect(lambda vals: self.page4.photo.setValsPage4(vals))
 
         self.page4.returnToConfig.connect(lambda: self.stacked.setCurrentIndex(3))

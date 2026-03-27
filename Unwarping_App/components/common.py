@@ -1182,6 +1182,9 @@ class ClickableImage(QLabel):
         self.polygon_points = []    # simplified polygon from convertToPolygon()
         self.polygon_active = False # True when polygon has been computed
 
+        # Polygon grid state (populated by updateOverlayPolygon)
+        self.probe_polygon = []            # [x0, y0, x1, y1] real-world bounding box
+        self._polygon_valid_pixels = []    # pixel midpoints of cells inside polygon
 
         self.setFixedSize(self.feed_width, self.feed_height)
         self.setMouseTracking(True)
@@ -1279,12 +1282,17 @@ class ClickableImage(QLabel):
         self.update()
 
     def resetROI(self):
-        """Clear all drawn strokes, polygon, and fill."""
+        """Clear all drawn strokes, polygon, fill, and grid state."""
         self.draw_strokes = []
         self.current_stroke = []
         self.roi_closed = False
         self.polygon_points = []
         self.polygon_active = False
+        self.probe_polygon = []
+        self._polygon_valid_pixels = []
+        self.sample_overlay_x = None
+        self.sample_overlay_y = None
+        
         self.update()
 
     def convertToPolygon(self):
@@ -1348,8 +1356,107 @@ class ClickableImage(QLabel):
                 painter.setOpacity(1.0)
                 painter.drawPoint(self.dot)
 
-            # Pixel overlay
-            if self.sample_overlay_x is not None and self.sample_overlay_y is not None:
+            # Polygon grid overlay
+            if (self.polygon_active and self.polygon_points
+                and self.sample_overlay_x and self.sample_overlay_y
+                and self.probe_polygon):
+
+                bx0, by0, bx1, by1 = self.probe_polygon
+                real_w = bx1 - bx0
+                real_h = by1 - by0
+
+                px_min = min(p.x() for p in self.polygon_points)
+                px_max = max(p.x() for p in self.polygon_points)
+                py_min = min(p.y() for p in self.polygon_points)
+                py_max = max(p.y() for p in self.polygon_points)
+                px_span = (px_max - px_min) or 1
+                py_span = (py_max - py_min) or 1
+
+                # Grid lines over the bounding box (dim)
+                painter.setPen(QPen(QColor("#EAFFC2"), 1))
+                painter.setOpacity(0.25)
+
+                for val in self.x_range:
+                    t = (val - bx0) / real_w
+                    px = int(px_min + t * px_span)
+                    painter.drawLine(px, py_min, px, py_max)
+
+                for val in self.y_range:
+                    t = (val - by0) / real_h
+                    py = int(py_min + t * py_span)
+                    painter.drawLine(px_min, py, px_max, py)
+
+                painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                painter.setOpacity(1.0)
+
+                # Grids
+                rows = list(range(len(self.y_range) - 1))
+                rows = list(reversed(rows))
+
+                for row_idx, j in enumerate(rows):
+
+                    if row_idx % 2 == 0:
+                        x_indices = range(len(self.x_range) - 1)
+                    else:
+                        x_indices = reversed(range(len(self.x_range) - 1))
+
+                    for i in x_indices:
+
+                        left  = self.x_range[i]
+                        right = self.x_range[i + 1]
+
+                        top = self.y_range[j + 1]
+                        bottom = self.y_range[j]
+
+                        # Real midpoint
+                        mid_x_real = (left + right) / 2
+                        mid_y_real = (top + bottom) / 2
+
+                        # Normalized
+                        tx = (mid_x_real - bx0) / real_w
+                        ty = (mid_y_real - by0) / real_h
+
+                        # Midpoint as a pixel
+                        mid_x = px_min + tx * px_span
+                        mid_y = py_min + (1 - ty) * py_span
+
+                        location = (round(mid_x_real, 2), round(mid_y_real, 2))
+
+                        if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+
+                            # Corners (FIXED)
+                            tx_left   = (left - bx0) / real_w
+                            tx_right  = (right - bx0) / real_w
+                            ty_top    = (top - by0) / real_h
+                            ty_bottom = (bottom - by0) / real_h
+
+                            px_left   = px_min + tx_left * px_span
+                            px_right  = px_min + tx_right * px_span
+
+                            py_top = py_min + (1 - ty_top) * py_span
+                            py_bottom = py_min + (1 - ty_bottom) * py_span
+
+                            rect_x = int(px_left)
+                            rect_y = int(min(py_top, py_bottom))
+                            rect_w = int(px_right - px_left)
+                            rect_h = int(abs(py_bottom - py_top))
+
+                            painter.setPen(Qt.NoPen)
+                            painter.setOpacity(0.6)
+                            painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
+
+                        # Draw sampling location (midpoint of grid)
+                        elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                            painter.drawPoint(int(mid_x), int(mid_y))
+
+                            # Add midpoint to real locations
+                            if location not in self.real_points:
+                                self.real_points.append(location)
+
+                        
+            # Pixel overlay (Rectangle)
+            if self.sample_overlay_x is not None and self.sample_overlay_y is not None and not self.polygon_active:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
@@ -1444,7 +1551,7 @@ class ClickableImage(QLabel):
                             painter.setPen(QPen(QColor("#EAFFC2"), 3))
                             painter.drawPoint(int(mid_x), int(mid_y))
 
-            elif self.sample_overlay_y is not None and self.rowsOnly:
+            elif self.rectangle is not None and self.sample_overlay_y is not None and self.rowsOnly:
                 painter.setPen(QPen(QColor("#EAFFC2"), 2))
                 painter.setOpacity(0.6)
 
@@ -1606,7 +1713,10 @@ class ClickableImage(QLabel):
                 "y_range": self.y_range,
                 "x_count": self.sample_overlay_x,
                 "y_count": self.sample_overlay_y,
-                "rows": self.rowsOnly
+                "rows": self.rowsOnly,
+                "polygon": self.polygon_points,
+                "probe_polygon": self.probe_polygon,
+                "probe_polygon_valid_pts": self._polygon_valid_pixels
             })
 
         except Exception as e:
@@ -1638,6 +1748,10 @@ class ClickableImage(QLabel):
         if data.get("rect") is not None:
             self.rectangle = data["rect"]
 
+        if data.get("polygon") is not None:
+            self.polygon_points = list(data["polygon"])
+            self.polygon_active = bool(data["polygon"])
+
         self.update()
 
 
@@ -1652,6 +1766,12 @@ class ClickableImage(QLabel):
 
         if data.get("rect") is not None:
             self.rectangle = data["rect"]
+
+        if data.get("polygon") is not None:
+            self.polygon_points = list(data["polygon"])
+            self.polygon_active = bool(data["polygon"])
+            self.probe_polygon = data["probe_polygon"]
+            self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
 
         if data.get("probe_rect") is not None:
             self.probe_rectangle = data["probe_rect"]
@@ -1694,7 +1814,6 @@ class ClickableImage(QLabel):
     # Function to update the rectangle ROI overlay
     def updateOverlay(self, x, y, type, sampling):
         self.real_points = []
-        # TODO update for polygon
 
         try:
             if self.rectangle:
@@ -1774,7 +1893,93 @@ class ClickableImage(QLabel):
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None
-        
+
+
+    def updateOverlayPolygon(self, x, y, type, sampling):
+        """Build a grid over the polygon bounding box and filter to cells inside the polygon.
+
+        Grid lines cover the bounding box; only cell midpoints inside the polygon
+        are kept as sampling points.  Uses cv2.pointPolygonTest for containment.
+        """
+        self.real_points = []
+        self.probe_polygon = []
+        self._polygon_valid_pixels = []
+
+        try:
+            if not self.polygon_active or not self.polygon_points:
+                return
+
+            # Real-world bounding box: use sampling.drawn if available,
+            # otherwise fall back to hardcoded test values (10 x 15 mm box).
+            if hasattr(sampling, 'drawn') and sampling.drawn:
+                xs = [p[0] for p in sampling.drawn]
+                ys = [p[1] for p in sampling.drawn]
+                bx0, bx1 = min(xs), max(xs)
+                by0, by1 = min(ys), max(ys)
+            else:
+                bx0, by0, bx1, by1 = 100, 40, 115, 55  # 15 x 15 mm test box
+
+            real_w = bx1 - bx0
+            real_h = by1 - by0
+            if real_w <= 0 or real_h <= 0:
+                return
+
+            # Build grid lines over the bounding box
+            if type == 0:  # number of sampling spots
+                x_range = np.arange(bx0, bx1, real_w / float(x))
+                y_range = np.arange(by0, by1, real_h / float(y))
+            elif type == 1:  # resolution in mm
+                x_range = np.arange(bx0, bx1, float(x))
+                y_range = np.arange(by0, by1, float(y))
+            else:
+                return
+
+            x_range = np.append(x_range, bx1)
+            y_range = np.append(y_range, by1)
+
+            self.x_range = x_range
+            self.y_range = y_range
+            self.probe_polygon = [bx0, by0, bx1, by1]
+
+            # Pixel-space bounding box of the polygon
+            px_min = min(p.x() for p in self.polygon_points)
+            px_max = max(p.x() for p in self.polygon_points)
+            py_min = min(p.y() for p in self.polygon_points)
+            py_max = max(p.y() for p in self.polygon_points)
+            px_span = (px_max - px_min) or 1
+            py_span = (py_max - py_min) or 1
+
+            poly_pts_np = np.array(
+                [[p.x(), p.y()] for p in self.polygon_points], dtype=np.int32
+            )
+
+            valid_pixels = []
+            for j in range(len(y_range) - 1):
+                for i in range(len(x_range) - 1):
+                    mid_x_real = (x_range[i] + x_range[i + 1]) / 2
+                    mid_y_real = (y_range[j] + y_range[j + 1]) / 2
+
+                    # Map real-world midpoint → pixel space via bounding box proportions
+                    tx = (mid_x_real - bx0) / real_w
+                    ty = (mid_y_real - by0) / real_h
+                    px = int(px_min + tx * px_span)
+                    py = int(py_min + ty * py_span)
+
+                    if cv2.pointPolygonTest(poly_pts_np, (float(px), float(py)), False) >= 0:
+                        # self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
+                        valid_pixels.append((px, py))
+
+            self._polygon_valid_pixels = valid_pixels
+            self.sample_overlay_x = len(x_range)
+            self.sample_overlay_y = len(y_range)
+
+            self.update()
+            sampling.real_points_list = self.real_points
+
+        except Exception:
+            self.sample_overlay_x = None
+            self.sample_overlay_y = None
+
 
 class InputField(QWidget):
     def __init__(self, title):
@@ -1800,6 +2005,7 @@ class InputField(QWidget):
             layout.addWidget(self.input2)
 
         self.setLayout(layout)
+
 
 class ArrowButton(QWidget):
     def __init__(self, parent=None):
