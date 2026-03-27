@@ -1752,9 +1752,6 @@ class ClickableImage(QLabel):
             self.polygon_points = list(data["polygon"])
             self.polygon_active = bool(data["polygon"])
 
-            print(self.polygon_points)
-            print(self.polygon_active)
-
         self.update()
 
 
