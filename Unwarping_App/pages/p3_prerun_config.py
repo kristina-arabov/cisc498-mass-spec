@@ -513,15 +513,25 @@ class SamplingParameters(QWidget):
 
         if sampling.mode == "drag":
             photo.rowsOnly = True
-            photo.updateOverlayRows(y, type, sampling)
 
-        elif photo.polygon_active and photo.polygon_points:
-            photo.rowsOnly = False
-            photo.updateOverlayPolygon(x, y, type, sampling)
+            # Polygon
+            if photo.polygon_active and photo.polygon_points:
+                photo.updateOverlayPolygonRows(y, type, sampling)
+
+            # Rectangle
+            else:
+                photo.updateOverlayRows(y, type, sampling)
 
         else:
             photo.rowsOnly = False
-            photo.updateOverlay(x, y, type, sampling)
+
+            # Polygon
+            if photo.polygon_active and photo.polygon_points:
+                photo.updateOverlayPolygon(x, y, type, sampling)
+            
+            # Rectangle
+            else:
+                photo.updateOverlay(x, y, type, sampling)
 
 
 
