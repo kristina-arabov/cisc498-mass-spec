@@ -1035,7 +1035,7 @@ class TagInformationSection(QWidget):
         self.input_bottomLeftY = QLineEdit()
         self.input_bottomLeftY.setValidator(QDoubleValidator())
 
-        button_autofill = QPushButton("Use current location", objectName="clear")
+        self.button_autofill = QPushButton("Use current location", objectName="clear")
 
         layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
@@ -1070,7 +1070,7 @@ class TagInformationSection(QWidget):
         layout_container.addWidget(row_2)
         layout_container.addStretch()
         layout_container.addWidget(row_1)
-        layout_container.addWidget(button_autofill)
+        layout_container.addWidget(self.button_autofill)
         
 
         layout.addWidget(container)
@@ -1083,6 +1083,15 @@ class TagInformationSection(QWidget):
             QLineEdit { background-color: white; }
             QPushButton#clear { background-color: #F0F0F0; }
         """)
+
+
+    # Function to set the printer location in the X and Y inputs
+    def setPrinterPos(self, printer):
+        pos = device_service.getPrinterPosition(printer)
+
+        if pos is not None:
+            self.input_bottomLeftX.setText(str(pos[0]))
+            self.input_bottomLeftY.setText(str(pos[1]))
 
 
 
