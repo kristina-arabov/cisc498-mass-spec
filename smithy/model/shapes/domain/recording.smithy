@@ -3,274 +3,97 @@ $version: "2.0"
 namespace msrobot.domain.recording
 
 use msrobot.core.common#Duration
-use msrobot.core.common#FilePath
-use msrobot.core.common#Timestamp
-use msrobot.core.geometry#Position3D
+use msrobot.core.geometry#Position2D
 use msrobot.core.geometry#Range
 use msrobot.core.geometry#Resolution2D
-use msrobot.domain.path#SamplingPath
-use msrobot.domain.roi#ROI
-use msrobot.domain.session#SessionId
 
-/// Unique identifier for a recording
-string RecordingId
-
-/// Recording status
-enum RecordingStatus {
-    /// Recording created
-    CREATED
-
-    /// Configuring recording parameters
-    CONFIGURING
-
-    /// Path has been generated
-    PATH_GENERATED
-
-    /// Ready to start
-    READY
-
-    /// Recording in progress
-    RUNNING
-
-    /// Recording paused
-    PAUSED
-
-    /// Completing (finalizing)
-    COMPLETING
-
-    /// Recording completed successfully
-    COMPLETED
-
-    /// Recording aborted by user
-    ABORTED
-
-    /// Recording ended with error
-    ERROR
-}
-
-/// Sampling mode
+/// Sampling mode. Stored in SamplingItem.mode as the lowercase string shown below.
 enum SamplingMode {
-    /// Fixed Z height for flat samples
+    /// "constant" — probe descends to a fixed sampleHeight and dwells.
     CONSTANT_Z
 
-    /// Probe until conductance detected
+    /// "conductive" — probe steps down by stepSize until conductance threshold is crossed.
     CONDUCTANCE
+
+    /// "drag" — probe moves at fixed sampleHeight across the surface continuously.
+    DRAG
 }
 
-/// When to sample reference point
-enum ReferenceWhen {
-    /// Sample at start only
-    START
-
-    /// Sample at end only
-    END
-
-    /// Sample at both start and end
-    START_AND_END
-}
-
-/// Motion configuration
+/// XY and Z travel speeds. Accelerations are hardcoded in gcodegen.py (XY 1250, Z 400 mm/s²).
 structure MotionConfig {
-    /// XY travel speed in mm/min
+    /// SamplingItem.xy_speed (mm/min)
     @required
     xySpeed: Float
 
-    /// Z probe (descent) speed in mm/min
+    /// SamplingItem.z_down_speed (mm/min)
     @required
-    zProbeSpeed: Float
+    zDownSpeed: Float
 
-    /// Z retract speed in mm/min
+    /// SamplingItem.z_up_speed (mm/min)
     @required
-    zRetractSpeed: Float
-
-    /// XY acceleration in mm/s²
-    @required
-    xyAcceleration: Float
-
-    /// Z acceleration in mm/s²
-    @required
-    zAcceleration: Float
+    zUpSpeed: Float
 }
 
-/// Reference point configuration
+/// Reference point sampled at the start of every run before the main scan.
 structure ReferenceConfig {
-    /// Reference position
+    /// XY stage position (sampling.dot = [x, y]).
     @required
-    position: Position3D
+    position: Position2D
 
-    /// When to sample reference
+    /// "constant" or "conductive" only (DRAG not supported for reference).
+    /// SamplingItem.ref_mode
     @required
-    when: ReferenceWhen
+    refMode: SamplingMode
 
-    /// Dwell time at reference
+    /// G4 dwell at transit height after the reference measurement (seconds). SamplingItem.ref_dwellTime
     @required
     dwellTime: Duration
 
-    /// Sample time at reference
+    /// Recording window at reference sample height (seconds). SamplingItem.ref_sampleTime
     @required
     sampleTime: Duration
+
+    /// Z height to probe at the reference point (mm). SamplingItem.ref_sampleHeight
+    @required
+    sampleHeight: Float
+
+    /// Z step size for CONDUCTANCE mode (mm). SamplingItem.ref_stepSize
+    stepSize: Float
 }
 
-/// Recording configuration (immutable snapshot)
+/// Full sampling run configuration. Fields map directly to SamplingItem attributes.
 structure RecordingConfig {
-    /// Spatial resolution
+    /// Point spacing in X and Y (mm). SamplingItem.spatialRes_X / spatialRes_Y
     @required
     resolution: Resolution2D
 
-    /// Dwell time at each sample point
+    /// Recording window at each sample point while at sampleHeight (seconds). SamplingItem.sampleTime
+    @required
+    sampleTime: Duration
+
+    /// G4 dwell at transitHeight after each sample, before moving to the next point (seconds). SamplingItem.dwellTime
     @required
     dwellTime: Duration
 
-    /// Pause time between samples
+    /// SamplingItem.mode
     @required
-    pauseTime: Duration
+    samplingMode: SamplingMode
 
-    /// Sampling mode
+    /// Z height the probe retracts to between sample points (mm). SamplingItem.transitHeight
     @required
-    mode: SamplingMode
+    transitHeight: Float
 
-    /// Z height for CONSTANT_Z mode
-    constantZ: Float
+    /// Fixed Z sample height for CONSTANT_Z mode (mm). SamplingItem.sampleHeight
+    sampleHeight: Float
 
-    /// Conductance threshold range
+    /// Contact detection range in μS for CONDUCTANCE mode. SamplingItem.con_threshold
     conductanceThreshold: Range
 
-    /// Probe step size in mm for CONDUCTANCE mode
-    probeStep: Float
+    /// Z step size per increment in CONDUCTANCE mode (mm). SamplingItem.stepSize
+    stepSize: Float
 
-    /// Motion configuration
     @required
     motion: MotionConfig
 
-    /// Reference point configuration
     reference: ReferenceConfig
-}
-
-/// Recording statistics (updated in real-time)
-structure RecordingStatistics {
-    /// Number of samples completed
-    @required
-    samplesCompleted: Integer
-
-    /// Number of samples skipped
-    @required
-    samplesSkipped: Integer
-
-    /// Number of samples with errors
-    @required
-    samplesError: Integer
-
-    /// Elapsed time
-    @required
-    elapsedTime: Duration
-
-    /// Estimated remaining time
-    @required
-    estimatedRemaining: Duration
-
-    /// Average time per sample
-    @required
-    averageSampleTime: Duration
-
-    /// Average conductance reading
-    averageConductance: Float
-
-    /// Minimum Z contact height
-    minZ: Float
-
-    /// Maximum Z contact height
-    maxZ: Float
-}
-
-/// Recording aggregate root
-structure Recording {
-    /// Unique recording identifier
-    @required
-    id: RecordingId
-
-    /// Parent session ID
-    @required
-    sessionId: SessionId
-
-    /// Recording name
-    @required
-    name: String
-
-    /// Creation timestamp
-    @required
-    createdAt: Timestamp
-
-    /// Start timestamp
-    startedAt: Timestamp
-
-    /// Pause timestamp
-    pausedAt: Timestamp
-
-    /// Completion timestamp
-    completedAt: Timestamp
-
-    /// Recording configuration
-    @required
-    config: RecordingConfig
-
-    /// Region of interest
-    roi: ROI
-
-    /// Generated sampling path
-    path: SamplingPath
-
-    /// Current status
-    @required
-    status: RecordingStatus
-
-    /// Current sample index
-    @required
-    currentSampleIndex: Integer
-
-    /// Total expected samples
-    @required
-    totalSamples: Integer
-
-    /// Path to .msrbt file
-    @required
-    msrbtFile: FilePath
-
-    /// Path to temporary G-code buffer
-    tempGcodeFile: FilePath
-
-    /// Recording statistics
-    @required
-    statistics: RecordingStatistics
-}
-
-/// Summary of a recording for listing
-structure RecordingSummary {
-    /// Recording ID
-    @required
-    id: RecordingId
-
-    /// Recording name
-    @required
-    name: String
-
-    /// Status
-    @required
-    status: RecordingStatus
-
-    /// Samples completed
-    @required
-    samplesCompleted: Integer
-
-    /// Total samples
-    @required
-    totalSamples: Integer
-
-    /// Path to .msrbt file
-    @required
-    msrbtFile: FilePath
-}
-
-/// List of recording summaries
-list RecordingSummaryList {
-    member: RecordingSummary
 }
