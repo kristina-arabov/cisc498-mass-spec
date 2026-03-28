@@ -75,6 +75,8 @@ class ProvideTransformation(QWidget):
         self.component_tagInfo.input_bottomLeftY.textChanged.connect(lambda: self.updateTransformation("y"))
         self.component_tagInfo.input_tagSize.textChanged.connect(lambda: self.updateTransformation("size"))
 
+        self.component_tagInfo.button_autofill.clicked.connect(lambda: self.component_tagInfo.setPrinterPos(self.printer))
+
 
 
         # TODO will uncomment after testing
