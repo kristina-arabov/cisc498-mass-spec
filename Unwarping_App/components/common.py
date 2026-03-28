@@ -1782,7 +1782,7 @@ class ClickableImage(QLabel):
                 poly = QPolygon(self.polygon_points)
                 painter.setPen(QPen(QColor("#BBFF00"), 2))
                 painter.setOpacity(0.6)
-                painter.setBrush(QBrush(QColor(187, 255, 0, 50)))
+                painter.setBrush(QBrush(QColor(187, 255, 0, 100)))
                 painter.drawPolygon(poly)
                 painter.setBrush(Qt.NoBrush)
                 # Also draw the raw strokes dimly so the user can still see what they drew
