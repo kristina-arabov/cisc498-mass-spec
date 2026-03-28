@@ -42,7 +42,7 @@ class PrerunConfig(QWidget):
         # SPEED INPUTS ----------------------------------------
         self.component_speed = SamplingSpeeds(self.sampling)
 
-        button_startRun = QPushButton("Start sampling run", objectName="blue")
+        self.button_startRun = QPushButton("Start sampling run", objectName="blue")
         
 
         # RIGHT COLUMN ----------------------------------------
@@ -52,7 +52,7 @@ class PrerunConfig(QWidget):
         layout_right.addWidget(self.component_samplingParams)
         layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
-        layout_right.addWidget(button_startRun)
+        layout_right.addWidget(self.button_startRun)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
@@ -69,13 +69,119 @@ class PrerunConfig(QWidget):
 
 
         # FUNCTIONS ----------------------------------------
-        button_startRun.clicked.connect(self.next.emit)
-        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
-        button_startRun.clicked.connect(lambda: sampling_service.createCSV())
+        self._wire_sampling_validation()
+        self.photo.roiSignal.connect(lambda *args: self._refresh_start_button())
+        self.button_startRun.clicked.connect(self._on_start_sampling_click)
 
         component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
         component_samplingMode.button_conductive.clicked.connect(lambda: self.handleSamplingType("conductive"))
         component_samplingMode.button_drag.clicked.connect(lambda: self.handleSamplingType("drag"))
+
+        self._refresh_start_button()
+
+
+    def _nonempty_float(self, text):
+        t = (text or "").strip()
+        if not t:
+            return False
+        try:
+            float(t)
+            return True
+        except ValueError:
+            return False
+
+
+    def _speeds_valid(self):
+        s = self.component_speed
+        return (
+            self._nonempty_float(s.input_XYSpeed.text())
+            and self._nonempty_float(s.input_ZUpSpeed.text())
+            and self._nonempty_float(s.input_ZDownSpeed.text())
+        )
+
+
+    def _reference_point_selected(self):
+        return self.photo.dot is not None
+
+
+    def _sampling_inputs_valid(self):
+        if not self._speeds_valid():
+            return False
+
+        p = self.component_samplingParams
+        mode = self.sampling.mode
+        ref = self._reference_point_selected()
+
+        # With a reference point
+        if mode == "constant":
+            if ref:
+                return (
+                    self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_sampleHeight.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        if mode == "conductive":
+            if ref:
+                return (
+                    self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_ZstepSize.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_ZstepSize.text())
+            )
+        if mode == "drag":
+            return (
+                self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        return False
+
+
+    def _refresh_start_button(self):
+        self.button_startRun.setEnabled(self._sampling_inputs_valid())
+
+
+    def _wire_sampling_validation(self):
+        p = self.component_samplingParams
+        for w in (
+            p.input_X,
+            p.input_Y,
+            p.input_dwell,
+            p.input_sampleTime,
+            p.input_transit,
+            p.input_sampleHeight,
+            p.input_ZstepSize,
+        ):
+            w.textChanged.connect(self._refresh_start_button)
+
+        s = self.component_speed
+        for w in (s.input_XYSpeed, s.input_ZUpSpeed, s.input_ZDownSpeed):
+            w.textChanged.connect(self._refresh_start_button)
+
+
+    def _on_start_sampling_click(self):
+        if not self._sampling_inputs_valid():
+            return
+        self.next.emit()
+        sampling_service.getSampling(self.sampling)
+        sampling_service.createCSV()
 
 
     # Function to handle the sampling type
@@ -121,6 +227,7 @@ class PrerunConfig(QWidget):
         self.sampling.mode = type
         self.photo.update()
         self.clearInputs()
+        self._refresh_start_button()
 
         
     # Function to clear all sampling parameter inputs
