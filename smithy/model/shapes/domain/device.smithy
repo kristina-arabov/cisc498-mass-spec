@@ -3,203 +3,157 @@ $version: "2.0"
 namespace msrobot.domain.device
 
 use msrobot.core.common#Timestamp
-use msrobot.core.geometry#Pose
+use msrobot.core.geometry#Position3D
 use msrobot.core.geometry#Resolution
 
-/// Device type enumeration
 enum DeviceType {
-    /// 3D printer / robotic arm
     PRINTER
-
-    /// Camera
     CAMERA
-
-    /// Conductance meter
     CONDUCTANCE
-
-    /// Lights
     LIGHTS
 }
 
-/// Device connection status
 enum ConnectionStatus {
-    /// Not connected
     DISCONNECTED
-
-    /// Connection in progress
     CONNECTING
-
-    /// Successfully connected
     CONNECTED
-
-    /// Connection error
     ERROR
 }
 
-/// Generic device connection info
 structure DeviceConnection {
-    /// Type of device
     @required
     deviceType: DeviceType
 
-    /// Connection identifier (port, index, etc.)
+    /// COM port name, camera index, etc.
     @required
     connectionId: String
 
-    /// Current status
     @required
     status: ConnectionStatus
 
-    /// Last error message if status is ERROR
     lastError: String
-
-    /// Connection timestamp
     connectedAt: Timestamp
 }
 
-/// List of device connections
-list DeviceConnectionList {
-    member: DeviceConnection
-}
-
-/// Printer/Arm device information
+/// Marlin firmware over virtual COM port via pronsole_pipe.py.
 structure PrinterInfo {
-    /// COM port
+    /// e.g. COM3 on Windows, /dev/ttyUSB0 on Linux
     @required
     port: String
 
-    /// Baud rate
+    /// Marlin default: 115200
     @required
     baudRate: Integer
 
-    /// Connection timeout in ms
+    /// Default: 2000 ms
     @required
     timeoutMs: Integer
 
-    /// Printer model if known
     model: String
-
-    /// Firmware version if known
     firmwareVersion: String
 }
 
-/// Printer state
+/// 3-axis Cartesian gantry — position only, no orientation.
+/// Position tracked by parsing M114 "X<v> Y<v> Z<v>" from the Count line.
 structure PrinterState {
-    /// Current pose
     @required
-    pose: Pose
+    position: Position3D
 
-    /// Is printer homed
     @required
     isHomed: Boolean
 
-    /// Is printer currently moving
     @required
     isMoving: Boolean
 
-    /// Nozzle temperature
+    /// From M105; null if not available.
     temperatureNozzle: Float
 
-    /// Bed temperature
+    /// From M105; null if not available.
     temperatureBed: Float
 
-    /// Last state update
     @required
     lastUpdate: Timestamp
 }
 
-/// Camera device information
+/// Two resolution contexts: Unwarping App 1280×720, Printer Control App 500×219.
+/// Backend order: CAP_DSHOW → CAP_MSMF → CAP_ANY. 5 warmup frames discarded on connect.
 structure CameraDeviceInfo {
-    /// Device index
     @required
     deviceIndex: Integer
 
-    /// Camera resolution
     @required
     resolution: Resolution
 
-    /// Frames per second
+    /// 30 FPS in both contexts.
     @required
     fps: Integer
 
-    /// Camera name/description
     name: String
 }
 
-/// Camera state
 structure CameraState {
-    /// Is camera streaming
     @required
     isStreaming: Boolean
 
-    /// Is recording video
+    /// Video recording (camera.py context only).
     @required
     isRecording: Boolean
 
-    /// Current FPS (actual)
     currentFps: Float
-
-    /// Last frame timestamp
     lastFrameAt: Timestamp
 }
 
-/// Conductance meter device information
+/// checktype() sends 't\r\n' and expects 'c\r\n' to confirm the meter.
 structure ConductanceMeterInfo {
-    /// COM port
     @required
     port: String
 
-    /// Baud rate
     @required
     baudRate: Integer
 
-    /// Connection timeout in ms
+    /// Default: 2000 ms
     @required
     timeoutMs: Integer
 }
 
-/// Conductance meter state
+/// Readings queued as [timestamp_ms, value_uS] by ConThread, consumed by getConductance().
 structure ConductanceMeterState {
-    /// Current conductance reading in μS
+    /// Most recent reading in μS.
     @required
     currentValue: Integer
 
-    /// Last reading timestamp
     @required
     lastReadingAt: Timestamp
 
-    /// Readings per second
     readingsPerSecond: Float
 }
 
+/// Baud rate hardcoded to 9600 in LightingThread. Brightness mapped 0–100% → 0–255 PWM.
+structure LightsState {
+    /// PWM duty cycle: 0 = off, 255 = maximum.
+    @required
+    brightness: Integer
 
-/// Light controller state
-structure LightState { }
+    @required
+    isConnected: Boolean
+}
 
-
-/// All devices status
+/// Snapshot of all connected device states.
 structure DevicesStatus {
-    /// Printer connection
     @required
     printer: DeviceConnection
 
-    /// Camera connection
     @required
     camera: DeviceConnection
 
-    /// Conductance meter connection
     @required
     conductance: DeviceConnection
 
-    /// Printer state (if connected)
+    @required
+    lights: DeviceConnection
+
     printerState: PrinterState
-
-    /// Camera state (if connected)
     cameraState: CameraState
-
-    /// Conductance state (if connected)
     conductanceState: ConductanceMeterState
-
-    /// Lights state (if connected)
     lightsState: LightsState
 }

@@ -2,141 +2,117 @@ $version: "2.0"
 
 namespace msrobot.domain.gcode
 
-/// G-code command type
+/// G-code command types used by the application.
 enum GCodeType {
-    /// G0 - Rapid move
+    /// G0 — rapid move (XY transit and Z retract)
     RAPID_MOVE
 
-    /// G1 - Linear move
+    /// G1 — linear move with feedrate (Z descent)
     LINEAR_MOVE
 
-    /// G4 - Dwell
+    /// G4 P<ms> — dwell; used for sampleTime at sample height and dwellTime at transit height
     DWELL
 
-    /// G28 - Home
+    /// G28 — home axes
     HOME
 
-    /// G90 - Absolute positioning
+    /// G90 — absolute positioning mode
     SET_ABSOLUTE
 
-    /// G91 - Relative positioning
+    /// G91 — relative positioning mode (CONDUCTANCE step-down moves)
     SET_RELATIVE
 
-    /// G92 - Set position
+    /// G92 — set current position (e.g. G92 Z0 after contact in CONDUCTANCE mode)
     SET_POSITION
 
-    /// M114 - Report position
+    /// M114 — report position; parsed as "X<v> Y<v> Z<v>" from the Count line
     REPORT_POSITION
 
-    /// M105 - Report temperature
+    /// M105 — report temperatures; pattern r"T:(\d*\.?\d*) B:(\d*\.?\d*)"
     REPORT_TEMPERATURE
 
-    /// M400 - Wait for moves
+    /// M104 S<temp> — set nozzle temperature
+    SET_NOZZLE_TEMP
+
+    /// M140 S<temp> — set bed temperature
+    SET_BED_TEMP
+
+    /// M400 — wait for buffered moves to complete
     WAIT_FOR_MOVES
 
-    /// M203 - Set max feedrate
+    /// M203 X5000 Y5000 Z5000 — set maximum feedrate limits
     SET_MAX_FEEDRATE
 
-    /// Unknown command
     UNKNOWN
 }
 
-/// G-code command with parameters
 structure GCodeCommand {
-    /// Command type
     @required
     type: GCodeType
 
-    /// Raw command string
     @required
     rawCommand: String
 
-    /// X parameter (if applicable)
     x: Float
-
-    /// Y parameter (if applicable)
     y: Float
-
-    /// Z parameter (if applicable)
     z: Float
-
-    /// Feed rate (if applicable)
     feedRate: Float
 
-    /// Dwell time in ms (if applicable)
+    /// P parameter (ms) for G4 dwell.
     dwellMs: Integer
 
-    /// Command timestamp
     timestamp: String
 }
 
-/// List of G-code commands
 list GCodeCommandList {
     member: GCodeCommand
 }
 
-/// G-code execution result
 structure GCodeResult {
-    /// Original command
     @required
     command: GCodeCommand
 
-    /// Whether command succeeded
+    /// True when firmware responds with "ok".
     @required
     success: Boolean
 
-    /// Response from printer
     response: String
-
-    /// Error message if failed
     errorMessage: String
 
-    /// Execution duration in ms
+    /// Dispatch-to-acknowledgement time in ms.
     executionMs: Integer
 }
 
-/// Position response from M114
+/// Parsed M114 response. printer.py extracts X/Y/Z from the "Count" line.
 structure PositionResponse {
-    /// X position
     @required
     x: Float
 
-    /// Y position
     @required
     y: Float
 
-    /// Z position
     @required
     z: Float
 
-    /// E position (extruder, usually unused)
+    /// E axis — always 0, extruder not used.
     e: Float
 
-    /// Step count X
     countX: Integer
-
-    /// Step count Y
     countY: Integer
-
-    /// Step count Z
     countZ: Integer
 }
 
-/// Temperature response from M105
+/// Parsed M105 response. Pattern: r"T:(\d*\.?\d*) B:(\d*\.?\d*)"
 structure TemperatureResponse {
-    /// Nozzle temperature
     @required
     nozzle: Float
 
-    /// Nozzle target temperature
     @required
     nozzleTarget: Float
 
-    /// Bed temperature
     @required
     bed: Float
 
-    /// Bed target temperature
     @required
     bedTarget: Float
 }
