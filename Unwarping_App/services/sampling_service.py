@@ -151,8 +151,9 @@ def findLocations(transformation, sampling, img):
     if not dot or not has_roi:
         return
 
-    start_point = rectangle.topLeft()
-    end_point = rectangle.bottomRight()
+    if rectangle:
+        start_point = rectangle.topLeft()
+        end_point = rectangle.bottomRight()
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
