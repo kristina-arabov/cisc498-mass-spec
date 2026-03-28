@@ -201,6 +201,9 @@ class TagInstructions(QWidget):
         layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignLeft)
         # layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
 
+        layout_column_1.setContentsMargins(0,0,0,0)
+        layout_column_1.setSpacing(0)
+
 
         # COLUMN 2 --------------------------------------
         column_2 = QWidget()
