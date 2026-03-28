@@ -1035,12 +1035,17 @@ class TagInformationSection(QWidget):
         self.input_bottomLeftY = QLineEdit()
         self.input_bottomLeftY.setValidator(QDoubleValidator())
 
+        button_autofill = QPushButton("Use current location", objectName="clear")
+
         layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
-        layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(self.input_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(self.input_bottomLeftY, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(label_bottomLeftX)
+        layout_row_1.addWidget(self.input_bottomLeftX)
+        layout_row_1.addWidget(label_bottomLeftY)
+        layout_row_1.addWidget(self.input_bottomLeftY)
+
+        layout_row_1.setContentsMargins(0,0,0,0)
+        # layout_row_1.setSpacing(0)
 
 
         ''' ROW 2 '''
@@ -1053,15 +1058,20 @@ class TagInformationSection(QWidget):
         self.input_tagSize = QLineEdit()
         self.input_tagSize.setValidator(QDoubleValidator())
 
-        layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(label_tagSize)
         layout_row_2.addWidget(self.input_tagSize)
+
+        layout_row_2.setContentsMargins(0,0,0,0)
 
 
         ''' COMPOSE '''
         layout_container.addWidget(label_tagInformation)
         layout_container.addWidget(self.label_msg)
-        layout_container.addWidget(row_1)
         layout_container.addWidget(row_2)
+        layout_container.addStretch()
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(button_autofill)
+        
 
         layout.addWidget(container)
 
@@ -1071,6 +1081,7 @@ class TagInformationSection(QWidget):
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
+            QPushButton#clear { background-color: #F0F0F0; }
         """)
 
 
