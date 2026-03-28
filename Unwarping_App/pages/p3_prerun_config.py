@@ -790,8 +790,7 @@ class ReferenceParameters(QWidget):
     # Function to set the sampling variables (reference)
     def setVars(self, sampling, val, type):
         i = float(val)
-        print("hello...")
-
+        
         # Dwell time
         if type == "dwell_time":
             sampling.ref_dwellTime = i
