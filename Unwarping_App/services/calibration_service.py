@@ -290,6 +290,70 @@ def getCheckerboardUnwarp(images: list, checkerboard: tuple, transformation):
 
     return True, final_image, None
 
+
+
+def getCheckerboardUnwarpSingle(camera, columns, rows, result, transformation, printer=None):
+    '''
+        Fisheye calibration using a single image.
+    '''
+    # First check that dimensions are provided
+    if not columns or not rows or int(columns) <= 1 or int(rows) <= 1:
+        result.image_label.clear()
+        result.image_label.setText("Cannot unwarp with missing or negative board dimensions.")
+        return
+
+    # Initialize constant stuff
+    CHECKERBOARD = (int(columns) - 1, int(rows) - 1) # index to 0
+    
+    objp = np.zeros((1, CHECKERBOARD[0]*CHECKERBOARD[1], 3), np.float32)
+    objp[0,:,:2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
+
+    subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 300, 0.1)
+    calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_FIX_SKEW
+
+    # Set values
+    start = time.time()
+    end = start + 3 # Run for 3 seconds max
+    
+    retval = False
+    msg = "Board was unreadable. Ensure the correct dimensions are used and the entire board is visible."
+
+    # Actual checking and unwarping
+    # Loop here, run until end condition or until retval is true.
+    while time.time() < end and not retval:
+        try:
+            img = camera.frame.copy()
+        except:
+            msg = "No camera feed available."
+            result.image_label.setText(msg)
+            return
+        
+        retval, K, D, msg = checkFishReadability(img, CHECKERBOARD, objp, calibration_flags)
+        if retval:
+            image = fisheyeUnwarp(img, K, D)
+            retval, mtx, dist = checkSecondReadability(image, CHECKERBOARD, objp, subpix_criteria)
+            
+            if retval:
+                final = secondUnwarp(image, mtx, dist)
+
+                # Update transformation vars for chessboard
+                transformation.mtx1 = K
+                transformation.dist1 = D
+
+                transformation.mtx2 = mtx
+                transformation.dist2 = dist
+
+                transformation.chessboard_loc = device_service.getPrinterPosition(printer)
+                transformation.height = transformation.chessboard_loc[2]
+                transformation.chessboard_size = CHECKERBOARD
+                transformation.chessboard_img = img
+
+                updateResult(final, result)
+
+    result.image_label.setText(msg)
+
+
+
 def rvec_tvec_to_transform(rvec, tvec):
     R, _ = cv2.Rodrigues(rvec)
     T = np.eye(4)

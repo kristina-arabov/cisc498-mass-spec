@@ -5,6 +5,7 @@ from datetime import datetime
 
 from PyQt5.QtWidgets import (
     QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QRadioButton, QButtonGroup
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
@@ -348,7 +349,6 @@ class CheckerboardDetection(QWidget):
 
         self.label_status = QLabel("Enter board dimensions to begin.", objectName="status_label")
         self.label_status.setWordWrap(True)
-        self.label_status.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
@@ -357,7 +357,7 @@ class CheckerboardDetection(QWidget):
         layout_right.addWidget(label_title,                       alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(component_lightControl,            alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(self.component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(self.label_status,                 alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(self.label_status)
         layout_right.addWidget(button_next,                       alignment=Qt.AlignRight)
         layout_right.addStretch()
 
@@ -380,7 +380,7 @@ class CheckerboardDetection(QWidget):
         self.component_checkerboardParams.input_rows.textChanged.connect(self._on_dims_changed)
         self.component_checkerboardParams.input_columns.textChanged.connect(self._on_dims_changed)
 
-        self.component_unwarpComparison.arrow.button.clicked.connect(self._start_calibration)
+        self.component_unwarpComparison.arrow.button.clicked.connect(lambda: self._check_type())
 
         # BOTTOM panel placeholder — only ever replaced by a successful calibration.
         self.component_unwarpComparison.result.image_label.setText(
@@ -497,6 +497,21 @@ class CheckerboardDetection(QWidget):
             if checkerboard:
                 self._start_preview(checkerboard)
 
+    def _check_type(self):
+        # If user wants multiple images, run calibration worker
+        if self.component_checkerboardParams.multiple.isChecked():
+            self._start_calibration()
+
+        # If user wants single image, run original chessboard detection code
+        elif self.component_checkerboardParams.single.isChecked():
+            calibration_service.getCheckerboardUnwarpSingle(self.camera,
+                                                    self.component_checkerboardParams.input_columns.text(),
+                                                    self.component_checkerboardParams.input_rows.text(),
+                                                    self.component_unwarpComparison.result,
+                                                    self.transformation,
+                                                    self.printer)
+
+
     # ── Helpers ────────────────────────────────────────────────────────────────
 
     def _parse_checkerboard(self):
@@ -539,22 +554,50 @@ class CheckerboardParamsSection(QWidget):
         label_title = QLabel("Checkerboard size", objectName="larger")
         label_title.setStyleSheet("font-weight: bold;")
 
+        # Rows input ---------------------
         row_1 = QWidget()
         layout_row_1 = QHBoxLayout(row_1)
         layout_row_1.addWidget(QLabel("Rows: "))
         self.input_rows = QLineEdit()
         layout_row_1.addWidget(self.input_rows)
+        
+        layout_row_1.setContentsMargins(0,0,0,0)
 
+        # Columns input -------------------
         row_2 = QWidget()
         layout_row_2 = QHBoxLayout(row_2)
         layout_row_2.addWidget(QLabel("Columns: "))
         self.input_columns = QLineEdit()
         layout_row_2.addWidget(self.input_columns)
 
+        layout_row_2.setContentsMargins(0,0,0,0)
+
+
+        # Type input ---------------------
+        row_3 = QWidget()
+        layout_row_3 = QHBoxLayout(row_3)
+
+        self.multiple = QRadioButton("Multiple images")
+        self.single = QRadioButton("Single image")
+
+        self.multiple.setChecked(True)
+
+        mode_group = QButtonGroup()
+        mode_group.addButton(self.multiple, 0)
+        mode_group.addButton(self.single, 1)
+
+        layout_row_3.addWidget(self.multiple)
+        layout_row_3.addWidget(self.single)
+
+        layout_row_3.setContentsMargins(0,0,0,0)
+
+
+        # Compose all --------------------
         layout_container.addWidget(label_title)
         layout_container.addWidget(row_1)
         layout_container.addWidget(row_2)
-
+        layout_container.addWidget(row_3, alignment=Qt.AlignLeft)
+        
         layout.addWidget(container)
 
         self.setStyleSheet("""
