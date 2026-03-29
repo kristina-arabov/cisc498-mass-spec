@@ -651,8 +651,11 @@ def serpentineDragPolygon(locations):
                 segments.append((xs[j], xs[j + 1]))
 
         if not segments:
-            if (xs, y) not in result:
-                result.append((xs, y))
+            try:
+                if (xs[0], y) not in result:
+                    result.append((xs[0], y))
+            except:
+                continue
 
         if i % 2 == 0:
             ordered_segments = segments
