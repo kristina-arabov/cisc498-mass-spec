@@ -39,6 +39,7 @@ class SamplingItem():
         self.ref_dwellTime = None
         self.ref_sampleTime = None
         self.ref_sampleHeight = None
+        self.ref_point_probed = False
 
         # Speed + Step size
         self.xy_speed = None
@@ -391,6 +392,7 @@ def getSampling(sampling, polygon_active=False):
     # Reset values
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
+    sampling.ref_point_probed = False # Reset reference point probed status
 
     progress.updatePoints(sampling.sampled_points, sampling.total_points)
 
@@ -720,7 +722,10 @@ def runGCode(printer, conduct):
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
-    printer.cmd(line)
+    try:
+        printer.cmd(line)
+    except:
+        print("Printer not connected.")
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
