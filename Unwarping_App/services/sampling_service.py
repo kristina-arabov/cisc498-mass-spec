@@ -343,7 +343,8 @@ def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, m
             x -= transformation.offset_x
         else:
             x += transformation.offset_x
-        y -= transformation.offset_y
+        
+        y += transformation.offset_y
 
         real_vertices.append((float(x.item()), float(y.item())))
 
