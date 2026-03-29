@@ -94,7 +94,7 @@ class PrerunConfig(QWidget):
         # FUNCTIONS ----------------------------------------
         # Start sampling run
         button_startRun.clicked.connect(self.next.emit)
-        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
+        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
         button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         # ROI sampling mode

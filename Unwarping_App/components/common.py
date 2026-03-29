@@ -1943,7 +1943,7 @@ class ClickableImage(QLabel):
         try:
             if self.rectangle:
                 self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50]
+                # self.probe_rectangle = [100, 40, 115, 50]
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1990,7 +1990,7 @@ class ClickableImage(QLabel):
         try:
             if self.rectangle: 
                 self.probe_rectangle = sampling.rectangle
-                self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing

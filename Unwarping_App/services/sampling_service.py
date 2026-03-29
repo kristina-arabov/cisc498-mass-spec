@@ -367,7 +367,7 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 
-def getSampling(sampling):
+def getSampling(sampling, polygon_active=False):
 
     print(sampling.real_points_list)
 
@@ -376,7 +376,12 @@ def getSampling(sampling):
     # If using drag mode, locations will need to follow a serpentine pattern, but 
     # only move along the XY coordinates with no Z movement
     if sampling.mode == "drag":
-        locations = serpentineDrag(locations)
+
+        if polygon_active:
+            locations = serpentineDragPolygon(locations)
+
+        else:
+            locations = serpentineDrag(locations)
     
     # Standard serpentine pattern for Constant Z and Conductance modes
     else:
@@ -618,6 +623,63 @@ def serpentineDrag(locations):
 
         result.append(start)
         result.append(end)
+
+    return result
+
+
+# Serpentine path organization for polygon ROIs
+def serpentineDragPolygon(locations):
+    rows = defaultdict(list)
+
+    for x, y in locations:
+        y_key = round(y, 2)
+        rows[y_key].append(x)
+
+    # Sort rows top → bottom
+    ys = sorted(rows.keys(), reverse=True)
+
+    result = []
+    prev_point = None
+
+    for i, y in enumerate(ys):
+
+        xs = sorted(rows[y])
+
+        segments = []
+        for j in range(0, len(xs), 2):
+            if j + 1 < len(xs):
+                segments.append((xs[j], xs[j + 1]))
+
+        if not segments:
+            continue
+
+        if i % 2 == 0:
+            ordered_segments = segments
+        else:
+            ordered_segments = list(reversed(segments))
+
+
+        for seg_idx, (x_start, x_end) in enumerate(ordered_segments):
+
+            if i % 2 == 0:
+                start = (x_start, y)
+                end   = (x_end, y)
+            else:
+                start = (x_end, y)
+                end   = (x_start, y)
+
+            # Connect from previous row/segment
+            if prev_point is not None and prev_point != start and prev_point not in result:
+                result.append(prev_point)
+                result.append(start)
+
+            if start not in result:
+                result.append(start)
+            
+            if end not in result:
+                result.append(end)
+
+            prev_point = end
 
     return result
 
