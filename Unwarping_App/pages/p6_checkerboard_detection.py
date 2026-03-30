@@ -348,8 +348,6 @@ class CheckerboardDetection(QWidget):
 
         self.label_status = QLabel("Enter board dimensions to begin.", objectName="status_label")
         self.label_status.setWordWrap(True)
-        self.label_status.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
 
@@ -357,7 +355,7 @@ class CheckerboardDetection(QWidget):
         layout_right.addWidget(label_title,                       alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(component_lightControl,            alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(self.component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(self.label_status,                 alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout_right.addWidget(self.label_status)
         layout_right.addWidget(button_next,                       alignment=Qt.AlignRight)
         layout_right.addStretch()
 
