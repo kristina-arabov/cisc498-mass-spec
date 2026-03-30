@@ -765,6 +765,8 @@ def createCSV():
 
 
 def stop(printer):
+    device_service.emergency_stop_printer(printer)
+
     # Clear GCodes and sampling data
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
