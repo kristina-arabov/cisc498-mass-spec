@@ -119,9 +119,12 @@ def global_poll():
                 pos = printer.pos
 
                 # Constant-Z mode for reference point
-                if probe.ref_mode == "constant" and pos[2] == next_height and (pos[0], pos[1]) == probe.dot:
+                if probe.ref_mode == "constant" and pos[2] == next_height:
                     probe.moving = False
-                    probe.ref_point_probed = True # Reference point has been probed
+                
+                    if (pos[0], pos[1]) == (round(probe.dot[0], 2), round(probe.dot[1], 2)):
+                        probe.ref_point_probed = True # Reference point has been probed
+
 
                 # Conductive mode for reference point
                 elif probe.ref_mode == "conductive":
@@ -157,6 +160,7 @@ def global_poll():
 
             # Checks for Drag sampling mode
             elif probe.mode == "drag":
+                
                 if printer.pos[2] == next_height:
                     probe.moving = False
 
