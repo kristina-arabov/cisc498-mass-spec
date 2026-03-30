@@ -295,7 +295,7 @@ class DevicesDropdown(QWidget):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setAttribute(Qt.WA_NoSystemBackground, True)
 
-        self.setFixedHeight(325)
+        self.setFixedHeight(200)
         self.setObjectName("devicesDropdown")
 
         self.setStyleSheet("""
@@ -336,8 +336,8 @@ class DevicesDropdown(QWidget):
         self.row_lights = DeviceRow("Lights", kind="lights")
         
         inner_layout.addWidget(self.row_camera)
-        inner_layout.addWidget(self.row_printer)
-        inner_layout.addWidget(self.row_cond)
+        # inner_layout.addWidget(self.row_printer)
+        # inner_layout.addWidget(self.row_cond)
         inner_layout.addWidget(self.row_lights)
         inner_layout.addWidget(refresh_btn, alignment=Qt.AlignCenter)
         inner_layout.addStretch(1)
