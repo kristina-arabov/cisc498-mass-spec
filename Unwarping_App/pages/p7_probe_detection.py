@@ -10,6 +10,7 @@ from Unwarping_App.services import device_service, calibration_service
 
 class ProbeDetection(QWidget):
     next = pyqtSignal()
+    offsetAvailable = pyqtSignal()
 
     def __init__(self, camera, lights, printer, transformation):
         super().__init__()
@@ -63,6 +64,8 @@ class ProbeDetection(QWidget):
 
         button_next = QPushButton("Next", objectName="blue")
         button_next.clicked.connect(self.next.emit)
+        button_next.setEnabled(False)
+        self.button_next = button_next
 
         layout_right.addStretch()
         layout_right.addWidget(label_probeDetection, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -100,7 +103,33 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_tagSize.textChanged.connect(lambda: calibration_service.updateTag(self.transformation, 
                                                                                                               self.component_tagInformation.input_tagSize.text(), 
                                                                                                               "size"))
+        
+
+        # Check ability to calculate offset
+        self.component_tagInformation.input_bottomLeftX.textChanged.connect(lambda: self.checkOffset())
+        self.component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: self.checkOffset())
+        self.component_tagInformation.input_tagSize.textChanged.connect(lambda: self.checkOffset())
+
+        self.component_tagInformation.button_autofill.clicked.connect(lambda: self.component_tagInformation.setPrinterPos(self.printer))
+
+        self.component_tag.checkOffset.connect(lambda: self.checkOffset())
     
+
+    # Function to check if offset can be calculated
+    def checkOffset(self):
+        # All inputs and corners must not be None/False
+        x_coord = self.component_tagInformation.input_bottomLeftX.text()
+        y_coord = self.component_tagInformation.input_bottomLeftY.text()
+        tag_size = self.component_tagInformation.input_tagSize.text()
+
+        # Permit page transition if all corners mapped
+        if x_coord and y_coord and tag_size and not False in self.component_tag.corners_imaged:
+            self.offsetAvailable.emit()
+            self.button_next.setEnabled(True)
+        else:
+            self.button_next.setEnabled(False)
+
+
 
     # Function to reset front-end
     def clearAll(self):
@@ -144,7 +173,7 @@ class ProbeDetection(QWidget):
 
 
 class TagInstructions(QWidget):
-    offsetAvailable = pyqtSignal()
+    checkOffset = pyqtSignal()
 
     def __init__(self, camera, printer, transformation):
         super().__init__()
@@ -176,7 +205,10 @@ class TagInstructions(QWidget):
         self.line_progressBar.setFixedWidth(self.label_instructions.width())
 
         layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignLeft)
-        layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
+        # layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
+
+        layout_column_1.setContentsMargins(0,0,0,0)
+        layout_column_1.setSpacing(0)
 
 
         # COLUMN 2 --------------------------------------
@@ -187,7 +219,7 @@ class TagInstructions(QWidget):
         self.button_previousCorner = QPushButton("Previous corner", objectName="clear")
         self.button_previousCorner.setEnabled(False)
 
-        self.button_probeLocation = QPushButton("Probe at location", objectName="blue")
+        self.button_probeLocation = QPushButton("Corner at crosshair", objectName="blue")
 
         layout_column_2.addStretch()
         layout_column_2.addWidget(self.button_nextCorner)
@@ -250,10 +282,21 @@ class TagInstructions(QWidget):
     # Function to acquire the probe's position in alignment with a specific tag corner
     def handleCornerConfirm(self):
         # Obtain values for location
-        img = self.camera.frame.copy()
+
+        # If camera is running, take a photo otherwise don't proceed
+        try:
+            img = self.camera.frame.copy()
+        except:
+            return
+        
         img = calibration_service.unwarpPhoto(img, self.transformation)
 
         position = device_service.getPrinterPosition(self.printer)
+
+        # Enforce same printer height
+        if position[2] != self.transformation.height:
+            self.label_instructions.setText(f"Cannot image corner. Ensure the printer height is set to Z={self.transformation.height} for all crosshair alignments.")
+            return
 
         setattr(self.transformation, f"loc{self.idx}", position)
         setattr(self.transformation, f"img{self.idx}", img)
@@ -269,7 +312,7 @@ class TagInstructions(QWidget):
 
         # Send signal to calculate probe-to-camera offset with available values
         if not False in self.corners_imaged:
-            self.offsetAvailable.emit()
+            self.checkOffset.emit()
 
 
     # Function to set colours to probed or not probed corners

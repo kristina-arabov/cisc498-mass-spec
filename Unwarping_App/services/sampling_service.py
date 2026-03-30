@@ -25,7 +25,7 @@ class SamplingItem():
 
         self.real_points_list = None
 
-        # Sampling parameters
+        # Sampling parameters (ROI)
         self.spatialRes_X = None
         self.spatialRes_Y = None
 
@@ -35,17 +35,27 @@ class SamplingItem():
         self.transitHeight = None
         self.sampleHeight = None
 
+        # Reference parameters
+        self.ref_dwellTime = None
+        self.ref_sampleTime = None
+        self.ref_sampleHeight = None
+        self.ref_point_probed = False
+
         # Speed + Step size
         self.xy_speed = None
         self.z_down_speed = None
         self.z_up_speed = None
+        
         self.stepSize = None
+        self.ref_stepSize = None
 
 
         self.startLoc = None
         self.originalLoc = [0, 0, 0]
 
+        # Sampling modes (ROI and reference)
         self.mode = "constant"
+        self.ref_mode = "constant"
 
         # Gcode info
         self.estimated_time = None
@@ -69,6 +79,7 @@ class SamplingItem():
 
 class SamplingFrontEnd(QObject):
     pointUpdated = pyqtSignal(str)
+    visitedLocation = pyqtSignal(object)
     samplingDone = pyqtSignal()
 
     def __init__(self):
@@ -76,9 +87,12 @@ class SamplingFrontEnd(QObject):
         self.fraction = "0/0"
 
 
-    def updatePoints(self, numerator, denominator):
+    def updatePoints(self, numerator, denominator, location=None):
         self.fraction = f"{numerator}/{denominator}"
         self.pointUpdated.emit(self.fraction)
+
+        if location:
+            self.visitedLocation.emit(location)
         
 
 samplingItem = SamplingItem()
@@ -108,6 +122,17 @@ def setTransformation(transformation, path, valid):
         file.close()
     
     except:
+        transformation.mtx1 = None
+        transformation.dist1 = None
+
+        transformation.mtx2 = None
+        transformation.dist2 = None
+
+        transformation.height = None
+
+        transformation.offset_x = None
+        transformation.offset_y = None
+
         valid = False
 
     return valid
@@ -115,23 +140,21 @@ def setTransformation(transformation, path, valid):
 
 
 def findLocations(transformation, sampling, img):
-    print("working!")
-
     rectangle = img.rectangle
     dot = img.dot
+    polygon_active = getattr(img, 'polygon_active', False)
+    polygon_points = getattr(img, 'polygon_points', [])
 
     sampling.originalLoc = transformation.photo_loc
-    print(sampling.originalLoc)
 
-    # If no reference point + ROI then don't caluclate locations
-    if not dot or not rectangle:
+    # Need at least a reference point and one ROI type
+    has_roi = rectangle or (polygon_active and polygon_points)
+    if not dot or not has_roi:
         return
 
-    start_point = rectangle.topLeft()
-    end_point = rectangle.bottomRight()
-
-    print(start_point, end_point)
-    print(dot)
+    if rectangle:
+        start_point = rectangle.topLeft()
+        end_point = rectangle.bottomRight()
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
@@ -139,16 +162,18 @@ def findLocations(transformation, sampling, img):
     # Get printer position from photo
     pos = transformation.photo_loc
 
-    # cv2.imshow("wat", image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
-    mtx1[0][0] = mtx1[0][0] * 0.01
-    mtx1[1][1] = mtx1[1][1] * 0.01
+
+    mtx1[0][0] = mtx1[0][0]
+    mtx1[1][1] = mtx1[1][1]
+
+    while mtx1[0][0] > 1000 and mtx1[1][1] > 1000:
+        mtx1[0][0] *= 0.1
+        mtx1[1][1] *= 0.1
 
     dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
+    # dist1 = transformation.dist1.copy()
 
     mtx2 = transformation.mtx2.copy()
     dist2 = transformation.dist2.copy()
@@ -206,14 +231,17 @@ def findLocations(transformation, sampling, img):
     # PROCESS DOT ----------------------------------------------
     sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
     
-
     # PROCESS RECTANGLE --------------------------------------
-    sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    if rectangle:
+        sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
+    # PROCESS POLYGON --------------------------------------
+    if polygon_active and polygon_points:
+        sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
 
-    # print(sampling.rectangle)
     print(sampling.dot)
     print(sampling.rectangle)
+    print(sampling.drawn)
 
 
 
@@ -226,6 +254,8 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
     dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
 
     dot_in_base = cam2base @ dot_from_cam_principal
+
+    print(dot_in_base)
 
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
@@ -296,6 +326,32 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     return probe_rectangle
 
 
+def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, mtx2, dist2):
+    """Transform polygon pixel vertices (QPoint list) to real-world stage coordinates.
+    Returns a list of (x_mm, y_mm) tuples — one per vertex.
+    """
+    real_vertices = []
+    for qpt in polygon_points:
+        unscaled = (int(qpt.x() / scale), int(qpt.y() / scale))
+        undone = calibration_service.undoSecondUnwarp(unscaled, mtx2, dist2)
+        direction = getDirectionFromPixel(undone[0], undone[1], mtx1)
+        in_base = cam2base @ direction
+
+        x = pos[0] + (in_base[0] * 10)
+        y = pos[1] + (in_base[1] * 10)
+
+        if transformation.offset_x < 0:
+            x -= transformation.offset_x
+        else:
+            x += transformation.offset_x
+        
+        y += transformation.offset_y
+
+        real_vertices.append((float(x.item()), float(y.item())))
+
+    return real_vertices
+
+
 # Returns direction for a location from the camera principal point
 def getDirectionFromPixel(u, v, mtx):
     # (u, v) are pixel coordinates in the image
@@ -313,26 +369,21 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 
-def getSampling(sampling):
-
+def getSampling(sampling, polygon_active=False):
 
     print(sampling.real_points_list)
 
-    # TODO change to real locations
-
     locations = sampling.real_points_list
-
-    # locations = [(180.4, 5), (182.4, 5), (184.4, 5), (180.4, 0), (182.4, 0), (184.4, 0), (178.4, -5), (180.4, -5), (182.4, -5)]
-    # locations = [(170.4, 5), (175.4, 5), (181.4, 5),
-    #             (169.4, 2.5), (172.4, 2.5), (180.4, 2.5),
-    #             (170.4, 0), (174.4, 0), (179.4, 0),
-    #             (175.4, -2.5), (177.4, -2.5), (180.4, -2.5),
-    #             (175.4, -5), (178.4, -5)]
 
     # If using drag mode, locations will need to follow a serpentine pattern, but 
     # only move along the XY coordinates with no Z movement
     if sampling.mode == "drag":
-        locations = serpentineDrag(locations)
+
+        if polygon_active:
+            locations = serpentineDragPolygon(locations)
+
+        else:
+            locations = serpentineDrag(locations)
     
     # Standard serpentine pattern for Constant Z and Conductance modes
     else:
@@ -341,6 +392,7 @@ def getSampling(sampling):
     # Reset values
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
+    sampling.ref_point_probed = False # Reset reference point probed status
 
     progress.updatePoints(sampling.sampled_points, sampling.total_points)
 
@@ -368,8 +420,6 @@ def getSampling(sampling):
 
     # Conductive mode
     elif sampling.mode == "conductive":
-        print("conductive selected")
-
         # Loop through calculated locations
         for i in locations:
             appendXYMove(sampling, i)       # Go to (X, Y) location
@@ -400,7 +450,7 @@ def getSampling(sampling):
 
     # Return to original position
     p = sampling.originalLoc
-    # p = [180.4, -3, 0]
+    sampling.gcodes.append("G90")
     appendXYMove(sampling, p)
     appendZChange(sampling, p)
 
@@ -414,17 +464,20 @@ def getSampling(sampling):
 
 # Commands to move to the reference point
 def appendReferencePoint(sampling):
+    # sampling.dot = [100, 100, 0]
     appendXYMove(sampling, sampling.dot)    # Go to (X, Y) location
 
-    if sampling.mode != "conductive":
-        appendSampleHeight(sampling)            # Go to Z sampling height
-    else:
-        # TODO TEMPORARY
-        sampling.gcodes.append(f"G0 Z{str(-15)} F{str(sampling.z_down_speed)}") 
+    # Constant Z
+    if sampling.ref_mode == "constant":
+        appendSampleHeight_Ref(sampling)    # Go to reference sampling height
+    
+    # Conductive mode
+    elif sampling.ref_mode == "conductive":
+        appendConductanceZ_Ref(sampling)        # Use relative positioning with step size
 
-    appendSampleTime(sampling)              # Sample for __ milliseconds
-    appendTransitHeight(sampling)           # Return to Z transit height
-    appendDwellTime(sampling)               # Dwell for __ milliseconds
+    appendSampleTime_Ref(sampling)          # Use reference sample time
+    appendTransitHeight(sampling)           # Return to transit height
+    appendDwellTime_Ref(sampling)           # Use reference dwell time
 
 
 # Command: Movement to transit height before starting X,Y movements
@@ -445,7 +498,7 @@ def appendXYMove(sampling, loc):
 
 # Command: Go to a specific height
 def appendZChange(sampling, loc):
-    sampling.gcodes.append(f"G0 Z{str(loc[2])}")
+    sampling.gcodes.append(f"G0 Z{str(loc[2])} F{str(sampling.z_up_speed)}")
 
 
 # Command: Move back to transit height
@@ -455,7 +508,12 @@ def appendTransitHeight(sampling):
 
 # Command: Go to Z sampling height
 def appendSampleHeight(sampling):
-    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append(f"G0 Z{str(sampling.sampleHeight)} F{str(sampling.z_down_speed)}")
+
+
+# Command: Go to Z sampling height (defined in reference parameters) 
+def appendSampleHeight_Ref(sampling):
+    sampling.gcodes.append(f"G0 Z{str(sampling.ref_sampleHeight)} F{str(sampling.z_down_speed)}")
 
 
 # Command: Move down until conductance detected
@@ -465,15 +523,34 @@ def appendConductanceZ(sampling):
     sampling.gcodes.append("G90")
 
 
-# Command: Dwell for __ milliseconds
+# Command: Move down until conductance detected (defined in reference parameters)
+def appendConductanceZ_Ref(sampling):
+    sampling.gcodes.append("G91")
+    sampling.gcodes.append(f"G0 Z-{str(sampling.ref_stepSize)} F{str(sampling.z_down_speed)}") 
+    sampling.gcodes.append("G90")
+
+
+# Command: Dwell for __ seconds
 def appendDwellTime(sampling):
     dwell_time = int(sampling.dwellTime) * 1000
     sampling.gcodes.append(f"G4 P{str(dwell_time)}")
 
 
-# Command: Sample for __ milliseconds
+# Command: Dwell for __ seconds (defined in reference parameters)
+def appendDwellTime_Ref(sampling):
+    dwell_time = int(sampling.ref_dwellTime) * 1000
+    sampling.gcodes.append(f"G4 P{str(dwell_time)}")
+
+
+# Command: Sample for __ seconds
 def appendSampleTime(sampling):
     sample_time = int(sampling.sampleTime) * 1000 
+    sampling.gcodes.append(f"G4 P{str(sample_time)}")
+
+
+# Command: Sample for __ seconds (defined in reference parameters)
+def appendSampleTime_Ref(sampling):
+    sample_time = int(sampling.ref_sampleTime) * 1000 
     sampling.gcodes.append(f"G4 P{str(sample_time)}")
 
 
@@ -553,6 +630,66 @@ def serpentineDrag(locations):
     return result
 
 
+# Serpentine path organization for polygon ROIs
+def serpentineDragPolygon(locations):
+    rows = defaultdict(list)
+
+    for x, y in locations:
+        y_key = round(y, 2)
+        rows[y_key].append(x)
+
+    # Sort rows top → bottom
+    ys = sorted(rows.keys(), reverse=True)
+
+    result = []
+    prev_point = None
+
+    for i, y in enumerate(ys):
+
+        xs = sorted(rows[y])
+
+        segments = []
+        for j in range(0, len(xs), 2):
+            if j + 1 < len(xs):
+                segments.append((xs[j], xs[j + 1]))
+
+        if not segments:
+            try:
+                if (xs[0], y) not in result:
+                    result.append((xs[0], y))
+            except:
+                continue
+
+        if i % 2 == 0:
+            ordered_segments = segments
+        else:
+            ordered_segments = list(reversed(segments))
+
+
+        for seg_idx, (x_start, x_end) in enumerate(ordered_segments):
+
+            if i % 2 == 0:
+                start = (x_start, y)
+                end   = (x_end, y)
+            else:
+                start = (x_end, y)
+                end   = (x_start, y)
+
+            if start not in result:
+                result.append(start)
+
+            # Connect from previous row/segment
+            if prev_point is not None and prev_point != start and prev_point not in result:
+                result.append(prev_point)
+            
+            if end not in result:
+                result.append(end)
+
+            prev_point = end
+
+    return result
+
+
 # Function to get time stamp between operations
 def getTime():
     samplingItem.timestamps.append(time.time())
@@ -578,11 +715,17 @@ def runGCode(printer, conduct):
         match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
         match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
 
+        # If this is a sampling point
         if (float(match_x.group(1)), float(match_y.group(1))) in samplingItem.real_points_list:
             samplingItem.sampled_points += 1
-            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points)
+            location = (float(match_x.group(1)), float(match_y.group(1)))
 
-    printer.cmd(line)
+            progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
+
+    try:
+        printer.cmd(line)
+    except:
+        print("Printer not connected.")
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
@@ -596,8 +739,8 @@ def addData(printer, conductance):
     # Get time and printer position at this moment
     time_val = int(getTime() * 1000)
     pos = printer.pos if printer.pos is not None else [0, 0, 0]
+
     c = device_service.getConductance(conductance) if conductance.status else 0
-    # pos = [1, 2, 3]
 
     # Open file and add row to it
     with open(samplingItem.csv_filename, "a", newline="") as file:
@@ -622,6 +765,8 @@ def createCSV():
 
 
 def stop(printer):
+    device_service.emergency_stop_printer(printer)
+
     # Clear GCodes and sampling data
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
@@ -653,12 +798,7 @@ def stop(printer):
 
 def pause(printer):
     printer.last_pos = printer.pos
-    # if self.conductance_mode:
-    #     self.cmd("G90")
-    #     self.cmd("G0 Z100 F3000")
-    #     self.cmd("G0 X10 Y10 Z100 F3000")
-    #     self.cmd("G91")
-    # else:
+
     printer.cmd("G91")
     printer.cmd("G0 Z15 F3000")
     printer.cmd("G0 X5 Y5 F3000")
@@ -668,15 +808,6 @@ def pause(printer):
 
 
 def resume(printer):
-    # print("resuming")
-    # print("sending to", printer.last_pos)
-
-    # print(printer.last_pos)
-
-    # if self.conductance_mode:
-    #     self.cmd("G90")
-    #     self.cmd("G0 X"+str(self.last_pos[0])+" Y"+str(self.last_pos[1])+ " Z"+str(self.last_pos[2])+" F2000")
-    #     self.cmd("G91")
 
     samplingItem.paused = False
     samplingItem.moving = False
@@ -685,153 +816,3 @@ def resume(printer):
 
     printer.cmd("G90")
     printer.cmd(f"G0 X{str(round(printer.last_pos[0], 2))} Y{str(round(printer.last_pos[1], 2))} Z{str(round(printer.last_pos[2], 2))} F1000")
-
-    
-
-    # Ensure file is saved
-
-    # TODO Return to initial position? or emergency position?
-    # Currently emergency position
-
-    # printer.cmd("G0 Z100 F3000")
-    # printer.cmd("G0 X10 Y10 Z100 F3000")
-
-
-    # start_point = rectangle.topLeft()
-    # end_point = rectangle.bottomRight()
-
-    # if not dot or not rectangle:
-    #     print("Nothing to sample or missing location for dot/rectangle.")
-    #     return
-
-    # # Process original image (not scaled!)
-    # image = cv2.cvtColor(result.original_pixmap, cv2.COLOR_RGBA2GRAY)
-
-    # if printer is None:
-    #     print("Printer not connected, cannot generate probe locations without knowing the current position.")
-    #     return
-    
-    # current_position = getPrinterPosition(printer)
-    # current_position = np.array([current_position[0], current_position[1], current_position[2]], dtype=np.float32) # current position
-
-    # # Open and read the JSON file
-    # with open(json_file, 'r') as file:
-    #     data = json.load(file)
-
-    # unwarping = data["checkerboard"][0]
-    # mtx1 = np.asarray(unwarping["mtx1"], dtype=np.float32)
-    # mtx1[0][0] = mtx1[0][0] * 0.01
-    # mtx1[1][1] = mtx1[1][1] * 0.01
-    # dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
-
-    # mtx2 = np.asarray(unwarping["mtx2"], dtype=np.float32)
-    # dist2 = np.asarray(unwarping["dist2"], dtype=np.float32)
-
-    # # Need tag in the image
-    # dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
-    # parameters = cv2.aruco.DetectorParameters()
-    # detector = cv2.aruco.ArucoDetector(dictionary, parameters)
-
-    # corners, ids, _ = detector.detectMarkers(image)
-    # if not corners or len(corners) == 0:
-    #     print("Cannot generate probe locations without tag")
-    #     return
-
-    # tag_size = data["tags"][0]["size"]
-    # object_points = np.array([
-    #     [tag_size, 0, 0], 
-    #     [0, 0, 0],
-    #     [0, tag_size, 0],
-    #     [tag_size, tag_size, 0]], dtype=np.float32)
-    
-    # # json_corner = data["tags"][0]["corner1"]
-    # # known_tag_corner = np.array([json_corner[0], json_corner[1], 0], dtype=np.float32)
-
-    # known_tag_corner = np.array([float(corner.input.text()), float(corner.input2.text()), 0], dtype=np.float32)
-
-    # image_points = corners[0].reshape(-1, 2).astype(np.float32)
-
-    # for i in image_points:
-    #     cv2.circle(image, (int(i[0]), int(i[1])), 5, (255, 255, 255), -1)
-
-    # retval, rvec, tvec = cv2.solvePnP(object_points, image_points, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)
-    # rvec, tvec = cv2.solvePnPRefineLM(object_points, image_points, mtx1, dist1, rvec, tvec)
-    # rvec, tvec = cv2.solvePnPRefineVVS(object_points, image_points, mtx1, dist1, rvec, tvec)
-    # R_tag2cam, _ = cv2.Rodrigues(rvec) # convert to matrix
-
-    # # get camera to tag (invert transformation)
-    # R_cam2tag = R_tag2cam.T
-    # t_cam2tag = -R_tag2cam.T @ tvec
-
-    # # get tag to base
-    # R_base2tag = np.eye(3)
-    # t_base2tag = known_tag_corner.reshape(-1, 1)
-
-    # # get camera to tag, tag to base = camera to base
-    # global R_cam2base_overlay, t_cam2base_overlay
-    # R_cam2base_overlay = R_base2tag @ R_cam2tag
-    # t_cam2base_overlay = R_base2tag @ t_cam2tag + t_base2tag
-
-
-    # R_base2cam = R_cam2base_overlay.T
-    # t_base2cam = -R_cam2base_overlay.T @ t_cam2base_overlay
-
-    # print(R_base2cam, t_base2cam)
-
-    # '''
-    #     Process dot
-    # '''
-    # dot_unscaled = (int(dot.x() / 0.7), int(dot.y() / 0.7))
-    # new_dot = undoSecondUnwarp(dot_unscaled, mtx2, dist2)
-
-    # dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
-    # dot_in_base = R_cam2base_overlay @ dot_from_cam_principal
-
-    # dot_x = current_position[0] + (dot_in_base[0] * 10)
-    # dot_y = current_position[1] + (dot_in_base[1] * 10)
-    
-    # # Add probe offset to dot position
-    # dot_x += data["probe_offset"][0]
-    # dot_y += data["probe_offset"][1]
-
-    # probe_dot = (float(dot_x.item()), float(dot_y.item()))
-
-    # '''
-    #     Process rectangle 
-    # '''
-    # # Start and end points will be diagonal to each other?
-    # start_point = rectangle.topRight()
-    # end_point = rectangle.bottomLeft()
-    # start_unscaled = (int(start_point.x() / 0.7), int(start_point.y() / 0.7))
-    # end_unscaled = (int(end_point.x() / 0.7), int(end_point.y() / 0.7))
-
-    # start_point = undoSecondUnwarp(start_unscaled, mtx2, dist2)
-    # end_point = undoSecondUnwarp(end_unscaled, mtx2, dist2)
-
-    # start_point_from_cam_principal = getDirectionFromPixel(start_point[0], start_point[1], mtx1)
-    # end_point_from_cam_principal = getDirectionFromPixel(end_point[0], end_point[1], mtx1)
-
-    # start_point_in_base = R_cam2base_overlay @ start_point_from_cam_principal
-    # end_point_in_base = R_cam2base_overlay @ end_point_from_cam_principal
-
-
-    # start_x = current_position[0] + (start_point_in_base[0] * 10)
-    # start_y = current_position[1] + (start_point_in_base[1] * 10)
-
-    # start_x += data["probe_offset"][0]
-    # start_y += data["probe_offset"][1]
-
-
-    # end_x = current_position[0] + (end_point_in_base[0] * 10)
-    # end_y = current_position[1] + (end_point_in_base[1] * 10)
-
-    # end_x += data["probe_offset"][0]
-    # end_y += data["probe_offset"][1]
-
-
-    # probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
-
-    # print("DOT --> ", probe_dot)
-    # print("RECTANGLE --> ", probe_rectangle)
-    # result.probe_dot = probe_dot
-    # result.probe_rectangle = probe_rectangle

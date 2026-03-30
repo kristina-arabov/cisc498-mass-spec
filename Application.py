@@ -40,120 +40,167 @@ probe = sampling_service.samplingItem
 next_height = 0
 next_x = 0
 next_y = 0
-waiting_for_signal = True
+waiting_for_signal = False
+
+positioning = "absolute"
+
+delta_z = 0
+
+
 
 def global_poll():
-    global next_height, next_x, next_y, waiting_for_signal
-    # If there are GCodes available (only when sampling run is started)
-    if len(probe.gcodes) > 0 and not probe.paused:
-        # sampling_service.addData(printer, conduct)
+    global positioning, next_height, next_x, next_y, delta_z, waiting_for_signal
+
+    if len(probe.gcodes) <= 0 or probe.paused:
+        pass
+        
+
+    else:
         line = probe.gcodes[0]
+        sampling_service.addData(printer, conduct)
 
-        # Check that printer is not moving
+        # Probe is ready to move
         if not probe.moving:
-            # Sample/Dwell time
-            if "G4" in line:
-                print("Waiting...")
-
             # Absolute positioning
-            elif "G90" in line:
-                print("Absolute positioning")
-
+            if "G90" in line:
+                positioning = "absolute"
+                print("ABSOLUTE POSITIONING")
+                sampling_service.runGCode(printer, conduct)
+            
             # Relative positioning
             elif "G91" in line:
-                print("Relative positioning")
+                positioning = "relative"
+                print("RELATIVE POSITIONING")
+                sampling_service.runGCode(printer, conduct)
 
-            # XY or Z change
+            elif "G4" in line:
+                print("Waiting...")
+                sampling_service.runGCode(printer, conduct)
+
+            # Printer ready for movement
             elif "G0" in line or "G1" in line:
                 print(f"Moving to position: {line}")
-                probe.moving = True
-
-                # Height adjustment
+                
+                # Z position change
                 if "Z" in line:
+                    match = re.search(r"^G0 Z(-?\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
 
-                    # Constant-Z and Drag sampling modes
-                    if probe.mode == "constant" or probe.mode == "drag":
-                        match = re.search(r'Z(-?\d+(?:\.\d+)?)', line)
+                    # Downward movement
+                    if match and (probe.mode == "conductive" or probe.ref_mode == "conductive") and positioning == "relative":
+                        delta_z = float(match.group(1))
+                        next_height = printer.pos[2] + delta_z
+
+                        probe.moving = True
+                        waiting_for_signal = True
+                        printer.cmd(line) # send inital step
+
+                    elif match and positioning == "absolute":
                         next_height = float(match.group(1))
 
-                    # # Conductive mode
-                    # # BUG HERE works for all z movements in conductive
-                    # elif probe.mode == "conductive" and conduct.status and waiting_for_signal:
-                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
+                        probe.moving = True
+                        sampling_service.runGCode(printer, conduct)
 
-                    #     print("runs here?")
-
-                    #     if match:
-                    #         next_height = printer.pos[2] - float(match.group(1))
-
-                    #         print(next_height)
-
-                    #         conductance_val = device_service.getConductance(conduct)
-
-                    #         print(conductance_val)
-
-                    #         if conductance_val < 99:
-                    #             printer.cmd(line)
-
-                    #         elif conductance_val >= 99:
-                    #             waiting_for_signal = False
-                    #             probe.gcodes.pop(0)
-                        
-                    #     else:
-                    #         pass
-
-
-                    # if re.match(pattern, line) and conduct.status:
-                    #     match = re.search(r"^G0 Z-(\d+(\.\d+)?) F(\d+(\.\d+)?)$", line)
-                    #     next_height = printer.pos[2] - float(match.group(1))
-
-                    #     conductance_val = device_service.getConductance(conduct)
-
-                    #     if conductance_val < 99:
-                    #         printer.cmd(line)
-                    #         # sampling_service.samplingItem.moving = True
-                    #     else:
-                    #         print(conductance_val)
-                    #         sampling_service.samplingItem.gcodes.pop(0)
-
-                # (X, Y) adjustment (hold only for drag sampling)
-                elif "X" in line and "Y" in line and probe.mode == "drag":
+                # X and Y position change
+                elif "X" in line and "Y" in line:
                     match_x = re.search(r'X(-?\d+(?:\.\d+)?)', line)
                     match_y = re.search(r'Y(-?\d+(?:\.\d+)?)', line)
 
                     next_x = float(match_x.group(1))
                     next_y = float(match_y.group(1))
 
+                    probe.moving = True
+                    sampling_service.runGCode(printer, conduct)
 
-            # TEMPORARY just don't run conductive rn
-            if probe.mode != "conductive":
-                sampling_service.runGCode(printer, conduct)
-            # probe.gcodes.pop(0)
+        # Probe is moving
+        elif probe.moving:
 
-        # # Check if printer has made it to the expected height, remove moving flag
-        # elif probe.moving and "M400" in line:
-        #     sampling_service.runGCode(printer)
-        #     probe.moving = False
+            # Reference point will always be sampled first, check if it has been probed
+            if not probe.ref_point_probed:
+                pos = printer.pos
+
+                # Constant-Z mode for reference point
+                if probe.ref_mode == "constant" and pos[2] == next_height:
+                    probe.moving = False
+                
+                    if (pos[0], pos[1]) == (round(probe.dot[0], 2), round(probe.dot[1], 2)):
+                        probe.ref_point_probed = True # Reference point has been probed
 
 
-        if probe.moving and (printer.pos[0] == next_x) and (printer.pos[1] == next_y) and (probe.mode == "drag"):
-            probe.moving = False
+                # Conductive mode for reference point
+                elif probe.ref_mode == "conductive":
+                    if conduct.status:
+                        conductance_val = device_service.getConductance(conduct)
+
+                        # Conductance threshold reached and software was waiting for signal
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and (pos[0], pos[1]) == probe.dot:
+                            waiting_for_signal = False
+                            probe.moving = False
+
+                            probe.gcodes.pop(0)
+                            probe.ref_point_probed = True # Reference point has been probed
+                        
+                        # If conductance threshold has not been reached, keep moving down
+                        elif conductance_val < printer.con_threshold:
+                            probe.moving = True
+                            next_height = printer.pos[2] + delta_z
+
+                            printer.cmd(line)
+
+                    else:
+                        print("No conductance connected. Will not perform sampling run.")
+                        probe.gcodes = []
+            
 
 
-        # if probe.mode == "conductive":
-        #     print(next_height, probe.moving)
+            # Checks for Constant-Z sampling mode
+            elif probe.mode == "constant":
+                if printer.pos[2] == next_height:
+                    probe.moving = False
 
-        if probe.moving and printer.pos[2] == next_height:
-            probe.moving = False
 
-        if probe.mode == "conductive" and probe.moving and (printer.pos[2] == probe.transitHeight):
-            waiting_for_signal = True
+            # Checks for Drag sampling mode
+            elif probe.mode == "drag":
+                
+                if printer.pos[2] == next_height:
+                    probe.moving = False
 
-        sampling_service.addData(printer, conduct)
+                if printer.pos[2] == round(next_height, 2) and printer.pos[0] == next_x and printer.pos[1] == next_y:
+                    probe.moving = False
 
-    # Idle
-    elif len(probe.gcodes) <= 0 or probe.paused:
-        pass
+                else:
+                    pass
+
+
+            # Checks for Conductive mode
+            elif probe.mode == "conductive":
+                if conduct.status:
+                    conductance_val = device_service.getConductance(conduct)
+
+                    # Relative positioning handling
+                    if positioning == "relative":
+
+                        # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and printer.pos[0] == next_x and printer.pos[1] == next_y:
+                            waiting_for_signal = False
+                            probe.moving = False
+
+                            probe.gcodes.pop(0)
+                        
+                        # If conductance threshold has not been reached, keep moving down
+                        elif conductance_val < printer.con_threshold:
+                            probe.moving = True
+                            next_height = printer.pos[2] + delta_z
+
+                            printer.cmd(line)
+
+                    # Absolute positioning handling
+                    elif positioning == "absolute":
+                        probe.moving = False
+
+                # If no conductance connected, do not perform sampling!!!
+                else:
+                    print("No condutance detected. Will not perform sampling run.")
+                    probe.gcodes = []
 
 
 
@@ -202,49 +249,113 @@ class LightingThread(QThread):
             self.idx = None
 
 
-# Element to update camera feed 
+# Backends tried in order. CAP_DSHOW bypasses the MSMF stack and is faster/
+# more reliable for most USB webcams on Windows.
+_CAMERA_BACKENDS = [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_ANY]
+
+# Frames discarded after open to flush the driver buffer and let AE/AWB settle.
+_CAMERA_WARMUP_FRAMES = 5
+
+# Consecutive failed reads before the thread treats the camera as lost.
+_MAX_READ_FAILURES = 10
+
+
 class CameraThread(QThread):
     change_pixmap_signal = pyqtSignal(np.ndarray)
     enable_buttons = pyqtSignal(bool)
 
     def __init__(self):
         super().__init__()
-        cameras = QCameraInfo.availableCameras()
         self.running = False
-        self.cap = None
-
-        self.idx = None
+        self.capture = None   # set before run() so device_service can call isOpened()
+        self.frame   = None   # set before run() so workers never get AttributeError
+        self.idx        = None
         self.resolution = None
 
-    # Start running feed
+    # ── Connection ────────────────────────────────────────────────────────────
+
     def run(self):
-        if self.idx is not None:
-            print("Attempting camera connection: ", self.idx)
-            self.capture = cv2.VideoCapture(self.idx)
-            self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-            self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-            self.running = True
+        if self.idx is None:
+            print("CameraThread: no camera index set.")
+            return
 
-            if self.capture.isOpened():
-                while self.running:
-                    ret, img = self.capture.read()
-                    if ret:
-                        self.frame = img
-                        self.change_pixmap_signal.emit(img)
-                    elif not ret:
-                        self.stop()
+        w, h = self.resolution if self.resolution else (1280, 720)
+        print(f"Attempting camera connection: {self.idx}  ({w}×{h})")
 
+        self.capture = self._open_capture(self.idx, w, h)
+
+        if self.capture is None:
+            print(f"CameraThread: could not open camera {self.idx} on any backend.")
+            self.running = False
+            self.enable_buttons.emit(False)
+            return
+
+        self.running = True
+        self.enable_buttons.emit(True)
+
+        consecutive_failures = 0
+        while self.running:
+            ret, img = self.capture.read()
+            if ret:
+                consecutive_failures = 0
+                self.frame = img
+                self.change_pixmap_signal.emit(img)
             else:
-                self.running = False
-        else:
-            print("No available cameras to connect to.")
-    
-    # Stop feed
+                consecutive_failures += 1
+                if consecutive_failures >= _MAX_READ_FAILURES:
+                    print(f"CameraThread: camera {self.idx} stopped responding — disconnecting.")
+                    break
+
+        self.running = False
+        self.capture.release()
+        self.capture = None
+
+    def _open_capture(self, idx, w, h):
+        """
+        Try each backend in _CAMERA_BACKENDS until one produces a valid frame.
+        Returns an open VideoCapture, or None if all backends fail.
+        """
+        for backend in _CAMERA_BACKENDS:
+            try:
+                cap = cv2.VideoCapture(idx, backend)
+            except Exception as e:
+                print(f"  Backend {backend}: exception during open — {e}")
+                continue
+
+            if not cap.isOpened():
+                cap.release()
+                continue
+
+            # Set resolution before reading so the driver negotiates the right mode.
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH,  w)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+
+            # Warmup: discard frames to flush stale buffer data and let
+            # auto-exposure / auto-white-balance converge.
+            for _ in range(_CAMERA_WARMUP_FRAMES):
+                cap.read()
+
+            # Confirm we can actually get a frame on this backend.
+            ret, _ = cap.read()
+            if ret:
+                print(f"  Camera {idx} opened with backend {backend}.")
+                return cap
+
+            cap.release()
+
+        return None
+
+    # ── Disconnection ─────────────────────────────────────────────────────────
+
     def stop(self):
         self.running = False
-        self.wait()
+        # Calling wait() from within the thread itself deadlocks — Qt warns about
+        # this and the thread never exits.  Only block when called externally.
+        if QThread.currentThread() is not self:
+            self.wait()
         if self.capture:
             self.capture.release()
+            self.capture = None
 
 # The main application window
 class App(QWidget):
@@ -320,6 +431,6 @@ if __name__ == "__main__":
 
     global_timer = QTimer(window)
     global_timer.timeout.connect(global_poll)
-    global_timer.start(60)  # every .5 seconds
+    global_timer.start(100)  # every .5 seconds
 
     sys.exit(app.exec_())

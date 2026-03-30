@@ -44,7 +44,8 @@ class ROISelection(QWidget):
 
         button_clear = QPushButton("Clear all", objectName="red")
 
-        button_next = QPushButton("Next", objectName="blue")
+        self.button_next = QPushButton("Next", objectName="blue")
+        self.button_next.setEnabled(False)
 
         layout_right.addStretch()
         layout_right.addWidget(label_selectArea)
@@ -52,7 +53,7 @@ class ROISelection(QWidget):
         layout_right.addWidget(self.ROI)
         layout_right.addWidget(button_clear, alignment=Qt.AlignLeft)
         layout_right.addStretch()
-        layout_right.addWidget(button_next, alignment=Qt.AlignRight)
+        layout_right.addWidget(self.button_next, alignment=Qt.AlignRight)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
@@ -79,16 +80,62 @@ class ROISelection(QWidget):
 
         button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
 
-        button_next.clicked.connect(self.next.emit)
-        button_next.clicked.connect(lambda: sampling_service.findLocations(self.transformation, self.sampling, self.photo))
+        self.button_next.clicked.connect(self.next.emit)
+        self.button_next.clicked.connect(lambda: sampling_service.findLocations(self.transformation, self.sampling, self.photo))
 
         self.ROI.button_pencil.clicked.connect(lambda: self.setDrawTool("pencil"))
         self.ROI.button_eraser.clicked.connect(lambda: self.setDrawTool("eraser"))
 
         self.ROI.button_convert.clicked.connect(self.photo.convertToPolygon)
         self.ROI.button_reset.clicked.connect(self.photo.resetROI)
+        self.photo.roiSignal.connect(lambda _: self.checkAllowNext())
+
+        self.checkAllowNext()
 
 
+
+
+    def _reference_point_complete(self):
+        # making sure user left select mode
+        return (
+            self.photo.dot is not None
+            and self.referencePoint.button_action.text() == "Select"
+        )
+
+
+    def _roi_defined(self):
+        # user has defined a region of interest
+        img = self.photo
+        if img.rectangle is not None:
+            return True
+        if getattr(img, "polygon_active", False) and img.polygon_points:
+            return True
+        return False
+
+
+    def _next_enabled(self):
+        return self._reference_point_complete() and self._roi_defined()
+
+
+    def _refresh_next_button(self):
+        self.button_next.setEnabled(self._next_enabled())
+
+
+    def _on_convert_to_polygon(self):
+        self.photo.convertToPolygon()
+        self._refresh_next_button()
+
+
+    def _on_reset_roi(self):
+        self.photo.resetROI()
+        self._refresh_next_button()
+
+
+    def _on_next_clicked(self):
+        if not self._next_enabled():
+            return
+        self.next.emit()
+        sampling_service.findLocations(self.transformation, self.sampling, self.photo)
 
 
 
@@ -118,6 +165,8 @@ class ROISelection(QWidget):
                     self.ROIMode("Draw")
                 elif self.ROI.button_rectangle.isChecked():
                     self.ROIMode("Rectangle")
+
+        self._refresh_next_button()
 
     
 
@@ -163,6 +212,19 @@ class ROISelection(QWidget):
             self.ROI.button_eraser.setChecked(False)
             self.photo.update()
 
+        self.checkAllowNext()
+
+    # Enable Next only when a sampling region exists.
+    def checkAllowNext(self):
+        rectangle = self.photo.rectangle
+        has_rectangle = bool(rectangle and rectangle.width() > 0 and rectangle.height() > 0)
+
+        polygon_points = getattr(self.photo, "polygon_points", [])
+        polygon_active = getattr(self.photo, "polygon_active", False)
+        has_polygon = bool(polygon_active and len(polygon_points) >= 3)
+
+        self.button_next.setEnabled(has_rectangle or has_polygon)
+
     ''' Reset the entire page back to its initial state '''
     def resetAll(self):
         # Reset canvas
@@ -189,6 +251,12 @@ class ROISelection(QWidget):
         self.ROI.button_eraser.setChecked(False)
         self.ROI.row_2.hide()
         self.ROI.row_3.hide()
+        self.ROI.row_4.hide()
+        self.ROI.row_5.hide()
+
+        self.checkAllowNext()
+
+        self.button_next.setEnabled(False)
 
     
     def clearDrawing(self, img):
@@ -211,7 +279,9 @@ class ROISelection(QWidget):
         self.referencePoint.button_action.setText("Select")
 
         self.ROIMode()
+        self.checkAllowNext()
         self.clearSignal.emit()
+        self._refresh_next_button()
 
 
 class ReferencePointSection(QWidget):

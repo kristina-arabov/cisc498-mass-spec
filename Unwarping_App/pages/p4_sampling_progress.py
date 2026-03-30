@@ -45,6 +45,7 @@ class SamplingProgress(QWidget):
         self.label_estimatedTime = QLabel("Estimated time left: ___")
 
         self.button_pause = QPushButton("Pause", objectName="headerBlue")
+        self.button_abort = QPushButton("Abort", objectName="red")
 
         self.operations = OperationButtons()
         self.operations.hide()
@@ -60,7 +61,8 @@ class SamplingProgress(QWidget):
         # layout_right.addWidget(self.label_estimatedTime,alignment=Qt.AlignCenter)
         layout_right.addStretch()
         layout_right.addWidget(self.button_pause)
-        layout_right.addWidget(button_temp, alignment=Qt.AlignCenter)
+        layout_right.addWidget(self.button_abort)
+        # layout_right.addWidget(button_temp, alignment=Qt.AlignCenter)
         layout_right.addStretch()
 
 
@@ -73,18 +75,28 @@ class SamplingProgress(QWidget):
 
         # FUNCTIONS ----------------------------------------
         self.button_pause.clicked.connect(lambda: self.handlePause(True))
+        self.button_abort.clicked.connect(lambda: self.stopSampling())
 
         self.operations.btn_resume.clicked.connect(lambda: self.handlePause(False))
-        self.operations.btn_abort.clicked.connect(lambda: self.stopSampling())
+        self.operations.btn_return.clicked.connect(lambda: self.stopSampling())
 
         sampling_service.progress.pointUpdated.connect(lambda: self.updateLabels("points"))
-        sampling_service.progress.samplingDone.connect(lambda: self.next.emit())
+        sampling_service.progress.samplingDone.connect(lambda: self.handleCompletion())
+
+        sampling_service.progress.visitedLocation.connect(lambda location: self.photo.addVisitedLocation(location))
+
+        sampling_service.progress.visitedLocation.connect(lambda location: self.photo.addVisitedLocation(location))
 
 
     def updateLabels(self, type):
         if type == "points":
             fraction = sampling_service.progress.fraction
             self.label_points.setText(f"{fraction} points sampled")
+
+    
+    def handleCompletion(self):
+        print("Sampling complete! Check the collectedData folder to view timestamped positional data files.")
+        self.next.emit()
 
     
     def handlePause(self, stopped):
@@ -100,6 +112,7 @@ class SamplingProgress(QWidget):
             # self.label_estimatedTime.hide()
             self.label_points.hide()
             self.button_pause.hide()
+            self.button_abort.hide()
 
             self.operations.show()
         
@@ -108,6 +121,7 @@ class SamplingProgress(QWidget):
             # self.label_estimatedTime.show()
             self.label_points.show()
             self.button_pause.show()
+            self.button_abort.show()
 
             self.operations.hide()
             
@@ -125,13 +139,13 @@ class SamplingProgress(QWidget):
         # self.label_estimatedTime.show()
         self.label_points.show()
         self.button_pause.show()
-
+        self.button_abort.show()
         self.operations.hide()
+
+        sampling_service.stop(self.printer)
 
         # Return to previous page (signal)
         self.returnToConfig.emit()
-
-        sampling_service.stop(self.printer)
 
 
         
@@ -148,10 +162,10 @@ class OperationButtons(QWidget):
         """)
 
         self.btn_resume = QPushButton("Resume", objectName="blue")
-        self.btn_abort = QPushButton("Abort", objectName="red")
+        self.btn_return = QPushButton("Return to Configuration", objectName="blue")
 
         layout.addWidget(label, alignment=Qt.AlignCenter)
         layout.addStretch()
         layout.addWidget(self.btn_resume, alignment=Qt.AlignCenter)
-        layout.addWidget(self.btn_abort, alignment=Qt.AlignCenter)
+        layout.addWidget(self.btn_return, alignment=Qt.AlignCenter)
         layout.addStretch()
