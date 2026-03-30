@@ -63,6 +63,8 @@ class TransformationReview(QWidget):
     def clearAll(self):
         self.label_offset.setText("Unavailable due to incorrect or missing data.")
 
+        self.label_show.setText("No data file saved")
+
 
     # Function to save a new transformation file
     def saveFile(self):
