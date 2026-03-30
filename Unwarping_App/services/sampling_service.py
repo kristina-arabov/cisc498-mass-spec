@@ -267,9 +267,9 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
         dot_x += transformation.offset_x
     
     if transformation.offset_y < 0:
-        dot_y -= transformation.offset_y
-    else:
         dot_y += transformation.offset_y
+    else:
+        dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -311,11 +311,11 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     
     # Apply Y offset
     if transformation.offset_y < 0:
-        start_y -= transformation.offset_y
-        end_y -= transformation.offset_y
-    else:
         start_y += transformation.offset_y
         end_y += transformation.offset_y
+    else:
+        start_y -= transformation.offset_y
+        end_y -= transformation.offset_y
 
     
 

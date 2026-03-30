@@ -6,7 +6,6 @@ use msrobot.core.geometry#Position2D
 use msrobot.core.geometry#Position3D
 use msrobot.domain.calibration#Calibration
 use msrobot.domain.calibration#CalibrationId
-
 @title("Calibration Service")
 service CalibrationService {
     version: "2.0.0"

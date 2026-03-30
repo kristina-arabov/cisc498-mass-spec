@@ -2231,7 +2231,6 @@ class InputField(QWidget):
 
         self.setLayout(layout)
 
-
 class ArrowButton(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
