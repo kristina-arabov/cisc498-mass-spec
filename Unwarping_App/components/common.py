@@ -1621,7 +1621,7 @@ class ClickableImage(QLabel):
 
                         painter.drawLine(start_x, y, end_x, y)
 
-                    painter.setPen(QPen(QColor("#0FFFF3"), 3))
+                    painter.setPen(QPen(QColor("#67FFD9"), 3))
                     painter.setOpacity(1.0)
 
                     prev_point = None
@@ -1656,7 +1656,7 @@ class ClickableImage(QLabel):
                         px_end   = start_x + tx_end * width
 
                         # Draw horizontal line
-                        painter.setPen(QPen(QColor("#26CCC4"), 3))
+                        painter.setPen(QPen(QColor("#67FFD9"), 3))
                         painter.drawLine(int(px_start), int(py), int(px_end), int(py))
 
                         # Draw vertical connection
