@@ -4,86 +4,50 @@ namespace msrobot.domain.export
 
 use msrobot.core.common#FilePath
 
-/// Export format type
 enum ExportFormat {
-    /// Comma-separated values
     CSV
-
-    /// Human-readable text
-    TXT
-
-    /// Excel workbook
-    XLSX
 }
 
-/// Export configuration
+/// CSV columns as written by sampling_service.createCSV() / addData().
+/// Header: "Time (ms),Conductance,X,Y,Z"
+enum CsvColumn {
+    /// Milliseconds since recording start: int(round(time.time()*1000)) - startThr
+    TIME_MS
+
+    /// Conductance in μS; 0 if meter disconnected.
+    CONDUCTANCE
+
+    X
+    Y
+    Z
+}
+
 structure ExportConfig {
-    /// Export format
     @required
     format: ExportFormat
 
-    /// Output file path
+    /// Chosen via QFileDialog in p5_sampling_complete.py.
     @required
     outputPath: FilePath
 
-    /// Include header row (for CSV)
     @required
     includeHeader: Boolean
 
-    /// Include metadata sheet (for XLSX)
-    @required
-    includeMetadata: Boolean
-
-    /// Include Z-heights grid sheet (for XLSX)
-    @required
-    includeZHeightsGrid: Boolean
-
-    /// Decimal precision for float values
+    /// Decimal places for X, Y, Z columns.
     @required
     decimalPrecision: Integer
 }
 
-/// Export result
 structure ExportResult {
-    /// Whether export succeeded
     @required
     success: Boolean
 
-    /// Output file path
     @required
     outputPath: FilePath
 
-    /// Number of samples exported
+    /// Rows written, excluding the header. Equals len(SamplingItem.csv_rows).
     @required
     samplesExported: Integer
 
-    /// File size in bytes
-    @required
-    fileSizeBytes: Long
-
-    /// Export duration in ms
-    @required
-    exportDurationMs: Integer
-
-    /// Error message if failed
     errorMessage: String
-}
-
-/// Export progress
-structure ExportProgress {
-    /// Samples processed
-    @required
-    samplesProcessed: Integer
-
-    /// Total samples
-    @required
-    totalSamples: Integer
-
-    /// Progress percentage
-    @required
-    progressPercent: Float
-
-    /// Current phase description
-    @required
-    currentPhase: String
 }

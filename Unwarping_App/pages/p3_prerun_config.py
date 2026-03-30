@@ -94,7 +94,7 @@ class PrerunConfig(QWidget):
         # FUNCTIONS ----------------------------------------
         # Start sampling run
         button_startRun.clicked.connect(self.next.emit)
-        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling))
+        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
         button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         # ROI sampling mode
@@ -513,15 +513,25 @@ class SamplingParameters(QWidget):
 
         if sampling.mode == "drag":
             photo.rowsOnly = True
-            photo.updateOverlayRows(y, type, sampling)
 
-        elif photo.polygon_active and photo.polygon_points:
-            photo.rowsOnly = False
-            photo.updateOverlayPolygon(x, y, type, sampling)
+            # Polygon
+            if photo.polygon_active and photo.polygon_points:
+                photo.updateOverlayPolygonRows(y, type, sampling)
+
+            # Rectangle
+            else:
+                photo.updateOverlayRows(y, type, sampling)
 
         else:
             photo.rowsOnly = False
-            photo.updateOverlay(x, y, type, sampling)
+
+            # Polygon
+            if photo.polygon_active and photo.polygon_points:
+                photo.updateOverlayPolygon(x, y, type, sampling)
+            
+            # Rectangle
+            else:
+                photo.updateOverlay(x, y, type, sampling)
 
 
 
@@ -780,8 +790,7 @@ class ReferenceParameters(QWidget):
     # Function to set the sampling variables (reference)
     def setVars(self, sampling, val, type):
         i = float(val)
-        print("hello...")
-
+        
         # Dwell time
         if type == "dwell_time":
             sampling.ref_dwellTime = i

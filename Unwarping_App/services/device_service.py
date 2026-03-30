@@ -105,8 +105,8 @@ def set_brightness(value, lights):
 
 def getPrinterPosition(printer):
     """Block indefinitely until a position report is received from the printer."""
-    while True:
-        if printer.line and printer.line.find('Count') != -1:
+    while printer.prtconnect:
+        if printer.line.find('Count') != -1:
             line = printer.line.split()
             return [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
 

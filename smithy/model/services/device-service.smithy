@@ -9,58 +9,45 @@ use msrobot.domain.device#ConductanceMeterInfo
 use msrobot.domain.device#ConductanceMeterState
 use msrobot.domain.device#DeviceConnection
 use msrobot.domain.device#DevicesStatus
+use msrobot.domain.device#LightsState
 use msrobot.domain.device#PrinterInfo
 use msrobot.domain.device#PrinterState
 use msrobot.domain.gcode#GCodeCommand
 use msrobot.domain.gcode#GCodeResult
 use msrobot.domain.sample#ConductanceReading
 
-/// Service for managing hardware devices (singleton)
 @title("Device Service")
 service DeviceService {
     version: "2.0.0"
     operations: [
-        // Discovery
         ListSerialPorts
         ListCameras
-        // Connection management
         ConnectPrinter
         DisconnectPrinter
-
         ConnectCamera
         DisconnectCamera
-
         ConnectConductanceMeter
         DisconnectConductanceMeter
-
         ConnectLights
         DisconnectLights
-
         GetDevicesStatus
-        // Printer operations
         HomePrinter
         MoveTo
         MoveRelative
         GetPrinterState
         ExecuteGCode
         EmergencyStop
-        // Camera operations
         StartPreview
         StopPreview
         CaptureFrame
         GetCameraState
-        SetCameraExposure
-        // Conductance operations
         ReadConductance
         GetConductanceState
         SetConductanceThreshold
+        SetBrightness
     ]
 }
 
-// ============================================================================
-// Discovery Operations
-// ============================================================================
-/// List available serial ports
 operation ListSerialPorts {
     input: ListSerialPortsInput
     output: ListSerialPortsOutput
@@ -71,7 +58,6 @@ structure ListSerialPortsInput {}
 
 @output
 structure ListSerialPortsOutput {
-    /// Available serial ports
     @required
     ports: SerialPortList
 }
@@ -81,22 +67,16 @@ list SerialPortList {
 }
 
 structure SerialPortInfo {
-    /// Port name (e.g., COM3, /dev/ttyUSB0)
     @required
     port: String
 
-    /// Device description
     description: String
-
-    /// Hardware ID
     hardwareId: String
 
-    /// Whether port is currently in use
     @required
     inUse: Boolean
 }
 
-/// List available cameras
 operation ListCameras {
     input: ListCamerasInput
     output: ListCamerasOutput
@@ -107,7 +87,6 @@ structure ListCamerasInput {}
 
 @output
 structure ListCamerasOutput {
-    /// Available cameras
     @required
     cameras: CameraInfoList
 }
@@ -117,22 +96,15 @@ list CameraInfoList {
 }
 
 structure AvailableCameraInfo {
-    /// Device index
     @required
     deviceIndex: Integer
 
-    /// Camera name
     name: String
 
-    /// Whether camera is currently in use
     @required
     inUse: Boolean
 }
 
-// ============================================================================
-// Connection Operations
-// ============================================================================
-/// Connect to printer
 operation ConnectPrinter {
     input: ConnectPrinterInput
     output: ConnectPrinterOutput
@@ -140,19 +112,16 @@ operation ConnectPrinter {
 
 @input
 structure ConnectPrinterInput {
-    /// Printer info
     @required
     printerInfo: PrinterInfo
 }
 
 @output
 structure ConnectPrinterOutput {
-    /// Connection result
     @required
     connection: DeviceConnection
 }
 
-/// Disconnect printer
 operation DisconnectPrinter {
     input: DisconnectPrinterInput
     output: DisconnectPrinterOutput
@@ -163,12 +132,11 @@ structure DisconnectPrinterInput {}
 
 @output
 structure DisconnectPrinterOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-/// Connect to camera
+/// Backends tried in order: CAP_DSHOW → CAP_MSMF → CAP_ANY. 5 warmup frames discarded.
 operation ConnectCamera {
     input: ConnectCameraInput
     output: ConnectCameraOutput
@@ -176,19 +144,16 @@ operation ConnectCamera {
 
 @input
 structure ConnectCameraInput {
-    /// Camera info
     @required
     cameraInfo: CameraDeviceInfo
 }
 
 @output
 structure ConnectCameraOutput {
-    /// Connection result
     @required
     connection: DeviceConnection
 }
 
-/// Disconnect camera
 operation DisconnectCamera {
     input: DisconnectCameraInput
     output: DisconnectCameraOutput
@@ -199,12 +164,11 @@ structure DisconnectCameraInput {}
 
 @output
 structure DisconnectCameraOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-/// Connect to conductance meter
+/// checktype() sends 't\r\n', expects 'c\r\n' before marking live.
 operation ConnectConductanceMeter {
     input: ConnectConductanceMeterInput
     output: ConnectConductanceMeterOutput
@@ -212,19 +176,16 @@ operation ConnectConductanceMeter {
 
 @input
 structure ConnectConductanceMeterInput {
-    /// Conductance meter info
     @required
     conductanceMeterInfo: ConductanceMeterInfo
 }
 
 @output
 structure ConnectConductanceMeterOutput {
-    /// Connection result
     @required
     connection: DeviceConnection
 }
 
-/// Disconnect conductance meter
 operation DisconnectConductanceMeter {
     input: DisconnectConductanceMeterInput
     output: DisconnectConductanceMeterOutput
@@ -235,28 +196,31 @@ structure DisconnectConductanceMeterInput {}
 
 @output
 structure DisconnectConductanceMeterOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-/// Connect to light controller
+/// baudRate must be 9600 (hardcoded in LightingThread).
 operation ConnectLights {
     input: ConnectLightsInput
     output: ConnectLightsOutput
 }
 
 @input
-structure ConnectLightsInput {}
+structure ConnectLightsInput {
+    @required
+    port: String
+
+    @required
+    baudRate: Integer
+}
 
 @output
 structure ConnectLightsOutput {
-    /// Connection result
     @required
     connection: DeviceConnection
 }
 
-/// Disconnect light controller
 operation DisconnectLights {
     input: DisconnectLightsInput
     output: DisconnectLightsOutput
@@ -267,14 +231,10 @@ structure DisconnectLightsInput {}
 
 @output
 structure DisconnectLightsOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-
-
-/// Get status of all devices
 operation GetDevicesStatus {
     input: GetDevicesStatusInput
     output: GetDevicesStatusOutput
@@ -285,15 +245,11 @@ structure GetDevicesStatusInput {}
 
 @output
 structure GetDevicesStatusOutput {
-    /// Devices status
     @required
     status: DevicesStatus
 }
 
-// ============================================================================
-// Printer Operations
-// ============================================================================
-/// Home printer axes
+/// Sends G28. Homes all three axes at session start.
 operation HomePrinter {
     input: HomePrinterInput
     output: HomePrinterOutput
@@ -301,31 +257,26 @@ operation HomePrinter {
 
 @input
 structure HomePrinterInput {
-    /// Home X axis
     @required
     homeX: Boolean
 
-    /// Home Y axis
     @required
     homeY: Boolean
 
-    /// Home Z axis
     @required
     homeZ: Boolean
 }
 
 @output
 structure HomePrinterOutput {
-    /// Success
     @required
     success: Boolean
 
-    /// Printer state after homing
     @required
     state: PrinterState
 }
 
-/// Move to absolute position
+/// Sends G90 then G0 X Y Z F<speed>. Position confirmed via M114.
 operation MoveTo {
     input: MoveToInput
     output: MoveToOutput
@@ -333,31 +284,27 @@ operation MoveTo {
 
 @input
 structure MoveToInput {
-    /// Target position
     @required
     position: Position3D
 
-    /// Speed in mm/min
+    /// mm/min
     @required
     speed: Float
 
-    /// Wait for move to complete
     @required
     waitForCompletion: Boolean
 }
 
 @output
 structure MoveToOutput {
-    /// Success
     @required
     success: Boolean
 
-    /// Printer state after move
     @required
     state: PrinterState
 }
 
-/// Move relative to current position
+/// Sends G91 then G0 X Y Z F<speed>, restores G90.
 operation MoveRelative {
     input: MoveRelativeInput
     output: MoveRelativeOutput
@@ -365,31 +312,27 @@ operation MoveRelative {
 
 @input
 structure MoveRelativeInput {
-    /// Relative offset
     @required
     offset: Position3D
 
-    /// Speed in mm/min
+    /// mm/min
     @required
     speed: Float
 
-    /// Wait for move to complete
     @required
     waitForCompletion: Boolean
 }
 
 @output
 structure MoveRelativeOutput {
-    /// Success
     @required
     success: Boolean
 
-    /// Printer state after move
     @required
     state: PrinterState
 }
 
-/// Get current printer state
+/// Issues M114 and parses the response.
 operation GetPrinterState {
     input: GetPrinterStateInput
     output: GetPrinterStateOutput
@@ -400,12 +343,10 @@ structure GetPrinterStateInput {}
 
 @output
 structure GetPrinterStateOutput {
-    /// Printer state
     @required
     state: PrinterState
 }
 
-/// Execute raw G-code command
 operation ExecuteGCode {
     input: ExecuteGCodeInput
     output: ExecuteGCodeOutput
@@ -413,19 +354,16 @@ operation ExecuteGCode {
 
 @input
 structure ExecuteGCodeInput {
-    /// G-code command
     @required
     command: GCodeCommand
 }
 
 @output
 structure ExecuteGCodeOutput {
-    /// Execution result
     @required
     result: GCodeResult
 }
 
-/// Emergency stop
 operation EmergencyStop {
     input: EmergencyStopInput
     output: EmergencyStopOutput
@@ -436,15 +374,10 @@ structure EmergencyStopInput {}
 
 @output
 structure EmergencyStopOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-// ============================================================================
-// Camera Operations
-// ============================================================================
-/// Start camera preview
 operation StartPreview {
     input: StartPreviewInput
     output: StartPreviewOutput
@@ -455,16 +388,13 @@ structure StartPreviewInput {}
 
 @output
 structure StartPreviewOutput {
-    /// Success
     @required
     success: Boolean
 
-    /// Camera state
     @required
     state: CameraState
 }
 
-/// Stop camera preview
 operation StopPreview {
     input: StopPreviewInput
     output: StopPreviewOutput
@@ -475,12 +405,11 @@ structure StopPreviewInput {}
 
 @output
 structure StopPreviewOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-/// Capture single frame
+/// applyCorrection=true undistorts via fisheyeUnwarp + secondUnwarp (calibration_service.py).
 operation CaptureFrame {
     input: CaptureFrameInput
     output: CaptureFrameOutput
@@ -488,36 +417,29 @@ operation CaptureFrame {
 
 @input
 structure CaptureFrameInput {
-    /// Apply distortion correction
     @required
     applyCorrection: Boolean
 
-    /// Optional path to save image
     savePath: String
 }
 
 @output
 structure CaptureFrameOutput {
-    /// Success
     @required
     success: Boolean
 
-    /// Base64 encoded image data (if not saved to file)
+    /// Base64-encoded JPEG if savePath was not provided.
     imageData: String
 
-    /// Saved file path (if saved to file)
     savedPath: String
 
-    /// Image width
     @required
     width: Integer
 
-    /// Image height
     @required
     height: Integer
 }
 
-/// Get camera state
 operation GetCameraState {
     input: GetCameraStateInput
     output: GetCameraStateOutput
@@ -528,15 +450,11 @@ structure GetCameraStateInput {}
 
 @output
 structure GetCameraStateOutput {
-    /// Camera state
     @required
     state: CameraState
 }
 
-// ============================================================================
-// Conductance Operations
-// ============================================================================
-/// Read current conductance value
+/// Dequeues the most recent [timestamp_ms, value_uS] pair from ConThread. Returns 0 if empty.
 operation ReadConductance {
     input: ReadConductanceInput
     output: ReadConductanceOutput
@@ -547,12 +465,10 @@ structure ReadConductanceInput {}
 
 @output
 structure ReadConductanceOutput {
-    /// Conductance reading
     @required
     reading: ConductanceReading
 }
 
-/// Get conductance meter state
 operation GetConductanceState {
     input: GetConductanceStateInput
     output: GetConductanceStateOutput
@@ -563,12 +479,11 @@ structure GetConductanceStateInput {}
 
 @output
 structure GetConductanceStateOutput {
-    /// Conductance state
     @required
     state: ConductanceMeterState
 }
 
-/// Set conductance threshold for contact detection
+/// Stored in printer.con_threshold.
 operation SetConductanceThreshold {
     input: SetConductanceThresholdInput
     output: SetConductanceThresholdOutput
@@ -576,51 +491,37 @@ operation SetConductanceThreshold {
 
 @input
 structure SetConductanceThresholdInput {
-    /// Lower threshold value
     @required
     lowerThreshold: Integer
 
-    /// Upper threshold value
     @required
     upperThreshold: Integer
 }
 
 @output
 structure SetConductanceThresholdOutput {
-    /// Success
     @required
     success: Boolean
 }
 
-/// Set camera exposure settings
-operation SetCameraExposure {
-    input: SetCameraExposureInput
-    output: SetCameraExposureOutput
+/// Maps 0–100% to 0–255 PWM via device_service.set_brightness().
+operation SetBrightness {
+    input: SetBrightnessInput
+    output: SetBrightnessOutput
 }
 
 @input
-structure SetCameraExposureInput {
-    /// Auto exposure enabled
+structure SetBrightnessInput {
+    /// 0 = off, 100 = maximum.
     @required
-    autoExposure: Boolean
-
-    /// Manual exposure value (if autoExposure is false)
-    exposureValue: Integer
-
-    /// Brightness adjustment
-    brightness: Integer
-
-    /// Contrast adjustment
-    contrast: Integer
+    brightnessPercent: Integer
 }
 
 @output
-structure SetCameraExposureOutput {
-    /// Success
+structure SetBrightnessOutput {
     @required
     success: Boolean
 
-    /// Updated camera state
     @required
-    state: CameraState
+    lightsState: LightsState
 }
