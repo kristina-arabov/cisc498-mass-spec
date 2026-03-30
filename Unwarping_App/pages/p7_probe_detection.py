@@ -110,6 +110,8 @@ class ProbeDetection(QWidget):
         self.component_tagInformation.input_bottomLeftY.textChanged.connect(lambda: self.checkOffset())
         self.component_tagInformation.input_tagSize.textChanged.connect(lambda: self.checkOffset())
 
+        self.component_tagInformation.button_autofill.clicked.connect(lambda: self.component_tagInformation.setPrinterPos(self.printer))
+
         self.component_tag.checkOffset.connect(lambda: self.checkOffset())
     
 
@@ -203,7 +205,10 @@ class TagInstructions(QWidget):
         self.line_progressBar.setFixedWidth(self.label_instructions.width())
 
         layout_column_1.addWidget(self.label_instructions, alignment=Qt.AlignLeft)
-        layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
+        # layout_column_1.addWidget(self.line_progressBar, alignment=Qt.AlignLeft)
+
+        layout_column_1.setContentsMargins(0,0,0,0)
+        layout_column_1.setSpacing(0)
 
 
         # COLUMN 2 --------------------------------------
@@ -277,7 +282,13 @@ class TagInstructions(QWidget):
     # Function to acquire the probe's position in alignment with a specific tag corner
     def handleCornerConfirm(self):
         # Obtain values for location
-        img = self.camera.frame.copy()
+
+        # If camera is running, take a photo otherwise don't proceed
+        try:
+            img = self.camera.frame.copy()
+        except:
+            return
+        
         img = calibration_service.unwarpPhoto(img, self.transformation)
 
         position = device_service.getPrinterPosition(self.printer)

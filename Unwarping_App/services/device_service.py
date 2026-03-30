@@ -105,8 +105,8 @@ def set_brightness(value, lights):
 
 def getPrinterPosition(printer):
     """Block indefinitely until a position report is received from the printer."""
-    while True:
-        if printer.line and printer.line.find('Count') != -1:
+    while printer.prtconnect:
+        if printer.line.find('Count') != -1:
             line = printer.line.split()
             return [float(line[0][2:]), float(line[1][2:]), float(line[2][2:])]
 
@@ -140,6 +140,27 @@ def move_printer_absolute(printer, x, y, z, feed_rate):
     printer.cmd(f"G0 X{x:.3f} Y{y:.3f} Z{z:.3f} F{feed_rate}")
     printer.cmd("M400")
     printer.cmd("M114")
+
+
+def emergency_stop_printer(printer, force_firmware_estop=False):
+    """
+    Halt motion at the firmware level.
+
+    M410 is Marlin's quick-stop command: it aborts the current move and clears
+    queued motion in the planner without waiting for completion. If the target
+    firmware does not support M410, set force_firmware_estop=True to also send
+    M112, which is a full emergency stop and usually requires a reset before
+    further motion.
+    """
+    if printer is None:
+        return
+
+    try:
+        printer.cmd("M410")
+        if force_firmware_estop:
+            printer.cmd("M112")
+    except Exception:
+        pass
 
 
 def getConductance(conductance):

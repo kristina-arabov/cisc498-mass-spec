@@ -95,6 +95,49 @@ class ROISelection(QWidget):
 
 
 
+    def _reference_point_complete(self):
+        # making sure user left select mode
+        return (
+            self.photo.dot is not None
+            and self.referencePoint.button_action.text() == "Select"
+        )
+
+
+    def _roi_defined(self):
+        # user has defined a region of interest
+        img = self.photo
+        if img.rectangle is not None:
+            return True
+        if getattr(img, "polygon_active", False) and img.polygon_points:
+            return True
+        return False
+
+
+    def _next_enabled(self):
+        return self._reference_point_complete() and self._roi_defined()
+
+
+    def _refresh_next_button(self):
+        self.button_next.setEnabled(self._next_enabled())
+
+
+    def _on_convert_to_polygon(self):
+        self.photo.convertToPolygon()
+        self._refresh_next_button()
+
+
+    def _on_reset_roi(self):
+        self.photo.resetROI()
+        self._refresh_next_button()
+
+
+    def _on_next_clicked(self):
+        if not self._next_enabled():
+            return
+        self.next.emit()
+        sampling_service.findLocations(self.transformation, self.sampling, self.photo)
+
+
 
     # Function to handle setting a reference point
     def setReference(self):
@@ -122,6 +165,8 @@ class ROISelection(QWidget):
                     self.ROIMode("Draw")
                 elif self.ROI.button_rectangle.isChecked():
                     self.ROIMode("Rectangle")
+
+        self._refresh_next_button()
 
     
 
@@ -211,6 +256,8 @@ class ROISelection(QWidget):
 
         self.checkAllowNext()
 
+        self.button_next.setEnabled(False)
+
     
     def clearDrawing(self, img):
         img.rectangle = None
@@ -234,6 +281,7 @@ class ROISelection(QWidget):
         self.ROIMode()
         self.checkAllowNext()
         self.clearSignal.emit()
+        self._refresh_next_button()
 
 
 class ReferencePointSection(QWidget):

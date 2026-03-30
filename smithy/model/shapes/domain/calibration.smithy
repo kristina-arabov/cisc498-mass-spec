@@ -6,250 +6,62 @@ use msrobot.core.common#FilePath
 use msrobot.core.common#Timestamp
 use msrobot.core.geometry#FloatList
 use msrobot.core.geometry#Matrix3x3
-use msrobot.core.geometry#Matrix4x4
-use msrobot.core.geometry#Position3D
-use msrobot.core.geometry#Quaternion
-use msrobot.core.geometry#Resolution
-use msrobot.core.geometry#Vector3D
 
-/// Unique identifier for a calibration
+/// Calibration file path used as the effective identifier (e.g. transformations/data_03-27-2026_14-35-22.json).
 string CalibrationId
 
-/// Camera calibration type
-enum CalibrationType {
-    /// OpenCV standard distortion model
-    STANDARD
+/// Unwarp pipeline parameters — the sole element of the "unwarping" array in the calibration JSON.
+/// Two-pass pipeline: fisheye (cv2.fisheye → mtx1/dist1) then perspective correction (cv2.calibrateCamera → mtx2/dist2).
+structure UnwarpingParams {
+    /// Fisheye intrinsic matrix (3×3). JSON key: "mtx1"
+    @required
+    mtx1: Matrix3x3
 
-    /// OpenCV fisheye distortion model
-    FISHEYE
+    /// Fisheye distortion coefficients [k1, k2, k3, k4]. JSON key: "dist1"
+    @required
+    dist1: FloatList
 
-    /// Rational polynomial model
-    RATIONAL
+    /// Perspective correction matrix (3×3). JSON key: "mtx2"
+    @required
+    mtx2: Matrix3x3
+
+    /// Perspective correction distortion coefficients. JSON key: "dist2"
+    @required
+    dist2: FloatList
+
+    /// Stage position [x, y, z] in mm when the chessboard image was captured. JSON key: "loc"
+    @required
+    loc: FloatList
+
+    /// Z height of the calibration chessboard in mm. JSON key: "height"
+    @required
+    height: Float
 }
 
-/// Hand-eye calibration method
-enum HandEyeMethod {
-    /// Tsai-Lenz method
-    TSAI_LENZ
-
-    /// Park-Martin method
-    PARK_MARTIN
-
-    /// Daniilidis method
-    DANIILIDIS
-
-    /// AprilTag-based calibration
-    APRILTAG
-
-    /// Manual calibration
-    MANUAL
+/// Always contains exactly one UnwarpingParams element.
+list UnwarpingParamsList {
+    member: UnwarpingParams
 }
 
-/// Camera hardware information
-structure CameraInfo {
-    /// Camera type identifier (e.g., "ELP_HD_FISHEYE")
-    @required
-    cameraType: String
-
-    /// USB device index
-    @required
-    deviceIndex: Integer
-
-    /// Camera resolution
-    @required
-    resolution: Resolution
-
-    /// Frames per second
-    @required
-    fps: Integer
-
-    /// Serial number if available
-    serialNumber: String
-
-    /// Firmware version if available
-    firmwareVersion: String
-}
-
-/// Camera intrinsic calibration parameters
-structure CameraIntrinsics {
-    /// 3x3 camera intrinsic matrix (K)
-    @required
-    cameraMatrix: Matrix3x3
-
-    /// Distortion coefficients
-    @required
-    distortionCoeffs: FloatList
-
-    /// Type of calibration model
-    @required
-    calibrationType: CalibrationType
-
-    /// Image size used for calibration
-    @required
-    imageSize: Resolution
-
-    /// RMS reprojection error
-    @required
-    rmsError: Float
-
-    /// Checkerboard pattern size (cols, rows)
-    @required
-    checkerboardCols: Integer
-
-    /// Checkerboard rows
-    @required
-    checkerboardRows: Integer
-
-    /// Checkerboard square size in mm
-    @required
-    squareSizeMm: Float
-}
-
-/// Hand-eye (arm-to-camera) calibration
-structure HandEyeCalibration {
-    /// 4x4 homogeneous transformation matrix
-    @required
-    transformMatrix: Matrix4x4
-
-    /// Rotation as quaternion
-    @required
-    rotation: Quaternion
-
-    /// Translation vector in mm
-    @required
-    translation: Vector3D
-
-    /// Calibration method used
-    @required
-    method: HandEyeMethod
-
-    /// Probe offset from end-effector in mm
-    @required
-    probeOffset: Vector3D
-
-    /// Reprojection error in pixels
-    @required
-    reprojectionError: Float
-
-    /// Position error in mm
-    @required
-    positionError: Float
-}
-
-/// Validation test point
-structure ValidationPoint {
-    /// Pixel coordinates
-    @required
-    pixelX: Integer
-
-    /// Pixel Y coordinate
-    @required
-    pixelY: Integer
-
-    /// Expected position in mm
-    @required
-    expectedPosition: Position3D
-
-    /// Actual measured position in mm
-    @required
-    actualPosition: Position3D
-
-    /// Error in mm
-    @required
-    errorMm: Float
-}
-
-/// List of validation points
-list ValidationPointList {
-    member: ValidationPoint
-}
-
-/// Calibration validation results
-structure CalibrationValidation {
-    /// Whether calibration is valid
-    @required
-    isValid: Boolean
-
-    /// Test points used for validation
-    @required
-    testPoints: ValidationPointList
-
-    /// Mean error in mm
-    @required
-    meanErrorMm: Float
-
-    /// Maximum error in mm
-    @required
-    maxErrorMm: Float
-
-    /// Validation timestamp
-    @required
-    validatedAt: Timestamp
-}
-
-/// Complete calibration aggregate
+/// Complete calibration data. Written by calibration_service.createTransformationFile(),
+/// read by sampling_service.setTransformation(). Saved to transformations/data_MM-DD-YYYY_HH-MM-SS.json.
 structure Calibration {
-    /// Unique calibration identifier
+    /// JSON key: "unwarping" (always one element)
     @required
-    id: CalibrationId
+    unwarping: UnwarpingParamsList
 
-    /// Auto-generated name from timestamp
+    /// Camera-to-probe X offset in mm. JSON key: "offset_X"
     @required
-    name: String
+    offsetX: Float
 
-    /// Creation timestamp
+    /// Camera-to-probe Y offset in mm. JSON key: "offset_Y"
     @required
-    createdAt: Timestamp
+    offsetY: Float
 
-    /// Camera hardware information
-    @required
-    cameraInfo: CameraInfo
-
-    /// Camera intrinsic calibration
-    @required
-    intrinsics: CameraIntrinsics
-
-    /// Hand-eye calibration (extrinsics)
-    @required
-    extrinsics: HandEyeCalibration
-
-    /// Validation results
-    @required
-    validation: CalibrationValidation
-
-    /// File path where calibration is stored
     @required
     filePath: FilePath
-}
 
-/// Summary of a calibration for listing
-structure CalibrationSummary {
-    /// Calibration ID
-    @required
-    id: CalibrationId
-
-    /// Calibration name
-    @required
-    name: String
-
-    /// Creation timestamp
+    /// Parsed from the filename (data_MM-DD-YYYY_HH-MM-SS.json).
     @required
     createdAt: Timestamp
-
-    /// Whether calibration is valid
-    @required
-    isValid: Boolean
-
-    /// Mean error in mm
-    @required
-    meanErrorMm: Float
-
-    /// File path
-    @required
-    filePath: FilePath
-}
-
-/// List of calibration summaries
-list CalibrationSummaryList {
-    member: CalibrationSummary
 }

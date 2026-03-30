@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 
 
-from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon, QFont, QDoubleValidator
+from PyQt5.QtGui import QPainter, QColor, QPen, QBrush, QIcon, QPixmap, QImage, QPolygon, QFont, QDoubleValidator, QPolygonF
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, Qt, QThread, QRect, QPoint, QSize, QParallelAnimationGroup, QPropertyAnimation, QAbstractAnimation
 from PyQt5 import QtSvg
 
@@ -1035,12 +1035,17 @@ class TagInformationSection(QWidget):
         self.input_bottomLeftY = QLineEdit()
         self.input_bottomLeftY.setValidator(QDoubleValidator())
 
+        self.button_autofill = QPushButton("Use current location", objectName="clear")
+
         layout_row_1.addWidget(label_bottomLeft, alignment=Qt.AlignLeft)
         layout_row_1.addStretch()
-        layout_row_1.addWidget(label_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(self.input_bottomLeftX, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(label_bottomLeftY, alignment=Qt.AlignRight)
-        layout_row_1.addWidget(self.input_bottomLeftY, alignment=Qt.AlignRight)
+        layout_row_1.addWidget(label_bottomLeftX)
+        layout_row_1.addWidget(self.input_bottomLeftX)
+        layout_row_1.addWidget(label_bottomLeftY)
+        layout_row_1.addWidget(self.input_bottomLeftY)
+
+        layout_row_1.setContentsMargins(0,0,0,0)
+        # layout_row_1.setSpacing(0)
 
 
         ''' ROW 2 '''
@@ -1053,15 +1058,20 @@ class TagInformationSection(QWidget):
         self.input_tagSize = QLineEdit()
         self.input_tagSize.setValidator(QDoubleValidator())
 
-        layout_row_2.addWidget(label_tagSize, alignment=Qt.AlignLeft)
+        layout_row_2.addWidget(label_tagSize)
         layout_row_2.addWidget(self.input_tagSize)
+
+        layout_row_2.setContentsMargins(0,0,0,0)
 
 
         ''' COMPOSE '''
         layout_container.addWidget(label_tagInformation)
         layout_container.addWidget(self.label_msg)
-        layout_container.addWidget(row_1)
         layout_container.addWidget(row_2)
+        layout_container.addStretch()
+        layout_container.addWidget(row_1)
+        layout_container.addWidget(self.button_autofill)
+        
 
         layout.addWidget(container)
 
@@ -1071,7 +1081,17 @@ class TagInformationSection(QWidget):
         self.setStyleSheet("""
             QWidget { background-color: #C8D3F1; }
             QLineEdit { background-color: white; }
+            QPushButton#clear { background-color: #F0F0F0; }
         """)
+
+
+    # Function to set the printer location in the X and Y inputs
+    def setPrinterPos(self, printer):
+        pos = device_service.getPrinterPosition(printer)
+
+        if pos is not None:
+            self.input_bottomLeftX.setText(str(pos[0]))
+            self.input_bottomLeftY.setText(str(pos[1]))
 
 
 
@@ -1356,296 +1376,420 @@ class ClickableImage(QLabel):
                 painter.setOpacity(1.0)
                 painter.drawPoint(self.dot)
 
-            # Polygon grid overlay
-            if (self.polygon_active and self.polygon_points
-                and self.sample_overlay_x and self.sample_overlay_y
-                and self.probe_polygon):
+            # Polygon overlay
+            if (self.polygon_active and self.polygon_points and self.probe_polygon):
 
-                bx0, by0, bx1, by1 = self.probe_polygon
-                real_w = bx1 - bx0
-                real_h = by1 - by0
+                # Rows
+                if self.sample_overlay_y is not None and self.rowsOnly:
+                    polygon = QPolygonF(self.polygon_points)
 
-                px_min = min(p.x() for p in self.polygon_points)
-                px_max = max(p.x() for p in self.polygon_points)
-                py_min = min(p.y() for p in self.polygon_points)
-                py_max = max(p.y() for p in self.polygon_points)
-                px_span = (px_max - px_min) or 1
-                py_span = (py_max - py_min) or 1
+                    bx0, by0, bx1, by1 = self.probe_polygon
+                    real_w = bx1 - bx0
+                    real_h = by1 - by0
 
-                # Grid lines over the bounding box (dim)
-                painter.setPen(QPen(QColor("#EAFFC2"), 1))
-                painter.setOpacity(0.25)
+                    px_min = min(p.x() for p in self.polygon_points)
+                    px_max = max(p.x() for p in self.polygon_points)
+                    py_min = min(p.y() for p in self.polygon_points)
+                    py_max = max(p.y() for p in self.polygon_points)
 
-                for val in self.x_range:
-                    t = (val - bx0) / real_w
-                    px = int(px_min + t * px_span)
-                    painter.drawLine(px, py_min, px, py_max)
+                    px_span = (px_max - px_min) or 1
+                    py_span = (py_max - py_min) or 1
 
-                for val in self.y_range:
-                    t = (val - by0) / real_h
-                    py = int(py_min + t * py_span)
-                    painter.drawLine(px_min, py, px_max, py)
+                    painter.setPen(QPen(QColor("#26CCC4"), 2))
+                    painter.setOpacity(1.0)
 
-                painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                painter.setOpacity(1.0)
+                    row_pixels = []
 
-                # Grids
-                rows = list(range(len(self.y_range) - 1))
-                rows = list(reversed(rows))
+                    # Draw rows
+                    for val in self.y_range:
+                        ty = (val - by0) / real_h
+                        py = py_min + (1 - ty) * py_span
 
-                for row_idx, j in enumerate(rows):
+                        segments = self.get_row_segments(py)
 
-                    if row_idx % 2 == 0:
-                        x_indices = range(len(self.x_range) - 1)
-                    else:
-                        x_indices = reversed(range(len(self.x_range) - 1))
+                        row_pixels.append((val, py, segments))
 
-                    for i in x_indices:
+                        for x0, x1 in segments:
+                            painter.drawLine(int(x0), int(py), int(x1), int(py))
 
-                        left  = self.x_range[i]
-                        right = self.x_range[i + 1]
+                    prev_point = None
+                    rows = list(reversed(row_pixels))
 
-                        top = self.y_range[j + 1]
-                        bottom = self.y_range[j]
+                    # Serpentine direction
+                    for row_idx, (y_val, py, segments) in enumerate(rows):
 
-                        # Real midpoint
-                        mid_x_real = (left + right) / 2
-                        mid_y_real = (top + bottom) / 2
+                        if not segments:
+                            continue
 
-                        # Normalized
-                        tx = (mid_x_real - bx0) / real_w
-                        ty = (mid_y_real - by0) / real_h
+                        # Flip direction every row
+                        if row_idx % 2 == 0:
+                            ordered_segments = segments
+                        else:
+                            ordered_segments = list(reversed(segments))
 
-                        # Midpoint as a pixel
-                        mid_x = px_min + tx * px_span
-                        mid_y = py_min + (1 - ty) * py_span
+                        for seg_idx, (x_start, x_end) in enumerate(ordered_segments):
 
-                        location = (round(mid_x_real, 2), round(mid_y_real, 2))
+                            # Direction within segment
+                            if row_idx % 2 == 0:
+                                px_start, px_end = x_start, x_end
+                            else:
+                                px_start, px_end = x_end, x_start
 
-                        if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            # Draw horizontal line
+                            painter.drawLine(int(px_start), int(py), int(px_end), int(py))
 
-                            # Corners (FIXED)
-                            tx_left   = (left - bx0) / real_w
-                            tx_right  = (right - bx0) / real_w
-                            ty_top    = (top - by0) / real_h
-                            ty_bottom = (bottom - by0) / real_h
+                            # Connect to previous segment
+                            if prev_point is not None:
+                                painter.drawLine(
+                                    int(prev_point[0]), int(prev_point[1]),
+                                    int(px_start), int(py)
+                                )
 
-                            px_left   = px_min + tx_left * px_span
-                            px_right  = px_min + tx_right * px_span
+                            # Convert point to real-world
+                            tx_start = (px_start - px_min) / px_span
+                            tx_end   = (px_end   - px_min) / px_span
+                            ty       = (py - py_min) / py_span
 
-                            py_top = py_min + (1 - ty_top) * py_span
-                            py_bottom = py_min + (1 - ty_bottom) * py_span
+                            real_y = by0 + (1 - ty) * real_h
+                            real_x_start = bx0 + tx_start * real_w
+                            real_x_end   = bx0 + tx_end   * real_w
 
-                            rect_x = int(px_left)
-                            rect_y = int(min(py_top, py_bottom))
-                            rect_w = int(px_right - px_left)
-                            rect_h = int(abs(py_bottom - py_top))
+                            loc1 = (round(real_x_start, 2), round(real_y, 2))
+                            loc2 = (round(real_x_end, 2), round(real_y, 2))
 
+                            # Get locations
+                            if loc1 not in self.real_points:
+                                self.real_points.append(loc1)
+                            
+                            if loc2 not in self.real_points:
+                                self.real_points.append(loc2)
+
+                            r = 6
+
+                            # Check visited points
+                            if loc1 in self.visited_points:
+                                painter.setPen(Qt.NoPen)
+                                painter.setBrush(QColor("#00FF00"))
+                                painter.drawEllipse(int(px_start - r), int(py - r), r * 2, r * 2)
+
+                            if loc2 in self.visited_points:
+                                painter.setPen(Qt.NoPen)
+                                painter.setBrush(QColor("#00FF00"))
+                                painter.drawEllipse(int(px_end - r), int(py - r), r * 2, r * 2)
+
+                            # Draw point if visited
+                            if prev_point is not None:
+                                prev_tx = (prev_point[0] - px_min) / px_span
+                                prev_ty = (prev_point[1] - py_min) / py_span
+
+                                prev_real_x = bx0 + prev_tx * real_w
+                                prev_real_y = by0 + (1 - prev_ty) * real_h
+
+                                prev_loc = (round(prev_real_x, 2), round(prev_real_y, 2))
+
+                                if prev_loc in self.visited_points:
+                                    painter.drawEllipse(
+                                        int(prev_point[0] - r),
+                                        int(prev_point[1] - r),
+                                        r * 2, r * 2
+                                    )
+
+                            prev_point = (px_end, py)
+
+
+                # Grid
+                elif self.sample_overlay_x is not None and self.sample_overlay_y is not None and not self.rowsOnly:
+                    bx0, by0, bx1, by1 = self.probe_polygon
+                    real_w = bx1 - bx0
+                    real_h = by1 - by0
+
+                    px_min = min(p.x() for p in self.polygon_points)
+                    px_max = max(p.x() for p in self.polygon_points)
+                    py_min = min(p.y() for p in self.polygon_points)
+                    py_max = max(p.y() for p in self.polygon_points)
+                    px_span = (px_max - px_min) or 1
+                    py_span = (py_max - py_min) or 1
+
+                    # Grid lines over the bounding box (dim)
+                    painter.setPen(QPen(QColor("#EAFFC2"), 1))
+                    painter.setOpacity(0.25)
+
+                    for val in self.x_range:
+                        t = (val - bx0) / real_w
+                        px = int(px_min + t * px_span)
+                        painter.drawLine(px, py_min, px, py_max)
+
+                    for val in self.y_range:
+                        t = (val - by0) / real_h
+                        py = int(py_min + t * py_span)
+                        painter.drawLine(px_min, py, px_max, py)
+
+                    painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                    painter.setOpacity(1.0)
+
+                    # Grids
+                    rows = list(range(len(self.y_range) - 1))
+                    rows = list(reversed(rows))
+
+                    for row_idx, j in enumerate(rows):
+
+                        if row_idx % 2 == 0:
+                            x_indices = range(len(self.x_range) - 1)
+                        else:
+                            x_indices = reversed(range(len(self.x_range) - 1))
+
+                        for i in x_indices:
+
+                            left  = self.x_range[i]
+                            right = self.x_range[i + 1]
+
+                            top = self.y_range[j + 1]
+                            bottom = self.y_range[j]
+
+                            # Real midpoint
+                            mid_x_real = (left + right) / 2
+                            mid_y_real = (top + bottom) / 2
+
+                            # Normalized
+                            tx = (mid_x_real - bx0) / real_w
+                            ty = (mid_y_real - by0) / real_h
+
+                            # Midpoint as a pixel
+                            mid_x = px_min + tx * px_span
+                            mid_y = py_min + (1 - ty) * py_span
+
+                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
+
+                            if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+
+                                # Corners (FIXED)
+                                tx_left   = (left - bx0) / real_w
+                                tx_right  = (right - bx0) / real_w
+                                ty_top    = (top - by0) / real_h
+                                ty_bottom = (bottom - by0) / real_h
+
+                                px_left   = px_min + tx_left * px_span
+                                px_right  = px_min + tx_right * px_span
+
+                                py_top = py_min + (1 - ty_top) * py_span
+                                py_bottom = py_min + (1 - ty_bottom) * py_span
+
+                                rect_x = int(px_left)
+                                rect_y = int(min(py_top, py_bottom))
+                                rect_w = int(px_right - px_left)
+                                rect_h = int(abs(py_bottom - py_top))
+
+                                painter.setPen(Qt.NoPen)
+                                painter.setOpacity(0.6)
+                                painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
+
+                            # Draw sampling location (midpoint of grid)
+                            elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                                painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                                painter.drawPoint(int(mid_x), int(mid_y))
+
+                                # Add midpoint to real locations
+                                if location not in self.real_points:
+                                    self.real_points.append(location)
+
+
+
+            # Rectangle overlay
+            if self.rectangle and not self.polygon_active:
+                
+                # Rows
+                if self.sample_overlay_y is not None and self.rowsOnly:
+                    painter.setPen(QPen(QColor("#EAFFC2"), 2))
+                    painter.setOpacity(0.6)
+
+                    start_x = self.rectangle.left()
+                    start_y = self.rectangle.top()
+                    end_x   = self.rectangle.right()
+                    end_y   = self.rectangle.bottom()
+
+                    width  = end_x - start_x
+                    height = end_y - start_y
+
+                    x0, y0, x1, y1 = self.probe_rectangle
+                    real_width  = x1 - x0
+                    real_height = y1 - y0
+
+                    # Draw rows only 
+                    for val in self.y_range:
+                        ty = (val - y0) / real_height
+                        y = int(start_y + (1 - ty) * height)
+
+                        painter.drawLine(start_x, y, end_x, y)
+
+                    painter.setPen(QPen(QColor("#0FFFF3"), 3))
+                    painter.setOpacity(1.0)
+
+                    prev_point = None
+
+                    for row_idx, y_val in enumerate(reversed(self.y_range)):
+
+                        ty = (y_val - y0) / real_height
+                        py = start_y + (1 - ty) * height
+
+                        # Serpentine direction
+                        if row_idx % 2 == 0:
+                            x_start_real = x0
+                            x_end_real   = x1
+                        else:
+                            x_start_real = x1
+                            x_end_real   = x0
+
+                        location1 = (round(x_start_real, 2), round(y_val, 2))
+                        location2 = (round(x_end_real, 2), round(y_val, 2))
+
+                        if location1 not in self.real_points:
+                            self.real_points.append(location1)
+
+                        if location2 not in self.real_points:
+                            self.real_points.append(location2)
+
+                        # Convert X
+                        tx_start = (x_start_real - x0) / real_width
+                        tx_end   = (x_end_real - x0) / real_width
+
+                        px_start = start_x + tx_start * width
+                        px_end   = start_x + tx_end * width
+
+                        # Draw horizontal line
+                        painter.setPen(QPen(QColor("#26CCC4"), 3))
+                        painter.drawLine(int(px_start), int(py), int(px_end), int(py))
+
+                        # Draw vertical connection
+                        if prev_point:
+                            painter.drawLine(
+                                int(prev_point[0]), int(prev_point[1]),
+                                int(px_start), int(py)
+                            )
+
+                        
+                        # Check visited points
+                        # Start point
+                        if location1 in self.visited_points:
                             painter.setPen(Qt.NoPen)
-                            painter.setOpacity(0.6)
-                            painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
+                            painter.setBrush(QColor("#00FF00"))
+                            r = 7
+                            painter.drawEllipse(int(px_start - r), int(py - r), r * 2, r * 2)
 
-                        # Draw sampling location (midpoint of grid)
-                        elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
-                            painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                            painter.drawPoint(int(mid_x), int(mid_y))
+                        # End point
+                        if location2 in self.visited_points:
+                            painter.setPen(Qt.NoPen)
+                            painter.setBrush(QColor("#00FF00"))
+                            r = 7
+                            painter.drawEllipse(int(px_end - r), int(py - r), r * 2, r * 2)
 
-                            # Add midpoint to real locations
+                        # Intersection point (vertical connection start)
+                        if prev_point:
+                            prev_location = (
+                                round((prev_point[0] - start_x) / width * real_width + x0, 2),
+                                round((1 - (prev_point[1] - start_y) / height) * real_height + y0, 2)
+                            )
+
+                            if prev_location in self.visited_points:
+                                painter.drawEllipse(int(prev_point[0] - r), int(prev_point[1] - r), r * 2, r * 2)
+
+                        prev_point = (px_end, py)
+
+
+                # Grid
+                elif self.sample_overlay_x is not None and self.sample_overlay_y is not None and not self.rowsOnly:
+                    painter.setPen(QPen(QColor("#EAFFC2"), 2))
+                    painter.setOpacity(0.6)
+
+                    start_x = self.rectangle.left()
+                    start_y = self.rectangle.top()
+                    end_x   = self.rectangle.right()
+                    end_y   = self.rectangle.bottom()
+
+                    width  = end_x - start_x
+                    height = end_y - start_y
+
+                    x0, y0, x1, y1 = self.probe_rectangle
+
+                    real_width  = x1 - x0
+                    real_height = y1 - y0
+
+                    # Vertical lines
+                    for val in self.x_range:
+                        tx = (val - x0) / real_width
+                        x = int(start_x + tx * width)
+
+                        painter.drawLine(x, start_y, x, end_y)
+
+                    # Horizontal lines
+                    for val in self.y_range:
+                        ty = (val - y0) / real_height
+                        y = int(start_y + (1 - ty) * height)
+
+                        painter.drawLine(start_x, y, end_x, y)
+
+                    painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                    painter.setOpacity(1.0)
+
+
+                    for j in range(len(self.y_range) - 1):
+                        # Serpentine direction
+                        if j % 2 == 0:
+                            # Left to right
+                            x_indices = range(len(self.x_range) - 1)
+                        else:
+                            # Right to left
+                            x_indices = reversed(range(len(self.x_range) - 1))
+
+                        for i in x_indices:
+
+                            left  = self.x_range[i]
+                            right = self.x_range[i + 1]
+
+                            top    = self.y_range[j]
+                            bottom = self.y_range[j + 1]
+
+                            # Midpoint 
+                            mid_x_real = (left + right) / 2
+                            mid_y_real = (top + bottom) / 2
+
+                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
                             if location not in self.real_points:
                                 self.real_points.append(location)
 
-                        
-            # Pixel overlay (Rectangle)
-            if self.sample_overlay_x is not None and self.sample_overlay_y is not None and not self.polygon_active:
-                painter.setPen(QPen(QColor("#EAFFC2"), 2))
-                painter.setOpacity(0.6)
+                            # Normalize midpoint
+                            tx = (mid_x_real - x0) / real_width
+                            ty = (mid_y_real - y0) / real_height
 
-                start_x = self.rectangle.left()
-                start_y = self.rectangle.top()
-                end_x   = self.rectangle.right()
-                end_y   = self.rectangle.bottom()
+                            # Convert to pixel 
+                            mid_x = start_x + tx * width
+                            mid_y = start_y + (1 - ty) * height
 
-                width  = end_x - start_x
-                height = end_y - start_y
+                            if location in self.visited_points:
 
-                x0, y0, x1, y1 = self.probe_rectangle
+                                # Corners 
+                                tx_left   = (left - x0) / real_width
+                                tx_right  = (right - x0) / real_width
+                                ty_top    = (top - y0) / real_height
+                                ty_bottom = (bottom - y0) / real_height
 
-                real_width  = x1 - x0
-                real_height = y1 - y0
+                                px_left   = start_x + tx_left * width
+                                px_right  = start_x + tx_right * width
 
-                # Vertical lines
-                for val in self.x_range:
-                    tx = (val - x0) / real_width
-                    x = int(start_x + tx * width)
+                                py_top    = start_y + (1 - ty_top) * height
+                                py_bottom = start_y + (1 - ty_bottom) * height
 
-                    painter.drawLine(x, start_y, x, end_y)
+                                rect_x = int(px_left)
+                                rect_y = int(min(py_top, py_bottom))
+                                rect_w = int(px_right - px_left)
+                                rect_h = int(abs(py_bottom - py_top))
 
-                # Horizontal lines
-                for val in self.y_range:
-                    ty = (val - y0) / real_height
-                    y = int(start_y + (1 - ty) * height)
+                                painter.setPen(Qt.NoPen)
+                                painter.setOpacity(0.6)
+                                painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
 
-                    painter.drawLine(start_x, y, end_x, y)
-
-                painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                painter.setOpacity(1.0)
-
-
-                for j in range(len(self.y_range) - 1):
-                    # Serpentine direction
-                    if j % 2 == 0:
-                        # Left to right
-                        x_indices = range(len(self.x_range) - 1)
-                    else:
-                        # Right to left
-                        x_indices = reversed(range(len(self.x_range) - 1))
-
-                    for i in x_indices:
-
-                        left  = self.x_range[i]
-                        right = self.x_range[i + 1]
-
-                        top    = self.y_range[j]
-                        bottom = self.y_range[j + 1]
-
-                        # Midpoint 
-                        mid_x_real = (left + right) / 2
-                        mid_y_real = (top + bottom) / 2
-
-                        location = (round(mid_x_real, 2), round(mid_y_real, 2))
-                        if location not in self.real_points:
-                            self.real_points.append(location)
-
-                        # Normalize midpoint
-                        tx = (mid_x_real - x0) / real_width
-                        ty = (mid_y_real - y0) / real_height
-
-                        # Convert to pixel 
-                        mid_x = start_x + tx * width
-                        mid_y = start_y + (1 - ty) * height
-
-                        if location in self.visited_points:
-
-                            # Corners 
-                            tx_left   = (left - x0) / real_width
-                            tx_right  = (right - x0) / real_width
-                            ty_top    = (top - y0) / real_height
-                            ty_bottom = (bottom - y0) / real_height
-
-                            px_left   = start_x + tx_left * width
-                            px_right  = start_x + tx_right * width
-
-                            py_top    = start_y + (1 - ty_top) * height
-                            py_bottom = start_y + (1 - ty_bottom) * height
-
-                            rect_x = int(px_left)
-                            rect_y = int(min(py_top, py_bottom))
-                            rect_w = int(px_right - px_left)
-                            rect_h = int(abs(py_bottom - py_top))
-
-                            painter.setPen(Qt.NoPen)
-                            painter.setOpacity(0.6)
-                            painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
-
-                        else:
-                            painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                            painter.drawPoint(int(mid_x), int(mid_y))
-
-            elif self.rectangle is not None and self.sample_overlay_y is not None and self.rowsOnly:
-                painter.setPen(QPen(QColor("#EAFFC2"), 2))
-                painter.setOpacity(0.6)
-
-                start_x = self.rectangle.left()
-                start_y = self.rectangle.top()
-                end_x   = self.rectangle.right()
-                end_y   = self.rectangle.bottom()
-
-                width  = end_x - start_x
-                height = end_y - start_y
-
-                x0, y0, x1, y1 = self.probe_rectangle
-                real_width  = x1 - x0
-                real_height = y1 - y0
-
-                # Draw rows only 
-                for val in self.y_range:
-                    ty = (val - y0) / real_height
-                    y = int(start_y + (1 - ty) * height)
-
-                    painter.drawLine(start_x, y, end_x, y)
-
-                painter.setPen(QPen(QColor("#0FFFF3"), 3))
-                painter.setOpacity(1.0)
-
-                prev_point = None
-
-                for row_idx, y_val in enumerate(reversed(self.y_range)):
-
-                    ty = (y_val - y0) / real_height
-                    py = start_y + (1 - ty) * height
-
-                    # Serpentine direction
-                    if row_idx % 2 == 0:
-                        x_start_real = x0
-                        x_end_real   = x1
-                    else:
-                        x_start_real = x1
-                        x_end_real   = x0
-
-                    location1 = (round(x_start_real, 2), round(y_val, 2))
-                    location2 = (round(x_end_real, 2), round(y_val, 2))
-
-                    if location1 not in self.real_points:
-                        self.real_points.append(location1)
-
-                    if location2 not in self.real_points:
-                        self.real_points.append(location2)
-
-                    # Convert X
-                    tx_start = (x_start_real - x0) / real_width
-                    tx_end   = (x_end_real - x0) / real_width
-
-                    px_start = start_x + tx_start * width
-                    px_end   = start_x + tx_end * width
-
-                    # Draw horizontal line
-                    painter.setPen(QPen(QColor("#26CCC4"), 3))
-                    painter.drawLine(int(px_start), int(py), int(px_end), int(py))
-
-                    # Draw vertical connection
-                    if prev_point:
-                        painter.drawLine(
-                            int(prev_point[0]), int(prev_point[1]),
-                            int(px_start), int(py)
-                        )
-
-                    
-                    # Check visited points
-                    # Start point
-                    if location1 in self.visited_points:
-                        painter.setPen(Qt.NoPen)
-                        painter.setBrush(QColor("#00FF00"))
-                        r = 7
-                        painter.drawEllipse(int(px_start - r), int(py - r), r * 2, r * 2)
-
-                    # End point
-                    if location2 in self.visited_points:
-                        painter.setPen(Qt.NoPen)
-                        painter.setBrush(QColor("#00FF00"))
-                        r = 7
-                        painter.drawEllipse(int(px_end - r), int(py - r), r * 2, r * 2)
-
-                    # Intersection point (vertical connection start)
-                    if prev_point:
-                        prev_location = (
-                            round((prev_point[0] - start_x) / width * real_width + x0, 2),
-                            round((1 - (prev_point[1] - start_y) / height) * real_height + y0, 2)
-                        )
-
-                        if prev_location in self.visited_points:
-                            painter.drawEllipse(int(prev_point[0] - r), int(prev_point[1] - r), r * 2, r * 2)
-
-                    prev_point = (px_end, py)
+                            else:
+                                painter.setPen(QPen(QColor("#EAFFC2"), 3))
+                                painter.drawPoint(int(mid_x), int(mid_y))
 
 
             # ── Draw mode rendering ──────────────────────────────────────────────
@@ -1657,7 +1801,8 @@ class ClickableImage(QLabel):
             if self.polygon_active and self.polygon_points:
                 poly = QPolygon(self.polygon_points)
                 painter.setPen(QPen(QColor("#BBFF00"), 2))
-                painter.setBrush(QBrush(QColor(187, 255, 0, 70)))
+                painter.setOpacity(0.6)
+                painter.setBrush(QBrush(QColor(187, 255, 0, 100)))
                 painter.drawPolygon(poly)
                 painter.setBrush(Qt.NoBrush)
                 # Also draw the raw strokes dimly so the user can still see what they drew
@@ -1980,6 +2125,86 @@ class ClickableImage(QLabel):
             self.sample_overlay_x = None
             self.sample_overlay_y = None
 
+    
+    def updateOverlayPolygonRows(self, y, type, sampling):
+        self.real_points = []
+        self.probe_polygon = []
+        self._polygon_valid_pixels = []
+
+        try:
+            if not self.polygon_active or not self.polygon_points:
+                return
+
+            if hasattr(sampling, 'drawn') and sampling.drawn:
+                xs = [p[0] for p in sampling.drawn]
+                ys = [p[1] for p in sampling.drawn]
+                bx0, bx1 = min(xs), max(xs)
+                by0, by1 = min(ys), max(ys)
+            else:
+                bx0, by0, bx1, by1 = 100, 40, 115, 55
+
+            real_w = bx1 - bx0
+            real_h = by1 - by0
+            if real_w <= 0 or real_h <= 0:
+                return
+
+            # Sampling spots
+            if type == 0: 
+                y_range = np.arange(by0, by1, real_h / float(y))
+            
+            # Resolution
+            elif type == 1:
+                y_range = np.arange(by0, by1, float(y))
+            else:
+                return
+
+            y_range = np.append(y_range, by1)
+
+
+            self.x_range = None 
+            self.y_range = y_range
+            self.probe_polygon = [bx0, by0, bx1, by1]
+
+            self.sample_overlay_x = None
+            self.sample_overlay_y = len(y_range)
+
+            self._polygon_valid_pixels = []
+
+            self.update()
+            sampling.real_points_list = self.real_points
+
+        except Exception:
+            self.sample_overlay_x = None
+            self.sample_overlay_y = None
+
+    
+    # Draw row intersections
+    def get_row_segments(self, y):
+        intersections = []
+        pts = self.polygon_points
+        n = len(pts)
+
+        for i in range(n):
+            p1 = pts[i]
+            p2 = pts[(i + 1) % n]
+
+            y1, y2 = p1.y(), p2.y()
+
+            if (y1 <= y < y2) or (y2 <= y < y1):
+                t = (y - y1) / (y2 - y1)
+                x = p1.x() + t * (p2.x() - p1.x())
+                intersections.append(x)
+
+        intersections.sort()
+
+        segments = []
+        for i in range(0, len(intersections), 2):
+            if i + 1 < len(intersections):
+                segments.append((intersections[i], intersections[i + 1]))
+
+        return segments
+
+
 
 class InputField(QWidget):
     def __init__(self, title):
@@ -2005,7 +2230,6 @@ class InputField(QWidget):
             layout.addWidget(self.input2)
 
         self.setLayout(layout)
-
 
 class ArrowButton(QWidget):
     def __init__(self, parent=None):

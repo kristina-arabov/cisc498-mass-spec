@@ -39,6 +39,7 @@ class SamplingItem():
         self.ref_dwellTime = None
         self.ref_sampleTime = None
         self.ref_sampleHeight = None
+        self.ref_point_probed = False
 
         # Speed + Step size
         self.xy_speed = None
@@ -151,8 +152,9 @@ def findLocations(transformation, sampling, img):
     if not dot or not has_roi:
         return
 
-    start_point = rectangle.topLeft()
-    end_point = rectangle.bottomRight()
+    if rectangle:
+        start_point = rectangle.topLeft()
+        end_point = rectangle.bottomRight()
 
     # Process original image (not scaled!)
     image = cv2.cvtColor(img.original_pixmap, cv2.COLOR_RGBA2GRAY)
@@ -265,9 +267,9 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
         dot_x += transformation.offset_x
     
     if transformation.offset_y < 0:
-        dot_y -= transformation.offset_y
-    else:
         dot_y += transformation.offset_y
+    else:
+        dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -309,11 +311,11 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     
     # Apply Y offset
     if transformation.offset_y < 0:
-        start_y -= transformation.offset_y
-        end_y -= transformation.offset_y
-    else:
         start_y += transformation.offset_y
         end_y += transformation.offset_y
+    else:
+        start_y -= transformation.offset_y
+        end_y -= transformation.offset_y
 
     
 
@@ -342,7 +344,8 @@ def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, m
             x -= transformation.offset_x
         else:
             x += transformation.offset_x
-        y -= transformation.offset_y
+        
+        y += transformation.offset_y
 
         real_vertices.append((float(x.item()), float(y.item())))
 
@@ -366,7 +369,7 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 
-def getSampling(sampling):
+def getSampling(sampling, polygon_active=False):
 
     print(sampling.real_points_list)
 
@@ -375,7 +378,12 @@ def getSampling(sampling):
     # If using drag mode, locations will need to follow a serpentine pattern, but 
     # only move along the XY coordinates with no Z movement
     if sampling.mode == "drag":
-        locations = serpentineDrag(locations)
+
+        if polygon_active:
+            locations = serpentineDragPolygon(locations)
+
+        else:
+            locations = serpentineDrag(locations)
     
     # Standard serpentine pattern for Constant Z and Conductance modes
     else:
@@ -384,6 +392,7 @@ def getSampling(sampling):
     # Reset values
     sampling.total_points = len(locations)
     sampling.sampled_points = 0
+    sampling.ref_point_probed = False # Reset reference point probed status
 
     progress.updatePoints(sampling.sampled_points, sampling.total_points)
 
@@ -621,6 +630,66 @@ def serpentineDrag(locations):
     return result
 
 
+# Serpentine path organization for polygon ROIs
+def serpentineDragPolygon(locations):
+    rows = defaultdict(list)
+
+    for x, y in locations:
+        y_key = round(y, 2)
+        rows[y_key].append(x)
+
+    # Sort rows top → bottom
+    ys = sorted(rows.keys(), reverse=True)
+
+    result = []
+    prev_point = None
+
+    for i, y in enumerate(ys):
+
+        xs = sorted(rows[y])
+
+        segments = []
+        for j in range(0, len(xs), 2):
+            if j + 1 < len(xs):
+                segments.append((xs[j], xs[j + 1]))
+
+        if not segments:
+            try:
+                if (xs[0], y) not in result:
+                    result.append((xs[0], y))
+            except:
+                continue
+
+        if i % 2 == 0:
+            ordered_segments = segments
+        else:
+            ordered_segments = list(reversed(segments))
+
+
+        for seg_idx, (x_start, x_end) in enumerate(ordered_segments):
+
+            if i % 2 == 0:
+                start = (x_start, y)
+                end   = (x_end, y)
+            else:
+                start = (x_end, y)
+                end   = (x_start, y)
+
+            if start not in result:
+                result.append(start)
+
+            # Connect from previous row/segment
+            if prev_point is not None and prev_point != start and prev_point not in result:
+                result.append(prev_point)
+            
+            if end not in result:
+                result.append(end)
+
+            prev_point = end
+
+    return result
+
+
 # Function to get time stamp between operations
 def getTime():
     samplingItem.timestamps.append(time.time())
@@ -653,7 +722,10 @@ def runGCode(printer, conduct):
 
             progress.updatePoints(samplingItem.sampled_points, samplingItem.total_points, location)
 
-    printer.cmd(line)
+    try:
+        printer.cmd(line)
+    except:
+        print("Printer not connected.")
 
     # emit signal for completed points? time?
     if len(samplingItem.gcodes) == 0:
@@ -693,6 +765,8 @@ def createCSV():
 
 
 def stop(printer):
+    device_service.emergency_stop_printer(printer)
+
     # Clear GCodes and sampling data
     samplingItem.csv_filename = None
     samplingItem.csv_rows = []
