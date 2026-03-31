@@ -2,7 +2,7 @@
 
 This application is designed to perform automated image-based sampling with a liquid micro junction-surface sampling probe (LMJ-SSP), fisheye camera, and a 3D printer. Users are able to take photos of sample slides, define sampling regions, and collect timestamped positional data of the probe. The user must configure their hardware setup through camera lens undistortion, camera pose estimation, and probe-to-camera offset calculation. With this application, users can define custom sampling regions and save timestamped positional data files for temporal MS data alignment in post-processing.
 
-This project was developed as part of CISC 498 at Queen's University (Winter 2026).
+This project was developed as part of CISC 498 at Queen's University (Winter 2026) for the Queen's Chemistry Department.
 
 
 # 🛠️ Installation steps
@@ -46,6 +46,3 @@ You may also run the application by pasting the following commands in your termi
 cd {path to repository folder}
 python3 Application.py
 ```
-
-# CREDITS
-Legacy Mode 3D Printer Control Application by [Kai Dalen](https://github.com/KDalen)
