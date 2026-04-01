@@ -1395,7 +1395,7 @@ class ClickableImage(QLabel):
                     px_span = (px_max - px_min) or 1
                     py_span = (py_max - py_min) or 1
 
-                    painter.setPen(QPen(QColor("#26CCC4"), 2))
+                    painter.setPen(QPen(QColor("#67FFD9"), 2))
                     painter.setOpacity(1.0)
 
                     row_pixels = []
@@ -1639,6 +1639,12 @@ class ClickableImage(QLabel):
                             x_start_real = x1
                             x_end_real   = x0
 
+                        # ty_pixel = (py - start_y) / height
+                        # real_y = y0 + (1 - ty_pixel) * real_height
+
+                        # print(y_val)
+                        # print(real_y)
+
                         location1 = (round(x_start_real, 2), round(y_val, 2))
                         location2 = (round(x_end_real, 2), round(y_val, 2))
 
@@ -1705,8 +1711,8 @@ class ClickableImage(QLabel):
                     end_x   = self.rectangle.right()
                     end_y   = self.rectangle.bottom()
 
-                    width  = end_x - start_x
-                    height = end_y - start_y
+                    width  = self.rectangle.width()
+                    height = self.rectangle.height()
 
                     x0, y0, x1, y1 = self.probe_rectangle
 
@@ -1745,16 +1751,12 @@ class ClickableImage(QLabel):
                             left  = self.x_range[i]
                             right = self.x_range[i + 1]
 
-                            top    = self.y_range[j]
-                            bottom = self.y_range[j + 1]
+                            top    = self.y_range[j + 1]
+                            bottom = self.y_range[j]
 
                             # Midpoint 
                             mid_x_real = (left + right) / 2
                             mid_y_real = (top + bottom) / 2
-
-                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
-                            if location not in self.real_points:
-                                self.real_points.append(location)
 
                             # Normalize midpoint
                             tx = (mid_x_real - x0) / real_width
@@ -1763,6 +1765,10 @@ class ClickableImage(QLabel):
                             # Convert to pixel 
                             mid_x = start_x + tx * width
                             mid_y = start_y + (1 - ty) * height
+
+                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
+                            if location not in self.real_points:
+                                self.real_points.append(location)
 
                             if location in self.visited_points:
 
@@ -1962,8 +1968,11 @@ class ClickableImage(QLabel):
 
         try:
             if self.rectangle:
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50]
+                if sampling.rectangle:
+                    self.probe_rectangle = sampling.rectangle
+                else:
+                    self.probe_rectangle = [100, 40, 115, 50]
+                
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -2009,8 +2018,11 @@ class ClickableImage(QLabel):
         
         try:
             if self.rectangle: 
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                if sampling.rectangle:
+                    self.probe_rectangle = sampling.rectangle
+                else:
+                    self.probe_rectangle = [100, 40, 115, 50]
+                
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing

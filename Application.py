@@ -131,23 +131,31 @@ def global_poll():
                     if conduct.status:
                         conductance_val = device_service.getConductance(conduct)
 
-                        # Conductance threshold reached and software was waiting for signal
-                        if conductance_val >= printer.con_threshold and waiting_for_signal and (pos[0], pos[1]) == (round(probe.dot[0], 2), round(probe.dot[1], 2)):
-                            waiting_for_signal = False
+                        # Relative positioning handling
+                        if positioning == "relative":
+
+                            # Conductance threshold reached and software was waiting for signal... helps to not affect other GCodes
+                            if conductance_val >= printer.con_threshold and waiting_for_signal and (pos[0], pos[1]) == (round(probe.dot[0], 2), round(probe.dot[1], 2)):
+                                waiting_for_signal = False
+                                probe.moving = False
+                                probe.ref_point_probed = True # Reference point has been probed
+
+                                probe.gcodes.pop(0)
+                            
+                            # If conductance threshold has not been reached, keep moving down
+                            elif conductance_val < printer.con_threshold:
+                                probe.moving = True
+                                next_height = printer.pos[2] + delta_z
+
+                                printer.cmd(line)
+
+                        # Absolute positioning handling
+                        elif positioning == "absolute":
                             probe.moving = False
 
-                            probe.gcodes.pop(0)
-                            probe.ref_point_probed = True # Reference point has been probed
-                        
-                        # If conductance threshold has not been reached, keep moving down
-                        elif conductance_val < printer.con_threshold:
-                            probe.moving = True
-                            next_height = printer.pos[2] + delta_z
-
-                            printer.cmd(line)
-
+                    # If no conductance connected, do not perform sampling!!!
                     else:
-                        print("No conductance connected. Will not perform sampling run.")
+                        print("No condutance detected. Will not perform sampling run.")
                         probe.gcodes = []
             
 

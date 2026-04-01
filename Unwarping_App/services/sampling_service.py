@@ -712,8 +712,6 @@ def getTime():
 
 # Function to send a GCode to the printer and remove it from the queue
 def runGCode(printer, conduct):
-    addData(printer, conduct)
-
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
