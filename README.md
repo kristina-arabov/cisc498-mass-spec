@@ -46,3 +46,7 @@ You may also run the application by pasting the following commands in your termi
 cd {path to repository folder}
 python3 Application.py
 ```
+
+# Credits
+Legacy 3D Printer Control Application by [Kai Dalen](https://github.com/KDalen)
+Dynamic Rendering by [Madison MacNeil](https://github.com/madisonmacneil)
