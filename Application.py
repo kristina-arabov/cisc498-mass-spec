@@ -132,7 +132,7 @@ def global_poll():
                         conductance_val = device_service.getConductance(conduct)
 
                         # Conductance threshold reached and software was waiting for signal
-                        if conductance_val >= printer.con_threshold and waiting_for_signal and (pos[0], pos[1]) == probe.dot:
+                        if conductance_val >= printer.con_threshold and waiting_for_signal and (pos[0], pos[1]) == (round(probe.dot[0], 2), round(probe.dot[1], 2)):
                             waiting_for_signal = False
                             probe.moving = False
 
