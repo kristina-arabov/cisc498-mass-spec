@@ -49,4 +49,5 @@ python3 Application.py
 
 # Credits
 Legacy 3D Printer Control Application by [Kai Dalen](https://github.com/KDalen)
+
 Dynamic Rendering by [Madison MacNeil](https://github.com/madisonmacneil)
