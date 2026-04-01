@@ -255,21 +255,22 @@ def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
 
     dot_in_base = cam2base @ dot_from_cam_principal
 
-    print(dot_in_base)
-
     dot_x = pos[0] + (dot_in_base[0] * 10)
     dot_y = pos[1] + (dot_in_base[1] * 10)
     
     # Add probe offset to dot position
-    if transformation.offset_x < 0:
-        dot_x -= transformation.offset_x
-    else:
-        dot_x += transformation.offset_x
+    # if transformation.offset_x < 0:
+    #     dot_x -= transformation.offset_x
+    # else:
+    #     dot_x += transformation.offset_x
+
+    dot_x -= transformation.offset_x
+    dot_y += transformation.offset_y
     
-    if transformation.offset_y < 0:
-        dot_y += transformation.offset_y
-    else:
-        dot_y -= transformation.offset_y
+    # if transformation.offset_y < 0:
+    #     dot_y += transformation.offset_y
+    # else:
+    #     dot_y -= transformation.offset_y
 
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
@@ -301,21 +302,27 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     end_x = pos[0] + (end_point_in_base[0] * 10)
     end_y = pos[1] + (end_point_in_base[1] * 10)
 
+    start_x -= transformation.offset_x
+    end_x -= transformation.offset_x
+
+    start_y += transformation.offset_y
+    end_y += transformation.offset_y
+
     # Apply X offset
-    if transformation.offset_x < 0:
-        start_x -= transformation.offset_x
-        end_x -= transformation.offset_x
-    else:
-        start_x += transformation.offset_x
-        end_x += transformation.offset_x
+    # if transformation.offset_x < 0:
+    #     start_x -= transformation.offset_x
+    #     end_x -= transformation.offset_x
+    # else:
+    #     start_x += transformation.offset_x
+    #     end_x += transformation.offset_x
     
     # Apply Y offset
-    if transformation.offset_y < 0:
-        start_y += transformation.offset_y
-        end_y += transformation.offset_y
-    else:
-        start_y -= transformation.offset_y
-        end_y -= transformation.offset_y
+    # if transformation.offset_y < 0:
+    #     start_y += transformation.offset_y
+    #     end_y += transformation.offset_y
+    # else:
+    #     start_y -= transformation.offset_y
+    #     end_y -= transformation.offset_y
 
     
 
@@ -340,11 +347,12 @@ def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, m
         x = pos[0] + (in_base[0] * 10)
         y = pos[1] + (in_base[1] * 10)
 
-        if transformation.offset_x < 0:
-            x -= transformation.offset_x
-        else:
-            x += transformation.offset_x
+        # if transformation.offset_x < 0:
+        #     x -= transformation.offset_x
+        # else:
+        #     x += transformation.offset_x
         
+        x -= transformation.offset_x
         y += transformation.offset_y
 
         real_vertices.append((float(x.item()), float(y.item())))
