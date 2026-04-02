@@ -1893,15 +1893,10 @@ class ClickableImage(QLabel):
 
     # Only update shapes for Pre-run config page
     def setValsPage3(self, data):
-        if data.get("dot") is not None:
-            self.dot = data["dot"]
-
-        if data.get("rect") is not None:
-            self.rectangle = data["rect"]
-
-        if data.get("polygon") is not None:
-            self.polygon_points = list(data["polygon"])
-            self.polygon_active = bool(data["polygon"])
+        self.dot = data["dot"]
+        self.rectangle = data["rect"]
+        self.polygon_points = list(data["polygon"])
+        self.polygon_active = bool(data["polygon"])
 
         self.update()
 
@@ -1912,47 +1907,33 @@ class ClickableImage(QLabel):
         self.sample_overlay_x = None 
         self.sample_overlay_y = None
 
-        if data.get("dot") is not None:
-            self.dot = data["dot"]
+        self.dot = data["dot"]
+        self.rectangle = data["rect"]
 
-        if data.get("rect") is not None:
-            self.rectangle = data["rect"]
+        self.polygon_points = list(data["polygon"])
+        self.polygon_active = bool(data["polygon"])
+        self.probe_polygon = data["probe_polygon"]
+        self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
 
-        if data.get("polygon") is not None:
-            self.polygon_points = list(data["polygon"])
-            self.polygon_active = bool(data["polygon"])
-            self.probe_polygon = data["probe_polygon"]
-            self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
+        self.probe_rectangle = data["probe_rect"]
 
-        if data.get("probe_rect") is not None:
-            self.probe_rectangle = data["probe_rect"]
+        self.rowsOnly = data["rows"]
 
-        if data.get("rows") is not None:
-            self.rowsOnly = data["rows"]
-
-        # Don't update X vals if doing drag sampling
+        # Only update Y vals if doing drag sampling
         if self.rowsOnly:
-            if data.get("y_range") is not None:
-                self.y_range = data["y_range"]
+            self.x_range = None
+            self.sample_overlay_x = None
 
-            if data.get("y_count") is not None:
-                self.sample_overlay_y = data["y_count"]
+            self.y_range = data["y_range"]
+            self.sample_overlay_y = data["y_count"]
 
         # Update all
         else:
-            if data.get("x_range") is not None:
-                self.x_range = data["x_range"]
-
-            if data.get("y_range") is not None:
-                self.y_range = data["y_range"]
-
-            if data.get("x_count") is not None:
-                self.sample_overlay_x = data["x_count"]
-
-            if data.get("y_count") is not None:
-                self.sample_overlay_y = data["y_count"]
-
-        
+            self.x_range = data["x_range"]
+            self.y_range = data["y_range"]
+            
+            self.sample_overlay_x = data["x_count"]
+            self.sample_overlay_y = data["y_count"]
 
         self.update()
 

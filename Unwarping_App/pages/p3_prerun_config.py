@@ -356,7 +356,6 @@ class SamplingParameters(QWidget):
         label_transit = QLabel("Transit height (mm): ")
         self.input_transit = QLineEdit()
         self.input_transit.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_transit.setMaxLength(4)
 
         layout_row_4.addWidget(label_transit, alignment=Qt.AlignLeft)
         layout_row_4.addWidget(self.input_transit, alignment=Qt.AlignRight)
@@ -370,7 +369,6 @@ class SamplingParameters(QWidget):
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_sampleHeight = QLineEdit()
         self.input_sampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_sampleHeight.setMaxLength(4)
 
         layout_row_5.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_5.addWidget(self.input_sampleHeight, alignment=Qt.AlignRight)
@@ -730,7 +728,6 @@ class ReferenceParameters(QWidget):
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_refSampleHeight = QLineEdit()
         self.input_refSampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_refSampleHeight.setMaxLength(4)
 
         layout_row_3.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_3.addWidget(self.input_refSampleHeight, alignment=Qt.AlignRight)
