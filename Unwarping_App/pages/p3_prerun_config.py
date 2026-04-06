@@ -536,27 +536,30 @@ class SamplingParameters(QWidget):
 
     # Function to set the sampling variables
     def setVars(self, sampling, val, type):
-        i = float(val)
+        try:
+            i = float(val)
 
-        # Time
-        if type == "dwell_time":
-            sampling.dwellTime = i
+            # Time
+            if type == "dwell_time":
+                sampling.dwellTime = i
 
-        elif type == "sample_time":
-            sampling.sampleTime = i
+            elif type == "sample_time":
+                sampling.sampleTime = i
 
-        # Height
-        elif type == "transit_height":
-            sampling.transitHeight = i
+            # Height
+            elif type == "transit_height":
+                sampling.transitHeight = i
 
-        elif type == "sample_height":
-            sampling.sampleHeight = i
+            elif type == "sample_height":
+                sampling.sampleHeight = i
 
-        # Step size:
-        elif type == "Zstep_size":
-            sampling.stepSize = i
-    
-        else:
+            # Step size:
+            elif type == "Zstep_size":
+                sampling.stepSize = i
+        
+            else:
+                pass
+        except:
             pass
 
 
@@ -651,17 +654,20 @@ class SamplingSpeeds(QWidget):
 
     # Function to set the speed of the printer 
     def setSpeed(self, sampling, val, type):
-        # Speed changes
-        if type == "XY":
-            sampling.xy_speed = float(val)
+        try:
+            # Speed changes
+            if type == "XY":
+                sampling.xy_speed = float(val)
 
-        elif type == "ZUp":
-            sampling.z_up_speed = float(val)
+            elif type == "ZUp":
+                sampling.z_up_speed = float(val)
 
-        elif type == "ZDown":
-            sampling.z_down_speed = float(val)
-    
-        else:
+            elif type == "ZDown":
+                sampling.z_down_speed = float(val)
+        
+            else:
+                pass
+        except:
             pass
 
     # Function to limit the input speed 
@@ -786,23 +792,26 @@ class ReferenceParameters(QWidget):
 
     # Function to set the sampling variables (reference)
     def setVars(self, sampling, val, type):
-        i = float(val)
-        
-        # Dwell time
-        if type == "dwell_time":
-            sampling.ref_dwellTime = i
+        try:
+            i = float(val)
+            
+            # Dwell time
+            if type == "dwell_time":
+                sampling.ref_dwellTime = i
 
-        # Sample time
-        elif type == "sample_time":
-            sampling.ref_sampleTime = i
+            # Sample time
+            elif type == "sample_time":
+                sampling.ref_sampleTime = i
 
-        # Sample height
-        elif type == "sample_height":
-            sampling.ref_sampleHeight = i
+            # Sample height
+            elif type == "sample_height":
+                sampling.ref_sampleHeight = i
 
-        # Step size
-        elif type == "step_size":
-            sampling.ref_stepSize = i
+            # Step size
+            elif type == "step_size":
+                sampling.ref_stepSize = i
 
-        else:
+            else:
+                pass
+        except:
             pass

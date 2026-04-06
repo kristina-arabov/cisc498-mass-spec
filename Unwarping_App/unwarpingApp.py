@@ -165,7 +165,10 @@ class Main(QWidget):
         # Only hide/show step numbers
         if index in [4, 5]:
             self.nav.steps.hide()
+            if index == 4:
+                self.nav.exit_button.hide()
         else:
+            self.nav.exit_button.show()
             self.nav.steps.show()
 
 
