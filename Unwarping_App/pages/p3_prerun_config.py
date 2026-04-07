@@ -58,8 +58,8 @@ class PrerunConfig(QWidget):
         # SPEED INPUTS ----------------------------------------
         self.component_speed = SamplingSpeeds(self.sampling)
 
-        button_startRun = QPushButton("Start sampling run", objectName="blue")
-        
+        self.button_startRun = QPushButton("Start sampling run", objectName="blue")
+
 
         # RIGHT COLUMN ----------------------------------------
         layout_right.addStretch()
@@ -75,7 +75,7 @@ class PrerunConfig(QWidget):
 
         layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
-        layout_right.addWidget(button_startRun)
+        layout_right.addWidget(self.button_startRun)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
@@ -93,9 +93,9 @@ class PrerunConfig(QWidget):
 
         # FUNCTIONS ----------------------------------------
         # Start sampling run
-        button_startRun.clicked.connect(self.next.emit)
-        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
-        button_startRun.clicked.connect(lambda: sampling_service.createCSV())
+        self.button_startRun.clicked.connect(self.next.emit)
+        self.button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
+        self.button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         # ROI sampling mode
         self.component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
@@ -110,7 +110,121 @@ class PrerunConfig(QWidget):
         self.button_ROI.clicked.connect(lambda: self.handleShowRefParams("roi"))
         self.button_ref.clicked.connect(lambda: self.handleShowRefParams("ref"))
 
+        # Validation wiring
+        self._wire_sampling_validation()
+        self.photo.roiSignal.connect(lambda *args: self._refresh_start_button())
+        self._refresh_start_button()
+
     
+    def _nonempty_float(self, text):
+        t = (text or "").strip()
+        if not t:
+            return False
+        try:
+            float(t)
+            return True
+        except ValueError:
+            return False
+
+    def _speeds_valid(self):
+        s = self.component_speed
+        return (
+            self._nonempty_float(s.input_XYSpeed.text())
+            and self._nonempty_float(s.input_ZUpSpeed.text())
+            and self._nonempty_float(s.input_ZDownSpeed.text())
+        )
+
+    def _sampling_inputs_valid(self):
+        if not self._speeds_valid():
+            return False
+
+        p = self.component_samplingParams
+        mode = self.sampling.mode
+        has_roi = self.photo.dot is not None
+
+        if mode == "constant":
+            if has_roi:
+                return (
+                    self._nonempty_float(p.input_X.text())
+                    and self._nonempty_float(p.input_Y.text())
+                    and self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_transit.text())
+                    and self._nonempty_float(p.input_sampleHeight.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        if mode == "conductive":
+            if has_roi:
+                return (
+                    self._nonempty_float(p.input_X.text())
+                    and self._nonempty_float(p.input_Y.text())
+                    and self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_transit.text())
+                    and self._nonempty_float(p.input_ZstepSize.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_ZstepSize.text())
+            )
+        if mode == "drag":
+            return (
+                self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        return False
+
+    def _ref_inputs_valid(self):
+        r = self.component_refParams
+        ref_mode = getattr(self.sampling, 'ref_mode', 'constant')
+        base = (
+            self._nonempty_float(r.input_refDwell.text())
+            and self._nonempty_float(r.input_refSampleTime.text())
+        )
+        if ref_mode == "constant":
+            return base and self._nonempty_float(r.input_refSampleHeight.text())
+        if ref_mode == "conductive":
+            return base and self._nonempty_float(r.input_refZstepSize.text())
+        return base
+
+    def _refresh_start_button(self):
+        self.button_startRun.setEnabled(
+            self._sampling_inputs_valid() and self._ref_inputs_valid()
+        )
+
+    def _wire_sampling_validation(self):
+        p = self.component_samplingParams
+        for w in (
+            p.input_X, p.input_Y, p.input_dwell, p.input_sampleTime,
+            p.input_transit, p.input_sampleHeight, p.input_ZstepSize,
+        ):
+            w.textChanged.connect(self._refresh_start_button)
+
+        s = self.component_speed
+        for w in (s.input_XYSpeed, s.input_ZUpSpeed, s.input_ZDownSpeed):
+            w.textChanged.connect(self._refresh_start_button)
+
+        r = self.component_refParams
+        for w in (
+            r.input_refDwell, r.input_refSampleTime,
+            r.input_refSampleHeight, r.input_refZstepSize,
+        ):
+            w.textChanged.connect(self._refresh_start_button)
+
     # Function to show the parameters for the ROI and reference sections
     def handleShowRefParams(self, type):
         # Hide all components initially
@@ -195,6 +309,7 @@ class PrerunConfig(QWidget):
         self.sampling.mode = type
         self.photo.update()
         self.clearInputs()
+        self._refresh_start_button()
 
 
     # Function to handle the reference sampling type
@@ -216,8 +331,8 @@ class PrerunConfig(QWidget):
             params.input_refSampleHeight.clear()
 
         self.sampling.ref_mode = type
+        self._refresh_start_button()
 
-        
     # Function to clear all sampling parameter inputs
     def clearInputs(self):
         params = self.component_samplingParams
@@ -236,6 +351,7 @@ class PrerunConfig(QWidget):
 
         # Step size inputs
         params.input_ZstepSize.clear()
+        self._refresh_start_button()
 
 
 class ModeSelection(QWidget):
