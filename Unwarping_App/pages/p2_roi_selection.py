@@ -256,6 +256,7 @@ class ROISelection(QWidget):
         self.ROI.row_5.hide()
 
         self.checkAllowNext()
+        self.clearSignal.emit()
 
         self.button_next.setEnabled(False)
 
