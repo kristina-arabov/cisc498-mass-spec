@@ -235,10 +235,12 @@ def findLocations(transformation, sampling, img):
     # PROCESS RECTANGLE --------------------------------------
     if rectangle:
         sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.drawn = None
 
     # PROCESS POLYGON --------------------------------------
-    if polygon_active and polygon_points:
+    elif polygon_active and polygon_points:
         sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.rectangle = None
         
 
     # Output to terminal for user to verify
