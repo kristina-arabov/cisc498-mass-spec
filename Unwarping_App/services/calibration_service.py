@@ -534,7 +534,7 @@ def calculateOffset(transformation):
     # Save output
     output = probe_locations_to_cam_mean.reshape(1, -1)[0]
 
-    print(f"Probe-to-camera offset: {output}")
+    print(f"Probe-to-camera offset: X={round(output[0], 2)} mm, Y={round(output[1], 2)} mm")
 
 
     # Update transformation object
