@@ -1978,8 +1978,8 @@ class ClickableImage(QLabel):
                     self.x_range = np.append(self.x_range, x1)
                     self.y_range = np.append(self.y_range, y1)
 
-                    self.sample_overlay_x = len(self.x_range) - 1
-                    self.sample_overlay_y = len(self.y_range) - 1
+                    self.sample_overlay_x = len(self.x_range)
+                    self.sample_overlay_y = len(self.y_range)
 
 
                 self.update()
@@ -2021,7 +2021,7 @@ class ClickableImage(QLabel):
                     self.y_range = np.append(self.y_range, y1)
 
                     self.sample_overlay_x = None
-                    self.sample_overlay_y = len(self.y_range) - 1
+                    self.sample_overlay_y = len(self.y_range)
 
                 self.update()
 

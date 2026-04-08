@@ -78,7 +78,8 @@ class ROISelection(QWidget):
         self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
         self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
 
-        button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
+        # button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
+        button_clear.clicked.connect(lambda: self.resetAll())
 
         self.button_next.clicked.connect(self.next.emit)
         self.button_next.clicked.connect(lambda: sampling_service.findLocations(self.transformation, self.sampling, self.photo))
