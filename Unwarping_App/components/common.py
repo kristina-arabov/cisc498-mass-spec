@@ -1979,6 +1979,11 @@ class ClickableImage(QLabel):
                     self.x_range = np.append(self.x_range, x1)
                     self.y_range = np.append(self.y_range, y1)
 
+                    if len(self.x_range) >= 3 and (self.x_range[-1] - self.x_range[-2]) < float(x) / 2:
+                        self.x_range = np.delete(self.x_range, -2)
+                    if len(self.y_range) >= 3 and (self.y_range[-1] - self.y_range[-2]) < float(y) / 2:
+                        self.y_range = np.delete(self.y_range, -2)
+
                     self.sample_overlay_x = len(self.x_range)
                     self.sample_overlay_y = len(self.y_range)
 
@@ -1987,12 +1992,12 @@ class ClickableImage(QLabel):
 
                 # Transfer all sampling points to sampling item
                 sampling.real_points_list = self.real_points
-        
+
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None
 
-    
+
     # Function to update the overlay to show rows (Drag sampling)
     # Shows the serpentine sampling path
     def updateOverlayRows(self, y, type, sampling):
@@ -2020,6 +2025,9 @@ class ClickableImage(QLabel):
                 elif type == 1:
                     self.y_range = np.arange(y0, y1, float(y))
                     self.y_range = np.append(self.y_range, y1)
+
+                    if len(self.y_range) >= 3 and (self.y_range[-1] - self.y_range[-2]) < float(y) / 2:
+                        self.y_range = np.delete(self.y_range, -2)
 
                     self.sample_overlay_x = None
                     self.sample_overlay_y = len(self.y_range)
@@ -2075,6 +2083,15 @@ class ClickableImage(QLabel):
 
             x_range = np.append(x_range, bx1)
             y_range = np.append(y_range, by1)
+
+            # For resolution mode: if the last cell is smaller than half the
+            # resolution, merge it into the previous cell by dropping the
+            # second-to-last boundary (e.g. [0,3,6,9,10] → [0,3,6,10]).
+            if type == 1:
+                if len(x_range) >= 3 and (x_range[-1] - x_range[-2]) < float(x) / 2:
+                    x_range = np.delete(x_range, -2)
+                if len(y_range) >= 3 and (y_range[-1] - y_range[-2]) < float(y) / 2:
+                    y_range = np.delete(y_range, -2)
 
             self.x_range = x_range
             self.y_range = y_range
