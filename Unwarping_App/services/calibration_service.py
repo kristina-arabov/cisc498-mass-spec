@@ -448,11 +448,11 @@ def calculateOffset(transformation):
         return msg
    
     object_points = np.array([
-        [tag_size, 0, 0], 
-        [0, 0, 0],
-        [0, tag_size, 0],
-        [tag_size, tag_size, 0],
-        [tag_size/2, tag_size/2, 0]], dtype=np.float32)
+        [tag_size, 0, 0],           # corners[0]: bottom-right in image
+        [0, 0, 0],                  # corners[1]: bottom-left in image ← origin
+        [0, tag_size, 0],           # corners[2]: top-left in image
+        [tag_size, tag_size, 0],    # corners[3]: top-right in image
+        [tag_size/2, tag_size/2, 0]], dtype=np.float32)  # centre
 
     corner_x = transformation.tag_bottom_left[0]
     corner_y = transformation.tag_bottom_left[1]
@@ -522,8 +522,10 @@ def calculateOffset(transformation):
             t_probe2cam = R_base2cam @ t_probe2base + t_base2cam
 
 
-            # Append calculated offset
-            probe_offset.append(t_probe2cam)
+            # Rotate offset from camera frame into base/printer frame so it can
+            # be applied directly to printer-frame coordinates in processDot.
+            offset_in_base = R_cam2base @ t_probe2cam
+            probe_offset.append(offset_in_base)
 
 
     probe_locations_to_cam = np.array(probe_offset)
@@ -531,7 +533,8 @@ def calculateOffset(transformation):
 
     # Save output
     output = probe_locations_to_cam_mean.reshape(1, -1)[0]
-    print(output)
+
+    print(f"Probe-to-camera offset: X={round(output[0], 2)} mm, Y={round(output[1], 2)} mm")
 
 
     # Update transformation object

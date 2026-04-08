@@ -58,8 +58,8 @@ class PrerunConfig(QWidget):
         # SPEED INPUTS ----------------------------------------
         self.component_speed = SamplingSpeeds(self.sampling)
 
-        button_startRun = QPushButton("Start sampling run", objectName="blue")
-        
+        self.button_startRun = QPushButton("Start sampling run", objectName="blue")
+
 
         # RIGHT COLUMN ----------------------------------------
         layout_right.addStretch()
@@ -75,7 +75,7 @@ class PrerunConfig(QWidget):
 
         layout_right.addWidget(self.component_speed)
         layout_right.addStretch()
-        layout_right.addWidget(button_startRun)
+        layout_right.addWidget(self.button_startRun)
         layout_right.addStretch()
 
         layout_right.setContentsMargins(0,0,0,0)
@@ -93,9 +93,9 @@ class PrerunConfig(QWidget):
 
         # FUNCTIONS ----------------------------------------
         # Start sampling run
-        button_startRun.clicked.connect(self.next.emit)
-        button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
-        button_startRun.clicked.connect(lambda: sampling_service.createCSV())
+        self.button_startRun.clicked.connect(self.next.emit)
+        self.button_startRun.clicked.connect(lambda: sampling_service.getSampling(self.sampling, self.photo.polygon_active))
+        self.button_startRun.clicked.connect(lambda: sampling_service.createCSV())
 
         # ROI sampling mode
         self.component_samplingMode.button_constantZ.clicked.connect(lambda: self.handleSamplingType("constant"))
@@ -110,7 +110,121 @@ class PrerunConfig(QWidget):
         self.button_ROI.clicked.connect(lambda: self.handleShowRefParams("roi"))
         self.button_ref.clicked.connect(lambda: self.handleShowRefParams("ref"))
 
+        # Validation wiring
+        self._wire_sampling_validation()
+        self.photo.roiSignal.connect(lambda *args: self._refresh_start_button())
+        self._refresh_start_button()
+
     
+    def _nonempty_float(self, text):
+        t = (text or "").strip()
+        if not t:
+            return False
+        try:
+            float(t)
+            return True
+        except ValueError:
+            return False
+
+    def _speeds_valid(self):
+        s = self.component_speed
+        return (
+            self._nonempty_float(s.input_XYSpeed.text())
+            and self._nonempty_float(s.input_ZUpSpeed.text())
+            and self._nonempty_float(s.input_ZDownSpeed.text())
+        )
+
+    def _sampling_inputs_valid(self):
+        if not self._speeds_valid():
+            return False
+
+        p = self.component_samplingParams
+        mode = self.sampling.mode
+        has_roi = self.photo.dot is not None
+
+        if mode == "constant":
+            if has_roi:
+                return (
+                    self._nonempty_float(p.input_X.text())
+                    and self._nonempty_float(p.input_Y.text())
+                    and self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_transit.text())
+                    and self._nonempty_float(p.input_sampleHeight.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        if mode == "conductive":
+            if has_roi:
+                return (
+                    self._nonempty_float(p.input_X.text())
+                    and self._nonempty_float(p.input_Y.text())
+                    and self._nonempty_float(p.input_dwell.text())
+                    and self._nonempty_float(p.input_sampleTime.text())
+                    and self._nonempty_float(p.input_transit.text())
+                    and self._nonempty_float(p.input_ZstepSize.text())
+                )
+            return (
+                self._nonempty_float(p.input_X.text())
+                and self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_ZstepSize.text())
+            )
+        if mode == "drag":
+            return (
+                self._nonempty_float(p.input_Y.text())
+                and self._nonempty_float(p.input_dwell.text())
+                and self._nonempty_float(p.input_sampleTime.text())
+                and self._nonempty_float(p.input_transit.text())
+                and self._nonempty_float(p.input_sampleHeight.text())
+            )
+        return False
+
+    def _ref_inputs_valid(self):
+        r = self.component_refParams
+        ref_mode = getattr(self.sampling, 'ref_mode', 'constant')
+        base = (
+            self._nonempty_float(r.input_refDwell.text())
+            and self._nonempty_float(r.input_refSampleTime.text())
+        )
+        if ref_mode == "constant":
+            return base and self._nonempty_float(r.input_refSampleHeight.text())
+        if ref_mode == "conductive":
+            return base and self._nonempty_float(r.input_refZstepSize.text())
+        return base
+
+    def _refresh_start_button(self):
+        self.button_startRun.setEnabled(
+            self._sampling_inputs_valid() and self._ref_inputs_valid()
+        )
+
+    def _wire_sampling_validation(self):
+        p = self.component_samplingParams
+        for w in (
+            p.input_X, p.input_Y, p.input_dwell, p.input_sampleTime,
+            p.input_transit, p.input_sampleHeight, p.input_ZstepSize,
+        ):
+            w.textChanged.connect(self._refresh_start_button)
+
+        s = self.component_speed
+        for w in (s.input_XYSpeed, s.input_ZUpSpeed, s.input_ZDownSpeed):
+            w.textChanged.connect(self._refresh_start_button)
+
+        r = self.component_refParams
+        for w in (
+            r.input_refDwell, r.input_refSampleTime,
+            r.input_refSampleHeight, r.input_refZstepSize,
+        ):
+            w.textChanged.connect(self._refresh_start_button)
+
     # Function to show the parameters for the ROI and reference sections
     def handleShowRefParams(self, type):
         # Hide all components initially
@@ -195,6 +309,7 @@ class PrerunConfig(QWidget):
         self.sampling.mode = type
         self.photo.update()
         self.clearInputs()
+        self._refresh_start_button()
 
 
     # Function to handle the reference sampling type
@@ -216,8 +331,8 @@ class PrerunConfig(QWidget):
             params.input_refSampleHeight.clear()
 
         self.sampling.ref_mode = type
+        self._refresh_start_button()
 
-        
     # Function to clear all sampling parameter inputs
     def clearInputs(self):
         params = self.component_samplingParams
@@ -236,6 +351,7 @@ class PrerunConfig(QWidget):
 
         # Step size inputs
         params.input_ZstepSize.clear()
+        self._refresh_start_button()
 
 
 class ModeSelection(QWidget):
@@ -303,13 +419,11 @@ class SamplingParameters(QWidget):
 
         self.input_X = QLineEdit()
         self.input_X.setValidator(QDoubleValidator(0, 150, 2)) # Set limit 
-        self.input_X.setMaxLength(3)
 
         self.label_Y = QLabel("Y: ")
 
         self.input_Y = QLineEdit()
         self.input_Y.setValidator(QDoubleValidator(0, 150, 2)) # Set limit
-        self.input_Y.setMaxLength(3)
 
         layout_row_1.addWidget(selections, alignment=Qt.AlignLeft)
 
@@ -328,7 +442,6 @@ class SamplingParameters(QWidget):
         label_dwell = QLabel("Dwell time (s): ")
         self.input_dwell = QLineEdit()
         self.input_dwell.setValidator(QDoubleValidator(0, 250, 2))
-        self.input_dwell.setMaxLength(3)
 
         layout_row_2.addWidget(label_dwell, alignment=Qt.AlignLeft)
         layout_row_2.addWidget(self.input_dwell, alignment=Qt.AlignRight)
@@ -342,7 +455,6 @@ class SamplingParameters(QWidget):
         label_sampleTime = QLabel("Sample time (s): ")
         self.input_sampleTime = QLineEdit()
         self.input_sampleTime.setValidator(QDoubleValidator(0, 250, 2))
-        self.input_sampleTime.setMaxLength(3)
 
         layout_row_3.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
         layout_row_3.addWidget(self.input_sampleTime, alignment=Qt.AlignRight)
@@ -356,7 +468,6 @@ class SamplingParameters(QWidget):
         label_transit = QLabel("Transit height (mm): ")
         self.input_transit = QLineEdit()
         self.input_transit.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_transit.setMaxLength(4)
 
         layout_row_4.addWidget(label_transit, alignment=Qt.AlignLeft)
         layout_row_4.addWidget(self.input_transit, alignment=Qt.AlignRight)
@@ -370,7 +481,6 @@ class SamplingParameters(QWidget):
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_sampleHeight = QLineEdit()
         self.input_sampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_sampleHeight.setMaxLength(4)
 
         layout_row_5.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_5.addWidget(self.input_sampleHeight, alignment=Qt.AlignRight)
@@ -538,27 +648,30 @@ class SamplingParameters(QWidget):
 
     # Function to set the sampling variables
     def setVars(self, sampling, val, type):
-        i = float(val)
+        try:
+            i = float(val)
 
-        # Time
-        if type == "dwell_time":
-            sampling.dwellTime = i
+            # Time
+            if type == "dwell_time":
+                sampling.dwellTime = i
 
-        elif type == "sample_time":
-            sampling.sampleTime = i
+            elif type == "sample_time":
+                sampling.sampleTime = i
 
-        # Height
-        elif type == "transit_height":
-            sampling.transitHeight = i
+            # Height
+            elif type == "transit_height":
+                sampling.transitHeight = i
 
-        elif type == "sample_height":
-            sampling.sampleHeight = i
+            elif type == "sample_height":
+                sampling.sampleHeight = i
 
-        # Step size:
-        elif type == "Zstep_size":
-            sampling.stepSize = i
-    
-        else:
+            # Step size:
+            elif type == "Zstep_size":
+                sampling.stepSize = i
+        
+            else:
+                pass
+        except:
             pass
 
 
@@ -581,8 +694,8 @@ class SamplingSpeeds(QWidget):
 
         label_XYSpeed = QLabel("XY Speed: ")
         self.input_XYSpeed = QLineEdit()
-        self.input_XYSpeed.setValidator(QIntValidator(0, 1000))
-        self.input_XYSpeed.setMaxLength(4)
+        self.input_XYSpeed.setValidator(QIntValidator(0, 10000))
+        self.input_XYSpeed.setMaxLength(5)
         self.input_XYSpeed.setText("500")
 
         layout_row_1.addWidget(label_XYSpeed, alignment=Qt.AlignLeft)
@@ -596,8 +709,8 @@ class SamplingSpeeds(QWidget):
 
         label_ZUpSpeed = QLabel("Z Up Speed: ")
         self.input_ZUpSpeed = QLineEdit()
-        self.input_ZUpSpeed.setValidator(QIntValidator(0, 1000))
-        self.input_ZUpSpeed.setMaxLength(4)
+        self.input_ZUpSpeed.setValidator(QIntValidator(0, 10000))
+        self.input_ZUpSpeed.setMaxLength(5)
         self.input_ZUpSpeed.setText("500")
 
         layout_row_2.addWidget(label_ZUpSpeed, alignment=Qt.AlignLeft)
@@ -610,8 +723,8 @@ class SamplingSpeeds(QWidget):
 
         label_ZDownSpeed = QLabel("Z Down Speed: ")
         self.input_ZDownSpeed = QLineEdit()
-        self.input_ZDownSpeed.setValidator(QIntValidator(0, 1000))
-        self.input_ZDownSpeed.setMaxLength(4)
+        self.input_ZDownSpeed.setValidator(QIntValidator(0, 10000))
+        self.input_ZDownSpeed.setMaxLength(5)
         self.input_ZDownSpeed.setText("100")
 
         layout_row_3.addWidget(label_ZDownSpeed, alignment=Qt.AlignLeft)
@@ -653,17 +766,20 @@ class SamplingSpeeds(QWidget):
 
     # Function to set the speed of the printer 
     def setSpeed(self, sampling, val, type):
-        # Speed changes
-        if type == "XY":
-            sampling.xy_speed = float(val)
+        try:
+            # Speed changes
+            if type == "XY":
+                sampling.xy_speed = float(val)
 
-        elif type == "ZUp":
-            sampling.z_up_speed = float(val)
+            elif type == "ZUp":
+                sampling.z_up_speed = float(val)
 
-        elif type == "ZDown":
-            sampling.z_down_speed = float(val)
-    
-        else:
+            elif type == "ZDown":
+                sampling.z_down_speed = float(val)
+        
+            else:
+                pass
+        except:
             pass
 
     # Function to limit the input speed 
@@ -673,8 +789,8 @@ class SamplingSpeeds(QWidget):
     
         try:
             value = float(input.text())
-            if value > 1000:
-                input.setText("1000")
+            if value > 10000:
+                input.setText("10000")
 
             elif value < 0:
                 input.setText("0")
@@ -702,7 +818,6 @@ class ReferenceParameters(QWidget):
         label_dwell = QLabel("Dwell time (s): ")
         self.input_refDwell = QLineEdit()
         self.input_refDwell.setValidator(QDoubleValidator(0, 250, 2))
-        self.input_refDwell.setMaxLength(3)
 
         layout_row_1.addWidget(label_dwell, alignment=Qt.AlignLeft)
         layout_row_1.addWidget(self.input_refDwell, alignment=Qt.AlignRight)
@@ -716,7 +831,6 @@ class ReferenceParameters(QWidget):
         label_sampleTime = QLabel("Sample time (s): ")
         self.input_refSampleTime = QLineEdit()
         self.input_refSampleTime.setValidator(QDoubleValidator(0, 250, 2))
-        self.input_refSampleTime.setMaxLength(3)
 
         layout_row_2.addWidget(label_sampleTime, alignment=Qt.AlignLeft)
         layout_row_2.addWidget(self.input_refSampleTime, alignment=Qt.AlignRight)
@@ -730,7 +844,6 @@ class ReferenceParameters(QWidget):
         label_sampleHeight = QLabel("Sample height (mm): ")
         self.input_refSampleHeight = QLineEdit()
         self.input_refSampleHeight.setValidator(QDoubleValidator(-180, 180, 2))
-        self.input_refSampleHeight.setMaxLength(4)
 
         layout_row_3.addWidget(label_sampleHeight, alignment=Qt.AlignLeft)
         layout_row_3.addWidget(self.input_refSampleHeight, alignment=Qt.AlignRight)
@@ -776,36 +889,70 @@ class ReferenceParameters(QWidget):
         # FUNCTIONS ------------------------------
         # Dwell time
         self.input_refDwell.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refDwell.text(), "dwell_time"))
+        self.input_refDwell.textChanged.connect(lambda: self.limitValue(self.input_refDwell, "time"))
 
         # Sample time
         self.input_refSampleTime.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refSampleTime.text(), "sample_time"))
+        self.input_refSampleTime.textChanged.connect(lambda: self.limitValue(self.input_refSampleTime, "time"))
 
         # Sample height
         self.input_refSampleHeight.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refSampleHeight.text(), "sample_height"))
+        self.input_refSampleHeight.textChanged.connect(lambda: self.limitValue(self.input_refSampleHeight, "height"))
 
         # Step size
         self.input_refZstepSize.textChanged.connect(lambda: self.setVars(sampling_item, self.input_refZstepSize.text(), "step_size"))
+        self.input_refZstepSize.textChanged.connect(lambda: self.limitValue(self.input_refZstepSize, "ZStep"))
 
 
     # Function to set the sampling variables (reference)
     def setVars(self, sampling, val, type):
-        i = float(val)
-        
-        # Dwell time
-        if type == "dwell_time":
-            sampling.ref_dwellTime = i
+        try:
+            i = float(val)
+            
+            # Dwell time
+            if type == "dwell_time":
+                sampling.ref_dwellTime = i
 
-        # Sample time
-        elif type == "sample_time":
-            sampling.ref_sampleTime = i
+            # Sample time
+            elif type == "sample_time":
+                sampling.ref_sampleTime = i
 
-        # Sample height
-        elif type == "sample_height":
-            sampling.ref_sampleHeight = i
+            # Sample height
+            elif type == "sample_height":
+                sampling.ref_sampleHeight = i
 
-        # Step size
-        elif type == "step_size":
-            sampling.ref_stepSize = i
+            # Step size
+            elif type == "step_size":
+                sampling.ref_stepSize = i
 
-        else:
+            else:
+                pass
+        except:
+            pass
+
+
+    def limitValue(self, input, type):
+        if not input.text():
+            return
+    
+        try:
+            value = float(input.text())
+
+            # Enfore time limit
+            if type == "time" and value > 250:
+                input.setText("250")
+
+            # Enforce height limit
+            elif type == "height":
+                if value < -180:
+                    input.setText("-180")
+                elif value > 180:
+                    input.setText("180")
+
+            # Enforce Z step limit
+            elif type == "ZStep" and value > 5:
+                input.setText("5")
+                
+
+        except ValueError:
             pass
