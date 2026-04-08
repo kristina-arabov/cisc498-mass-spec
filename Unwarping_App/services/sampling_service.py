@@ -235,24 +235,26 @@ def findLocations(transformation, sampling, img):
     # PROCESS RECTANGLE --------------------------------------
     if rectangle:
         sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.drawn = None
 
     # PROCESS POLYGON --------------------------------------
-    if polygon_active and polygon_points:
+    elif polygon_active and polygon_points:
         sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.rectangle = None
         
 
     # Output to terminal for user to verify
     if sampling.dot:
-        print(f"Reference Point: {sampling.dot}")
+        print(f"Reference Point: ({round(sampling.dot[0], 2)}, {round(sampling.dot[1], 2)})")
 
     if sampling.rectangle:
         r = sampling.rectangle
-        print(f"Rectangle ROI: bottom-left=({r[2]}, {r[3]}), top-right=({r[0]}, {r[1]})")
+        print(f"Rectangle ROI: bottom-left=({round(r[0], 2)}, {round(r[1], 2)}), top-right=({round(r[2], 2)}, {round(r[3], 2)})")
 
     if sampling.drawn:
             bl = (min(p[0] for p in sampling.drawn), min(p[1] for p in sampling.drawn))
             tr = (max(p[0] for p in sampling.drawn), max(p[1] for p in sampling.drawn))
-            print(f"Polygon ROI: bottom-left={bl}, top-right={tr}")
+            print(f"Polygon ROI: bottom-left=({round(bl[0], 2)}, {round(bl[1], 2)}), top-right=({round(tr[0], 2)}, {round(tr[1], 2)})")
 
 
 # Function to get the 3D location of the reference point from a 2D location
@@ -370,9 +372,6 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling, polygon_active=False):
-
-    print(sampling.real_points_list)
-
     locations = sampling.real_points_list
 
     # If using drag mode, locations will need to follow a serpentine pattern, but 
@@ -399,8 +398,6 @@ def getSampling(sampling, polygon_active=False):
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
-
-    print(f"path: {locations}")
 
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
@@ -458,8 +455,8 @@ def getSampling(sampling, polygon_active=False):
     sampling.timestamps.append(time.time())
     sampling.readable_timestamps.append(0)
 
-    for row in sampling.gcodes:
-        print(row)
+    # for row in sampling.gcodes:
+    #     print(row)
 
 
 # Commands to move to the reference point
@@ -810,7 +807,7 @@ def resume(printer):
     samplingItem.paused = False
     samplingItem.moving = False
 
-    print(samplingItem.gcodes)
+    # print(samplingItem.gcodes)
 
     printer.cmd("G90")
     printer.cmd(f"G0 X{str(round(printer.last_pos[0], 2))} Y{str(round(printer.last_pos[1], 2))} Z{str(round(printer.last_pos[2], 2))} F1000")
