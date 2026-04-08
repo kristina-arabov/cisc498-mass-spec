@@ -1521,11 +1521,14 @@ class ClickableImage(QLabel):
 
                     for val in self.y_range:
                         t = (val - by0) / real_h
-                        py = int(py_min + t * py_span)
+                        py = int(py_min + (1 - t) * py_span)
                         painter.drawLine(px_min, py, px_max, py)
 
                     painter.setPen(QPen(QColor("#EAFFC2"), 3))
                     painter.setOpacity(1.0)
+
+                    # Build cell-index lookup: (i, j) -> (px, py)
+                    valid_cell_pixels = {(entry[2], entry[3]): (entry[0], entry[1]) for entry in self._polygon_valid_pixels}
 
                     # Grids
                     rows = list(range(len(self.y_range) - 1))
@@ -1540,6 +1543,9 @@ class ClickableImage(QLabel):
 
                         for i in x_indices:
 
+                            if (i, j) not in valid_cell_pixels:
+                                continue
+
                             left  = self.x_range[i]
                             right = self.x_range[i + 1]
 
@@ -1550,19 +1556,14 @@ class ClickableImage(QLabel):
                             mid_x_real = (left + right) / 2
                             mid_y_real = (top + bottom) / 2
 
-                            # Normalized
-                            tx = (mid_x_real - bx0) / real_w
-                            ty = (mid_y_real - by0) / real_h
-
-                            # Midpoint as a pixel
-                            mid_x = px_min + tx * px_span
-                            mid_y = py_min + (1 - ty) * py_span
-
                             location = (round(mid_x_real, 2), round(mid_y_real, 2))
 
-                            if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            # Stored pixel midpoint (avoids float rounding mismatch)
+                            mid_px, mid_py = valid_cell_pixels[(i, j)]
 
-                                # Corners (FIXED)
+                            if location in self.visited_points:
+
+                                # Corners
                                 tx_left   = (left - bx0) / real_w
                                 tx_right  = (right - bx0) / real_w
                                 ty_top    = (top - by0) / real_h
@@ -1571,7 +1572,7 @@ class ClickableImage(QLabel):
                                 px_left   = px_min + tx_left * px_span
                                 px_right  = px_min + tx_right * px_span
 
-                                py_top = py_min + (1 - ty_top) * py_span
+                                py_top    = py_min + (1 - ty_top) * py_span
                                 py_bottom = py_min + (1 - ty_bottom) * py_span
 
                                 rect_x = int(px_left)
@@ -1583,10 +1584,10 @@ class ClickableImage(QLabel):
                                 painter.setOpacity(0.6)
                                 painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
 
-                            # Draw sampling location (midpoint of grid)
-                            elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            else:
+                                # Draw sampling location (midpoint of grid cell)
                                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                                painter.drawPoint(int(mid_x), int(mid_y))
+                                painter.drawPoint(mid_px, mid_py)
 
                                 # Add midpoint to real locations
                                 if location not in self.real_points:
@@ -2101,11 +2102,11 @@ class ClickableImage(QLabel):
                     tx = (mid_x_real - bx0) / real_w
                     ty = (mid_y_real - by0) / real_h
                     px = int(px_min + tx * px_span)
-                    py = int(py_min + ty * py_span)
+                    py = int(py_min + (1 - ty) * py_span)
 
                     if cv2.pointPolygonTest(poly_pts_np, (float(px), float(py)), False) >= 0:
                         # self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
-                        valid_pixels.append((px, py))
+                        valid_pixels.append((px, py, i, j))
 
             self._polygon_valid_pixels = valid_pixels
             self.sample_overlay_x = len(x_range)
