@@ -162,7 +162,6 @@ def findLocations(transformation, sampling, img):
     # Get printer position from photo
     pos = transformation.photo_loc
 
-    # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
 
     # mtx1[0][0] = mtx1[0][0]
@@ -240,7 +239,20 @@ def findLocations(transformation, sampling, img):
     # PROCESS POLYGON --------------------------------------
     if polygon_active and polygon_points:
         sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        
 
+    # Output to terminal for user to verify
+    if sampling.dot:
+        print(f"Reference Point: {sampling.dot}")
+
+    if sampling.rectangle:
+        r = sampling.rectangle
+        print(f"Rectangle ROI: bottom-left=({r[2]}, {r[3]}), top-right=({r[0]}, {r[1]})")
+
+    if sampling.drawn:
+            bl = (min(p[0] for p in sampling.drawn), min(p[1] for p in sampling.drawn))
+            tr = (max(p[0] for p in sampling.drawn), max(p[1] for p in sampling.drawn))
+            print(f"Polygon ROI: bottom-left={bl}, top-right={tr}")
 
 
 # Function to get the 3D location of the reference point from a 2D location
@@ -251,9 +263,8 @@ def processDot(scale, transformation, dot, pos, cam2base, R_tag2cam, tvec, mtx1,
 
     dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
 
-    # Compute depth: find λ such that the ray hits the tag's z=0 plane.
-    # P_tag = R_tag2cam.T @ (λ·d − tvec), set z=0:
-    # λ = (R_tag2cam.T @ tvec)[2] / (R_tag2cam.T @ d)[2]
+    # Compute depth
+    # Find lambda such that the ray hits the tag's z=0 plane.
     R_cam2tag = R_tag2cam.T
     direction_in_tag = R_cam2tag @ dot_from_cam_principal
     lambda_depth = float((R_cam2tag @ tvec.flatten())[2] / direction_in_tag[2])

@@ -524,8 +524,6 @@ def calculateOffset(transformation):
 
             # Rotate offset from camera frame into base/printer frame so it can
             # be applied directly to printer-frame coordinates in processDot.
-            # t_probe2cam is probe-from-camera in camera frame;
-            # R_cam2base @ t_probe2cam = t_probe2base - t_cam2base (in base frame).
             offset_in_base = R_cam2base @ t_probe2cam
             probe_offset.append(offset_in_base)
 
@@ -535,7 +533,8 @@ def calculateOffset(transformation):
 
     # Save output
     output = probe_locations_to_cam_mean.reshape(1, -1)[0]
-    print(output)
+
+    print(f"Probe-to-camera offset: {output}")
 
 
     # Update transformation object

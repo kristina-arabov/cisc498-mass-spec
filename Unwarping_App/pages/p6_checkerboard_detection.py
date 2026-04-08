@@ -510,6 +510,8 @@ class CheckerboardDetection(QWidget):
             # Clear the corner overlay — top panel returns to clean live feed.
             self._latest_corners       = None
             self._latest_corners_found = False
+
+            print(f"Fisheye Intrinsics: {self.transformation.mtx1}")
         else:
             self._has_unwarp_result = False
             self.button_next.setEnabled(False)
