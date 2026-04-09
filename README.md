@@ -48,6 +48,10 @@ python3 Application.py
 ```
 
 # Credits
+Supervisors: Dr. Randy Ellis, Dr. Malek Hassan
+
 Legacy 3D Printer Control Application by [Kai Dalen](https://github.com/KDalen)
 
 Dynamic Rendering by [Madison MacNeil](https://github.com/madisonmacneil)
+
+Special thanks to the Medical Computing Lab and Oleschuk Lab!
