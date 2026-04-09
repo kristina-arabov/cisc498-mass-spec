@@ -392,8 +392,8 @@ class Header(QWidget):
         inner_layout.addWidget(self.legacy_btn)
         inner_layout.addWidget(self.return_btn)
         inner_layout.addStretch()
-        inner_layout.addWidget(credits_btn)
-        inner_layout.addWidget(help_btn)
+        # inner_layout.addWidget(credits_btn)
+        # inner_layout.addWidget(help_btn)
         inner_layout.addWidget(self.devices_btn)
 
         layout.addWidget(container)
