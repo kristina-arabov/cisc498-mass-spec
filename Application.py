@@ -207,7 +207,7 @@ def global_poll():
 
                 # If no conductance connected, do not perform sampling!!!
                 else:
-                    print("No condutance detected. Will not perform sampling run.")
+                    print("No conductance detected. Will not perform sampling run.")
                     probe.gcodes = []
 
 
