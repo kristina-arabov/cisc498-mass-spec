@@ -191,10 +191,12 @@ class ROISelection(QWidget):
 
             self.photo.type = "Rectangle"
             self.photo.draw_mode = None
-            # Clear any draw history when switching to Rectangle
+            # Clear any draw/polygon history when switching to Rectangle
             self.photo.draw_strokes = []
             self.photo.current_stroke = []
             self.photo.roi_closed = False
+            self.photo.polygon_points = []
+            self.photo.polygon_active = False
             self.photo.update()
 
         # Handle hand-drawn selections
