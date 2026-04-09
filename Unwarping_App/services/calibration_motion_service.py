@@ -39,7 +39,7 @@ CALIBRATION_FEED_RATE: int = 3000
 
 # Time (ms) to wait after arriving at each position before capturing,
 # allowing mechanical vibration to settle.
-POST_MOVE_SETTLE_MS: int = 500
+POST_MOVE_SETTLE_MS: int = 2000
 
 # ──────────────────────────────────────────────────────────────────────────────
 

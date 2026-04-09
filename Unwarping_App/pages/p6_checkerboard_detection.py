@@ -24,7 +24,7 @@ CORNER_PREVIEW_INTERVAL_MS: int = 500
 MULTI_IMAGE_CALIBRATION: bool = True
 
 # If True, saves every captured calibration frame to DEBUG_OUTPUT_DIR/<timestamp>/.
-DEBUG_SAVE_IMAGES: bool = True
+DEBUG_SAVE_IMAGES: bool = False
 
 # Folder (relative to project root) where debug images are written.
 DEBUG_OUTPUT_DIR: str = "debugging"
