@@ -78,7 +78,8 @@ class ROISelection(QWidget):
         self.ROI.button_draw.clicked.connect(lambda: self.ROIMode("Draw"))
         self.ROI.button_rectangle.clicked.connect(lambda: self.ROIMode("Rectangle"))
 
-        button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
+        # button_clear.clicked.connect(lambda: self.clearDrawing(self.photo))
+        button_clear.clicked.connect(lambda: self.resetAll())
 
         self.button_next.clicked.connect(self.next.emit)
         self.button_next.clicked.connect(lambda: sampling_service.findLocations(self.transformation, self.sampling, self.photo))
@@ -190,10 +191,12 @@ class ROISelection(QWidget):
 
             self.photo.type = "Rectangle"
             self.photo.draw_mode = None
-            # Clear any draw history when switching to Rectangle
+            # Clear any draw/polygon history when switching to Rectangle
             self.photo.draw_strokes = []
             self.photo.current_stroke = []
             self.photo.roi_closed = False
+            self.photo.polygon_points = []
+            self.photo.polygon_active = False
             self.photo.update()
 
         # Handle hand-drawn selections
@@ -255,6 +258,7 @@ class ROISelection(QWidget):
         self.ROI.row_5.hide()
 
         self.checkAllowNext()
+        self.clearSignal.emit()
 
         self.button_next.setEnabled(False)
 

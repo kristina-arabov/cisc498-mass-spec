@@ -162,15 +162,14 @@ def findLocations(transformation, sampling, img):
     # Get printer position from photo
     pos = transformation.photo_loc
 
-    # bug here affecting actual transformation, make a copy
     mtx1 = transformation.mtx1.copy()
 
-    mtx1[0][0] = mtx1[0][0]
-    mtx1[1][1] = mtx1[1][1]
+    # mtx1[0][0] = mtx1[0][0]
+    # mtx1[1][1] = mtx1[1][1]
 
-    while mtx1[0][0] > 1000 and mtx1[1][1] > 1000:
-        mtx1[0][0] *= 0.1
-        mtx1[1][1] *= 0.1
+    # while mtx1[0][0] > 1000 and mtx1[1][1] > 1000:
+    #     mtx1[0][0] *= 0.1
+    #     mtx1[1][1] *= 0.1
 
     dist1 = np.array([[0,0,0,0,0]], dtype=np.float32) # Set to no distortion
     # dist1 = transformation.dist1.copy()
@@ -190,23 +189,29 @@ def findLocations(transformation, sampling, img):
         return
 
     image_points = corners[0].reshape(-1, 2).astype(np.float32)
+    # Undo second unwarp on each corner so they're in mtx1-space
+    image_points_corrected = np.array([
+        calibration_service.undoSecondUnwarp(pt, mtx2, dist2)
+        for pt in image_points
+    ], dtype=np.float32)
     
 
     # Apply tag size
     tag_size = transformation.tag_size
     object_points = np.array([
-        [tag_size, 0, 0], 
-        [0, 0, 0],
-        [0, tag_size, 0],
-        [tag_size, tag_size, 0]], dtype=np.float32)
+        [tag_size, 0, 0],         # corners[0]: bottom-right in image
+        [0, 0, 0],                # corners[1]: bottom-left in image ← origin
+        [0, tag_size, 0],         # corners[2]: top-left in image
+        [tag_size, tag_size, 0],  # corners[3]: top-right in image
+    ], dtype=np.float32)
 
     t = transformation.tag_bottom_left
     tag_corner = np.array([t[0], t[1], 0], dtype=np.float32)
 
 
-    retval, rvec, tvec = cv2.solvePnP(object_points, image_points, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)
-    rvec, tvec = cv2.solvePnPRefineLM(object_points, image_points, mtx1, dist1, rvec, tvec)
-    rvec, tvec = cv2.solvePnPRefineVVS(object_points, image_points, mtx1, dist1, rvec, tvec)
+    retval, rvec, tvec = cv2.solvePnP(object_points, image_points_corrected, mtx1, dist1, flags=cv2.SOLVEPNP_ITERATIVE)  # dist1 is zeros — image already fisheye-unwarped
+    rvec, tvec = cv2.solvePnPRefineLM(object_points, image_points_corrected, mtx1, dist1, rvec, tvec)
+    rvec, tvec = cv2.solvePnPRefineVVS(object_points, image_points_corrected, mtx1, dist1, rvec, tvec)
     R_tag2cam, _ = cv2.Rodrigues(rvec) # convert to matrix
 
     # Get camera to tag (invert transformation)
@@ -221,63 +226,66 @@ def findLocations(transformation, sampling, img):
     R_cam2base_overlay = R_base2tag @ R_cam2tag
     t_cam2base_overlay = R_base2tag @ t_cam2tag + t_base2tag
 
-    R_base2cam = R_cam2base_overlay.T
-    t_base2cam = -R_cam2base_overlay.T @ t_cam2base_overlay
-
-
     scale = img.scale_val
-    print(f"FIND LOCATIONS: {scale}")
+    # print(f"FIND LOCATIONS: {scale}")
 
     # PROCESS DOT ----------------------------------------------
-    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    sampling.dot = processDot(scale, transformation, dot, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
     
     # PROCESS RECTANGLE --------------------------------------
     if rectangle:
-        sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+        sampling.rectangle = processRectangle(scale, transformation, rectangle, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.drawn = None
 
     # PROCESS POLYGON --------------------------------------
-    if polygon_active and polygon_points:
-        sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, mtx1, mtx2, dist2)
+    elif polygon_active and polygon_points:
+        sampling.drawn = processPolygon(scale, transformation, polygon_points, pos, R_cam2base_overlay, R_tag2cam, tvec, mtx1, mtx2, dist2)
+        sampling.rectangle = None
+        
 
-    print(sampling.dot)
-    print(sampling.rectangle)
-    print(sampling.drawn)
+    # Output to terminal for user to verify
+    if sampling.dot:
+        print(f"Reference Point: ({round(sampling.dot[0], 2)}, {round(sampling.dot[1], 2)})")
 
+    if sampling.rectangle:
+        r = sampling.rectangle
+        print(f"Rectangle ROI: bottom-left=({round(r[0], 2)}, {round(r[1], 2)}), top-right=({round(r[2], 2)}, {round(r[3], 2)})")
+
+    if sampling.drawn:
+            bl = (min(p[0] for p in sampling.drawn), min(p[1] for p in sampling.drawn))
+            tr = (max(p[0] for p in sampling.drawn), max(p[1] for p in sampling.drawn))
+            print(f"Polygon ROI: bottom-left=({round(bl[0], 2)}, {round(bl[1], 2)}), top-right=({round(tr[0], 2)}, {round(tr[1], 2)})")
 
 
 # Function to get the 3D location of the reference point from a 2D location
-def processDot(scale, transformation, dot, pos, cam2base, mtx1, mtx2, dist2):
+def processDot(scale, transformation, dot, pos, cam2base, R_tag2cam, tvec, mtx1, mtx2, dist2):
     dot_unscaled = (int(dot.x() / scale), int(dot.y() / scale))
 
     new_dot = calibration_service.undoSecondUnwarp(dot_unscaled, mtx2, dist2)
 
     dot_from_cam_principal = getDirectionFromPixel(new_dot[0], new_dot[1], mtx1)
 
+    # Compute depth
+    # Find lambda such that the ray hits the tag's z=0 plane.
+    R_cam2tag = R_tag2cam.T
+    direction_in_tag = R_cam2tag @ dot_from_cam_principal
+    lambda_depth = float((R_cam2tag @ tvec.flatten())[2] / direction_in_tag[2])
+
     dot_in_base = cam2base @ dot_from_cam_principal
 
-    print(dot_in_base)
+    dot_x = pos[0] + (dot_in_base[0] * lambda_depth)
+    dot_y = pos[1] + (dot_in_base[1] * lambda_depth)
 
-    dot_x = pos[0] + (dot_in_base[0] * 10)
-    dot_y = pos[1] + (dot_in_base[1] * 10)
+    dot_x -= transformation.offset_x
+    dot_y -= transformation.offset_y
     
-    # Add probe offset to dot position
-    if transformation.offset_x < 0:
-        dot_x -= transformation.offset_x
-    else:
-        dot_x += transformation.offset_x
-    
-    if transformation.offset_y < 0:
-        dot_y += transformation.offset_y
-    else:
-        dot_y -= transformation.offset_y
-
     probe_dot = [float(dot_x.item()), float(dot_y.item())]
 
     return probe_dot
 
 
 # Function to get the 3D range of the rectangle from 2D points
-def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2, dist2):
+def processRectangle(scale, transformation, rectangle, pos, cam2base, R_tag2cam, tvec, mtx1, mtx2, dist2):
     start_point = rectangle.topRight()
     end_point = rectangle.bottomLeft()
 
@@ -290,35 +298,29 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     start_point_from_cam_principal = getDirectionFromPixel(start_point[0], start_point[1], mtx1)
     end_point_from_cam_principal = getDirectionFromPixel(end_point[0], end_point[1], mtx1)
 
+    R_cam2tag = R_tag2cam.T
+    start_dir_in_tag = R_cam2tag @ start_point_from_cam_principal
+    end_dir_in_tag = R_cam2tag @ end_point_from_cam_principal
+    tvec_in_tag_z = float((R_cam2tag @ tvec.flatten())[2])
+    start_lambda = tvec_in_tag_z / float(start_dir_in_tag[2])
+    end_lambda = tvec_in_tag_z / float(end_dir_in_tag[2])
+
     start_point_in_base = cam2base @ start_point_from_cam_principal
     end_point_in_base = cam2base @ end_point_from_cam_principal
 
     # 3D start position
-    start_x = pos[0] + (start_point_in_base[0] * 10)
-    start_y = pos[1] + (start_point_in_base[1] * 10)
+    start_x = pos[0] + (start_point_in_base[0] * start_lambda)
+    start_y = pos[1] + (start_point_in_base[1] * start_lambda)
 
     # 3D end position
-    end_x = pos[0] + (end_point_in_base[0] * 10)
-    end_y = pos[1] + (end_point_in_base[1] * 10)
+    end_x = pos[0] + (end_point_in_base[0] * end_lambda)
+    end_y = pos[1] + (end_point_in_base[1] * end_lambda)
 
-    # Apply X offset
-    if transformation.offset_x < 0:
-        start_x -= transformation.offset_x
-        end_x -= transformation.offset_x
-    else:
-        start_x += transformation.offset_x
-        end_x += transformation.offset_x
-    
-    # Apply Y offset
-    if transformation.offset_y < 0:
-        start_y += transformation.offset_y
-        end_y += transformation.offset_y
-    else:
-        start_y -= transformation.offset_y
-        end_y -= transformation.offset_y
+    start_x -= transformation.offset_x
+    end_x -= transformation.offset_x
 
-    
-
+    start_y -= transformation.offset_y
+    end_y -= transformation.offset_y
 
     # Reverse?
     probe_rectangle = [float(end_x.item()), float(end_y.item()), float(start_x.item()), float(start_y.item())]
@@ -326,26 +328,26 @@ def processRectangle(scale, transformation, rectangle, pos, cam2base, mtx1, mtx2
     return probe_rectangle
 
 
-def processPolygon(scale, transformation, polygon_points, pos, cam2base, mtx1, mtx2, dist2):
+def processPolygon(scale, transformation, polygon_points, pos, cam2base, R_tag2cam, tvec, mtx1, mtx2, dist2):
     """Transform polygon pixel vertices (QPoint list) to real-world stage coordinates.
     Returns a list of (x_mm, y_mm) tuples — one per vertex.
     """
+    R_cam2tag = R_tag2cam.T
+    tvec_in_tag_z = float((R_cam2tag @ tvec.flatten())[2])
     real_vertices = []
     for qpt in polygon_points:
         unscaled = (int(qpt.x() / scale), int(qpt.y() / scale))
         undone = calibration_service.undoSecondUnwarp(unscaled, mtx2, dist2)
         direction = getDirectionFromPixel(undone[0], undone[1], mtx1)
+        dir_in_tag = R_cam2tag @ direction
+        lambda_depth = tvec_in_tag_z / float(dir_in_tag[2])
         in_base = cam2base @ direction
 
-        x = pos[0] + (in_base[0] * 10)
-        y = pos[1] + (in_base[1] * 10)
-
-        if transformation.offset_x < 0:
-            x -= transformation.offset_x
-        else:
-            x += transformation.offset_x
+        x = pos[0] + (in_base[0] * lambda_depth)
+        y = pos[1] + (in_base[1] * lambda_depth)
         
-        y += transformation.offset_y
+        x -= transformation.offset_x
+        y -= transformation.offset_y
 
         real_vertices.append((float(x.item()), float(y.item())))
 
@@ -370,9 +372,6 @@ def getDirectionFromPixel(u, v, mtx):
 
 
 def getSampling(sampling, polygon_active=False):
-
-    print(sampling.real_points_list)
-
     locations = sampling.real_points_list
 
     # If using drag mode, locations will need to follow a serpentine pattern, but 
@@ -399,8 +398,6 @@ def getSampling(sampling, polygon_active=False):
     sampling.completed_gcodes = []
     sampling.timestamps = []
     sampling.readable_timestamps = []
-
-    print(f"path: {locations}")
 
     sampling.gcodes.append("G90") # Absolute positioning
     appendInitialTransit(sampling) # Set to transit height
@@ -458,8 +455,8 @@ def getSampling(sampling, polygon_active=False):
     sampling.timestamps.append(time.time())
     sampling.readable_timestamps.append(0)
 
-    for row in sampling.gcodes:
-        print(row)
+    # for row in sampling.gcodes:
+    #     print(row)
 
 
 # Commands to move to the reference point
@@ -704,8 +701,6 @@ def getTime():
 
 # Function to send a GCode to the printer and remove it from the queue
 def runGCode(printer, conduct):
-    addData(printer, conduct)
-
     line = samplingItem.gcodes.pop(0)
 
     samplingItem.completed_gcodes.append(line)
@@ -812,7 +807,7 @@ def resume(printer):
     samplingItem.paused = False
     samplingItem.moving = False
 
-    print(samplingItem.gcodes)
+    # print(samplingItem.gcodes)
 
     printer.cmd("G90")
     printer.cmd(f"G0 X{str(round(printer.last_pos[0], 2))} Y{str(round(printer.last_pos[1], 2))} Z{str(round(printer.last_pos[2], 2))} F1000")

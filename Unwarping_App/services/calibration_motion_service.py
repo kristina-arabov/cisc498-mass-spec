@@ -39,7 +39,7 @@ CALIBRATION_FEED_RATE: int = 3000
 
 # Time (ms) to wait after arriving at each position before capturing,
 # allowing mechanical vibration to settle.
-POST_MOVE_SETTLE_MS: int = 500
+POST_MOVE_SETTLE_MS: int = 2000
 
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -201,19 +201,19 @@ def plan_calibration_moves(
         abs_x=start_x, abs_y=start_y, abs_z=start_z, label="home"
     ))
 
-    # ── 2. Z-up (zoom out) ────────────────────────────────────────────────────
-    if play.z_can_move_up_mm >= MIN_PLAY_MM:
-        dz = min(play.z_can_move_up_mm * Z_USE_FRACTION, MAX_Z_DELTA_MM)
-        moves.append(CalibrationMove(
-            abs_x=start_x, abs_y=start_y, abs_z=start_z + dz, label="z_up"
-        ))
+    # # ── 2. Z-up (zoom out) ────────────────────────────────────────────────────
+    # if play.z_can_move_up_mm >= MIN_PLAY_MM:
+    #     dz = min(play.z_can_move_up_mm * Z_USE_FRACTION, MAX_Z_DELTA_MM)
+    #     moves.append(CalibrationMove(
+    #         abs_x=start_x, abs_y=start_y, abs_z=start_z + dz, label="z_up"
+    #     ))
 
-    # ── 3. Z-down (zoom in) ───────────────────────────────────────────────────
-    if play.z_can_move_down_mm >= MIN_PLAY_MM:
-        dz = min(play.z_can_move_down_mm * Z_USE_FRACTION, MAX_Z_DELTA_MM)
-        moves.append(CalibrationMove(
-            abs_x=start_x, abs_y=start_y, abs_z=start_z - dz, label="z_down"
-        ))
+    # # ── 3. Z-down (zoom in) ───────────────────────────────────────────────────
+    # if play.z_can_move_down_mm >= MIN_PLAY_MM:
+    #     dz = min(play.z_can_move_down_mm * Z_USE_FRACTION, MAX_Z_DELTA_MM)
+    #     moves.append(CalibrationMove(
+    #         abs_x=start_x, abs_y=start_y, abs_z=start_z - dz, label="z_down"
+    #     ))
 
     # ── 4. XY fallback ────────────────────────────────────────────────────────
     if len(moves) < 3:

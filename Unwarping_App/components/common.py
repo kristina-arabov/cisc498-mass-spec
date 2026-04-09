@@ -392,8 +392,8 @@ class Header(QWidget):
         inner_layout.addWidget(self.legacy_btn)
         inner_layout.addWidget(self.return_btn)
         inner_layout.addStretch()
-        inner_layout.addWidget(credits_btn)
-        inner_layout.addWidget(help_btn)
+        # inner_layout.addWidget(credits_btn)
+        # inner_layout.addWidget(help_btn)
         inner_layout.addWidget(self.devices_btn)
 
         layout.addWidget(container)
@@ -1395,7 +1395,7 @@ class ClickableImage(QLabel):
                     px_span = (px_max - px_min) or 1
                     py_span = (py_max - py_min) or 1
 
-                    painter.setPen(QPen(QColor("#26CCC4"), 2))
+                    painter.setPen(QPen(QColor("#67FFD9"), 2))
                     painter.setOpacity(1.0)
 
                     row_pixels = []
@@ -1521,11 +1521,14 @@ class ClickableImage(QLabel):
 
                     for val in self.y_range:
                         t = (val - by0) / real_h
-                        py = int(py_min + t * py_span)
+                        py = int(py_min + (1 - t) * py_span)
                         painter.drawLine(px_min, py, px_max, py)
 
                     painter.setPen(QPen(QColor("#EAFFC2"), 3))
                     painter.setOpacity(1.0)
+
+                    # Build cell-index lookup: (i, j) -> (px, py)
+                    valid_cell_pixels = {(entry[2], entry[3]): (entry[0], entry[1]) for entry in self._polygon_valid_pixels}
 
                     # Grids
                     rows = list(range(len(self.y_range) - 1))
@@ -1540,6 +1543,9 @@ class ClickableImage(QLabel):
 
                         for i in x_indices:
 
+                            if (i, j) not in valid_cell_pixels:
+                                continue
+
                             left  = self.x_range[i]
                             right = self.x_range[i + 1]
 
@@ -1550,19 +1556,14 @@ class ClickableImage(QLabel):
                             mid_x_real = (left + right) / 2
                             mid_y_real = (top + bottom) / 2
 
-                            # Normalized
-                            tx = (mid_x_real - bx0) / real_w
-                            ty = (mid_y_real - by0) / real_h
-
-                            # Midpoint as a pixel
-                            mid_x = px_min + tx * px_span
-                            mid_y = py_min + (1 - ty) * py_span
-
                             location = (round(mid_x_real, 2), round(mid_y_real, 2))
 
-                            if location in self.visited_points and (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            # Stored pixel midpoint (avoids float rounding mismatch)
+                            mid_px, mid_py = valid_cell_pixels[(i, j)]
 
-                                # Corners (FIXED)
+                            if location in self.visited_points:
+
+                                # Corners
                                 tx_left   = (left - bx0) / real_w
                                 tx_right  = (right - bx0) / real_w
                                 ty_top    = (top - by0) / real_h
@@ -1571,7 +1572,7 @@ class ClickableImage(QLabel):
                                 px_left   = px_min + tx_left * px_span
                                 px_right  = px_min + tx_right * px_span
 
-                                py_top = py_min + (1 - ty_top) * py_span
+                                py_top    = py_min + (1 - ty_top) * py_span
                                 py_bottom = py_min + (1 - ty_bottom) * py_span
 
                                 rect_x = int(px_left)
@@ -1583,10 +1584,10 @@ class ClickableImage(QLabel):
                                 painter.setOpacity(0.6)
                                 painter.fillRect(rect_x, rect_y, rect_w, rect_h, QColor("#BBFF00"))
 
-                            # Draw sampling location (midpoint of grid)
-                            elif (int(mid_x), int(mid_y)) in self._polygon_valid_pixels:
+                            else:
+                                # Draw sampling location (midpoint of grid cell)
                                 painter.setPen(QPen(QColor("#EAFFC2"), 3))
-                                painter.drawPoint(int(mid_x), int(mid_y))
+                                painter.drawPoint(mid_px, mid_py)
 
                                 # Add midpoint to real locations
                                 if location not in self.real_points:
@@ -1638,6 +1639,12 @@ class ClickableImage(QLabel):
                         else:
                             x_start_real = x1
                             x_end_real   = x0
+
+                        # ty_pixel = (py - start_y) / height
+                        # real_y = y0 + (1 - ty_pixel) * real_height
+
+                        # print(y_val)
+                        # print(real_y)
 
                         location1 = (round(x_start_real, 2), round(y_val, 2))
                         location2 = (round(x_end_real, 2), round(y_val, 2))
@@ -1705,8 +1712,8 @@ class ClickableImage(QLabel):
                     end_x   = self.rectangle.right()
                     end_y   = self.rectangle.bottom()
 
-                    width  = end_x - start_x
-                    height = end_y - start_y
+                    width  = self.rectangle.width()
+                    height = self.rectangle.height()
 
                     x0, y0, x1, y1 = self.probe_rectangle
 
@@ -1745,16 +1752,12 @@ class ClickableImage(QLabel):
                             left  = self.x_range[i]
                             right = self.x_range[i + 1]
 
-                            top    = self.y_range[j]
-                            bottom = self.y_range[j + 1]
+                            top    = self.y_range[j + 1]
+                            bottom = self.y_range[j]
 
                             # Midpoint 
                             mid_x_real = (left + right) / 2
                             mid_y_real = (top + bottom) / 2
-
-                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
-                            if location not in self.real_points:
-                                self.real_points.append(location)
 
                             # Normalize midpoint
                             tx = (mid_x_real - x0) / real_width
@@ -1763,6 +1766,10 @@ class ClickableImage(QLabel):
                             # Convert to pixel 
                             mid_x = start_x + tx * width
                             mid_y = start_y + (1 - ty) * height
+
+                            location = (round(mid_x_real, 2), round(mid_y_real, 2))
+                            if location not in self.real_points:
+                                self.real_points.append(location)
 
                             if location in self.visited_points:
 
@@ -1887,15 +1894,10 @@ class ClickableImage(QLabel):
 
     # Only update shapes for Pre-run config page
     def setValsPage3(self, data):
-        if data.get("dot") is not None:
-            self.dot = data["dot"]
-
-        if data.get("rect") is not None:
-            self.rectangle = data["rect"]
-
-        if data.get("polygon") is not None:
-            self.polygon_points = list(data["polygon"])
-            self.polygon_active = bool(data["polygon"])
+        self.dot = data["dot"]
+        self.rectangle = data["rect"]
+        self.polygon_points = list(data["polygon"])
+        self.polygon_active = bool(data["polygon"])
 
         self.update()
 
@@ -1906,47 +1908,33 @@ class ClickableImage(QLabel):
         self.sample_overlay_x = None 
         self.sample_overlay_y = None
 
-        if data.get("dot") is not None:
-            self.dot = data["dot"]
+        self.dot = data["dot"]
+        self.rectangle = data["rect"]
 
-        if data.get("rect") is not None:
-            self.rectangle = data["rect"]
+        self.polygon_points = list(data["polygon"])
+        self.polygon_active = bool(data["polygon"])
+        self.probe_polygon = data["probe_polygon"]
+        self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
 
-        if data.get("polygon") is not None:
-            self.polygon_points = list(data["polygon"])
-            self.polygon_active = bool(data["polygon"])
-            self.probe_polygon = data["probe_polygon"]
-            self._polygon_valid_pixels = data["probe_polygon_valid_pts"]
+        self.probe_rectangle = data["probe_rect"]
 
-        if data.get("probe_rect") is not None:
-            self.probe_rectangle = data["probe_rect"]
+        self.rowsOnly = data["rows"]
 
-        if data.get("rows") is not None:
-            self.rowsOnly = data["rows"]
-
-        # Don't update X vals if doing drag sampling
+        # Only update Y vals if doing drag sampling
         if self.rowsOnly:
-            if data.get("y_range") is not None:
-                self.y_range = data["y_range"]
+            self.x_range = None
+            self.sample_overlay_x = None
 
-            if data.get("y_count") is not None:
-                self.sample_overlay_y = data["y_count"]
+            self.y_range = data["y_range"]
+            self.sample_overlay_y = data["y_count"]
 
         # Update all
         else:
-            if data.get("x_range") is not None:
-                self.x_range = data["x_range"]
-
-            if data.get("y_range") is not None:
-                self.y_range = data["y_range"]
-
-            if data.get("x_count") is not None:
-                self.sample_overlay_x = data["x_count"]
-
-            if data.get("y_count") is not None:
-                self.sample_overlay_y = data["y_count"]
-
-        
+            self.x_range = data["x_range"]
+            self.y_range = data["y_range"]
+            
+            self.sample_overlay_x = data["x_count"]
+            self.sample_overlay_y = data["y_count"]
 
         self.update()
 
@@ -1962,8 +1950,11 @@ class ClickableImage(QLabel):
 
         try:
             if self.rectangle:
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50]
+                if sampling.rectangle:
+                    self.probe_rectangle = sampling.rectangle
+                else:
+                    self.probe_rectangle = [100, 40, 115, 50]
+                
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -1988,20 +1979,25 @@ class ClickableImage(QLabel):
                     self.x_range = np.append(self.x_range, x1)
                     self.y_range = np.append(self.y_range, y1)
 
-                    self.sample_overlay_x = len(self.x_range) - 1
-                    self.sample_overlay_y = len(self.y_range) - 1
+                    if len(self.x_range) >= 3 and (self.x_range[-1] - self.x_range[-2]) < float(x) / 2:
+                        self.x_range = np.delete(self.x_range, -2)
+                    if len(self.y_range) >= 3 and (self.y_range[-1] - self.y_range[-2]) < float(y) / 2:
+                        self.y_range = np.delete(self.y_range, -2)
+
+                    self.sample_overlay_x = len(self.x_range)
+                    self.sample_overlay_y = len(self.y_range)
 
 
                 self.update()
 
                 # Transfer all sampling points to sampling item
                 sampling.real_points_list = self.real_points
-        
+
         except:
             self.sample_overlay_x = None
             self.sample_overlay_y = None
 
-    
+
     # Function to update the overlay to show rows (Drag sampling)
     # Shows the serpentine sampling path
     def updateOverlayRows(self, y, type, sampling):
@@ -2009,8 +2005,11 @@ class ClickableImage(QLabel):
         
         try:
             if self.rectangle: 
-                self.probe_rectangle = sampling.rectangle
-                # self.probe_rectangle = [100, 40, 115, 50] # TODO CHANGE TO CALCULATED LOCATIONS
+                if sampling.rectangle:
+                    self.probe_rectangle = sampling.rectangle
+                else:
+                    self.probe_rectangle = [100, 40, 115, 50]
+                
                 x0, y0, x1, y1 = self.probe_rectangle
 
                 # Sampling spots based sizing
@@ -2027,8 +2026,11 @@ class ClickableImage(QLabel):
                     self.y_range = np.arange(y0, y1, float(y))
                     self.y_range = np.append(self.y_range, y1)
 
+                    if len(self.y_range) >= 3 and (self.y_range[-1] - self.y_range[-2]) < float(y) / 2:
+                        self.y_range = np.delete(self.y_range, -2)
+
                     self.sample_overlay_x = None
-                    self.sample_overlay_y = len(self.y_range) - 1
+                    self.sample_overlay_y = len(self.y_range)
 
                 self.update()
 
@@ -2082,6 +2084,15 @@ class ClickableImage(QLabel):
             x_range = np.append(x_range, bx1)
             y_range = np.append(y_range, by1)
 
+            # For resolution mode: if the last cell is smaller than half the
+            # resolution, merge it into the previous cell by dropping the
+            # second-to-last boundary (e.g. [0,3,6,9,10] → [0,3,6,10]).
+            if type == 1:
+                if len(x_range) >= 3 and (x_range[-1] - x_range[-2]) < float(x) / 2:
+                    x_range = np.delete(x_range, -2)
+                if len(y_range) >= 3 and (y_range[-1] - y_range[-2]) < float(y) / 2:
+                    y_range = np.delete(y_range, -2)
+
             self.x_range = x_range
             self.y_range = y_range
             self.probe_polygon = [bx0, by0, bx1, by1]
@@ -2108,11 +2119,11 @@ class ClickableImage(QLabel):
                     tx = (mid_x_real - bx0) / real_w
                     ty = (mid_y_real - by0) / real_h
                     px = int(px_min + tx * px_span)
-                    py = int(py_min + ty * py_span)
+                    py = int(py_min + (1 - ty) * py_span)
 
                     if cv2.pointPolygonTest(poly_pts_np, (float(px), float(py)), False) >= 0:
                         # self.real_points.append((round(mid_x_real, 2), round(mid_y_real, 2)))
-                        valid_pixels.append((px, py))
+                        valid_pixels.append((px, py, i, j))
 
             self._polygon_valid_pixels = valid_pixels
             self.sample_overlay_x = len(x_range)

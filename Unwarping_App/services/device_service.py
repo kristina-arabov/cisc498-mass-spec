@@ -169,6 +169,8 @@ def getConductance(conductance):
         cap=conductance.read()#reads the conductance value
         capDecode= int(cap.decode("utf-8")) #to decode the value
 
+        conductance.flush()
+
         return capDecode
 
     except:
