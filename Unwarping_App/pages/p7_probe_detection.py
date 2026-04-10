@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QProgressBar, QLineEdit, QVBoxLayout, QHBoxLayout, QGridLayout, QPushButton, QToolButton, QSlider, QComboBox, QApplication
 from PyQt5.QtGui import QColor, QIcon
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QThread
 
 import cv2
 
@@ -172,6 +172,24 @@ class ProbeDetection(QWidget):
         return scale
 
 
+class _CornerPositionWorker(QThread):
+    """Fetches printer position in a background thread for corner confirmation."""
+    position_ready = pyqtSignal(list, object)  # (pos, img)
+    failed = pyqtSignal()
+
+    def __init__(self, printer, img):
+        super().__init__()
+        self.printer = printer
+        self.img = img
+
+    def run(self):
+        pos = device_service.get_printer_position_timeout(self.printer)
+        if pos is not None:
+            self.position_ready.emit(pos, self.img)
+        else:
+            self.failed.emit()
+
+
 class TagInstructions(QWidget):
     checkOffset = pyqtSignal()
 
@@ -184,6 +202,7 @@ class TagInstructions(QWidget):
 
         self.idx = 0
         self.corners_imaged = [False, False, False, False]
+        self._pos_worker = None
 
         layout = QHBoxLayout(self)
 
@@ -281,18 +300,25 @@ class TagInstructions(QWidget):
 
     # Function to acquire the probe's position in alignment with a specific tag corner
     def handleCornerConfirm(self):
-        # Obtain values for location
-
         # If camera is running, take a photo otherwise don't proceed
         try:
             img = self.camera.frame.copy()
         except:
             return
-        
+
         img = calibration_service.unwarpPhoto(img, self.transformation)
 
-        position = device_service.getPrinterPosition(self.printer)
+        self.button_probeLocation.setEnabled(False)
+        self._pos_worker = _CornerPositionWorker(self.printer, img)
+        self._pos_worker.position_ready.connect(self._onCornerPositionReady)
+        self._pos_worker.failed.connect(lambda: (
+            self.label_instructions.setText("Could not get printer position. Ensure the printer is connected and try again."),
+            self.button_probeLocation.setEnabled(True)
+        ))
+        self._pos_worker.finished.connect(lambda: self.button_probeLocation.setEnabled(True))
+        self._pos_worker.start()
 
+    def _onCornerPositionReady(self, position, img):
         # Enforce same printer height
         if position[2] != self.transformation.height:
             self.label_instructions.setText(f"Cannot image corner. Ensure the printer height is set to Z={self.transformation.height} for all crosshair alignments.")
@@ -306,8 +332,7 @@ class TagInstructions(QWidget):
         self.corners_imaged[self.idx] = True
 
         # Progress bar status
-        corners_probed = int(((self.corners_imaged.count(True))/ len(self.corners_imaged)) * 100)
-
+        corners_probed = int(((self.corners_imaged.count(True)) / len(self.corners_imaged)) * 100)
         self.line_progressBar.setValue(corners_probed)
 
         # Send signal to calculate probe-to-camera offset with available values

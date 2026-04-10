@@ -1,10 +1,27 @@
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout,  QHBoxLayout, QPushButton, QFileDialog
 from PyQt5.QtGui import  QValidator
-from PyQt5.QtCore import pyqtSignal, Qt, QPoint
+from PyQt5.QtCore import pyqtSignal, Qt, QPoint, QThread
 
 from Unwarping_App.components.common import FolderSelect, CheckItem, UnwarpComparison, TagInformationSection
 from Unwarping_App.components.utils import processUpload, verifyTransformation, addAllWidgets, updateFrame
 from Unwarping_App.services import calibration_service, sampling_service, device_service
+
+
+class _ApplyTransformationWorker(QThread):
+    """Fetches printer position in a background thread, then emits the result."""
+    position_ready = pyqtSignal(list)
+    failed = pyqtSignal()
+
+    def __init__(self, printer):
+        super().__init__()
+        self.printer = printer
+
+    def run(self):
+        pos = device_service.get_printer_position_timeout(self.printer)
+        if pos is not None:
+            self.position_ready.emit(pos)
+        else:
+            self.failed.emit()
 
 
 ''' This page handles any existing transformations the user provides'''
@@ -18,6 +35,7 @@ class ProvideTransformation(QWidget):
         self.lights = lights
         self.printer = printer
         self.transformation = transformation
+        self._pos_worker = None
 
         self.initUI()
         
@@ -104,9 +122,15 @@ class ProvideTransformation(QWidget):
 
     # Apply a selected transformation on the current camera frame
     def applyTransformation(self):
-        try:
-            pos = device_service.getPrinterPosition(self.printer)
+        self.component_unwarpComparison.arrow.button.setEnabled(False)
+        self._pos_worker = _ApplyTransformationWorker(self.printer)
+        self._pos_worker.position_ready.connect(self._onPositionReady)
+        self._pos_worker.failed.connect(self._onPositionFailed)
+        self._pos_worker.finished.connect(lambda: self.component_unwarpComparison.arrow.button.setEnabled(True))
+        self._pos_worker.start()
 
+    def _onPositionReady(self, pos):
+        try:
             # Enforce same printer height
             if pos[2] != self.transformation.height:
                 self.component_unwarpComparison.result.image_label.setText(f"   Please set the printer height to Z={self.transformation.height} before proceeding.")
@@ -118,16 +142,18 @@ class ProvideTransformation(QWidget):
             img = self.camera.frame.copy()
             unwarped = calibration_service.unwarpPhoto(img, self.transformation)
 
-
             # Show unwarped img in result container
             calibration_service.updateResult(unwarped, self.component_unwarpComparison.result)
 
             # Send signal to other pages in sampling workflow
             self.resultAvailable.emit(unwarped)
             self.checkAllowNext()
-        
+
         except:
             pass
+
+    def _onPositionFailed(self):
+        self.component_unwarpComparison.result.image_label.setText("   Could not get printer position. Ensure the printer is connected and try again.")
 
 
     # TODO may be removed later

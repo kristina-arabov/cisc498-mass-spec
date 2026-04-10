@@ -109,12 +109,15 @@ class console_control(QtCore.QThread):
         
         self.flag = True
         wrapper = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pronsole_pipe.py')
-        self.sc_path = [sys.executable, wrapper]
+        self.sc_path = [sys.executable, '-u', wrapper]
+        env = os.environ.copy()
+        env['PYTHONUNBUFFERED'] = '1'
         self.console = subprocess.Popen(self.sc_path,
                                         stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
-                                        text=True)
+                                        text=True,
+                                        env=env)
         print('start console thread')
       
         
@@ -167,25 +170,18 @@ class console_control(QtCore.QThread):
 
         if self.queue.qsize() < 2:
             
-            #rlist, _, _ = select.select([self.console.stdout], [], [], 0.02) #timeout 0.01 which means it waits for 0.01 seconds
-            # rlist =True
-            # if rlist:
-                
-            self.line = self.console.stdout.readline()
-            linestr = self.line.strip()
-
-
-            self.outputarr = [linestr]  # Convert the string to a list
-            self.queue.put(self.outputarr)  # Put the list in the queue
-            
-            # else: #can i just have nothing here
-            #     self.line = ""
-            #     linestr = self.line.strip()
-            #     self.outputarr = [linestr]  # Convert the string to a list
-                
-            #     self.temp_queues.append(self.outputarr)#TODO: remove this
-
-            #     self.queue.put(self.outputarr)  # Put the list in the queue
+            if sys.platform != 'win32':
+                rlist, _, _ = select.select([self.console.stdout], [], [], 0.02)
+                if rlist:
+                    self.line = self.console.stdout.readline()
+                    linestr = self.line.strip()
+                    self.outputarr = [linestr]
+                    self.queue.put(self.outputarr)
+            else:
+                self.line = self.console.stdout.readline()
+                linestr = self.line.strip()
+                self.outputarr = [linestr]
+                self.queue.put(self.outputarr)
                 
         else:
             
@@ -196,17 +192,11 @@ class console_control(QtCore.QThread):
         
     def displayout(self): #TODO: remove this function
 
-        #check if queue is not empty
         if not self.queue.empty():
             line = self.queue.get()
-            
             self.line = line[0]
-
-            
-            # self.checkpos(self.line)
         else:
-            print('sleep 2')
-            time.sleep(1)
+            self.line = ""
 
     def checkpos(self):
 

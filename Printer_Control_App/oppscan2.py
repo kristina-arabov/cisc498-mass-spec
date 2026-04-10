@@ -860,14 +860,16 @@ class MyApp(BaseUiClass, QtWidgets.QMainWindow):  # inherit all properties from 
         
         
         if not pos_queue.empty():
-            pos = pos_queue.get()
-          
+            pos = None
+            while not pos_queue.empty():
+                pos = pos_queue.get()
             self.prt_x_lcd.display(pos[0])
             self.prt_y_lcd.display(pos[1])
             self.prt_z_lcd.display(pos[2])
         if not temp_queue.empty():
-            temp = temp_queue.get()
-            
+            temp = None
+            while not temp_queue.empty():
+                temp = temp_queue.get()
             self.prt_bed_temp_lcd.display(temp[0])
             self.prt_nozzel_temp_lcd.display(temp[1])
     def temp_queue(self, queue):

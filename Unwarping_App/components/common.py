@@ -1006,9 +1006,24 @@ class CamFeed(QWidget):
         layout.setSpacing(0)   
 
 
+class _PrinterPositionWorker(QThread):
+    """Fetches printer position in a background thread to avoid blocking the GUI."""
+    position_ready = pyqtSignal(list)
+
+    def __init__(self, printer):
+        super().__init__()
+        self.printer = printer
+
+    def run(self):
+        pos = device_service.get_printer_position_timeout(self.printer)
+        if pos is not None:
+            self.position_ready.emit(pos)
+
+
 class TagInformationSection(QWidget):
     def __init__(self):
         super().__init__()
+        self._pos_worker = None
 
         layout = QVBoxLayout(self)
 
@@ -1087,11 +1102,15 @@ class TagInformationSection(QWidget):
 
     # Function to set the printer location in the X and Y inputs
     def setPrinterPos(self, printer):
-        pos = device_service.getPrinterPosition(printer)
+        self.button_autofill.setEnabled(False)
+        self._pos_worker = _PrinterPositionWorker(printer)
+        self._pos_worker.position_ready.connect(self._onPositionReady)
+        self._pos_worker.finished.connect(lambda: self.button_autofill.setEnabled(True))
+        self._pos_worker.start()
 
-        if pos is not None:
-            self.input_bottomLeftX.setText(str(pos[0]))
-            self.input_bottomLeftY.setText(str(pos[1]))
+    def _onPositionReady(self, pos):
+        self.input_bottomLeftX.setText(str(pos[0]))
+        self.input_bottomLeftY.setText(str(pos[1]))
 
 
 

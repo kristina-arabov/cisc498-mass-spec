@@ -115,6 +115,10 @@ def get_printer_position_timeout(printer, timeout_s=POSITION_POLL_TIMEOUT_S):
     """Poll for a position report, returning [x, y, z] or None on timeout.
     Use this instead of getPrinterPosition() in worker threads.
     """
+    time.sleep(POSITION_POLL_INTERVAL_S * 2)
+    printer.line = ""
+    printer.cmd("M114")
+
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         line = printer.line

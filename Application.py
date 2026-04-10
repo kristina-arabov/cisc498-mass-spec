@@ -59,6 +59,9 @@ def global_poll():
         line = probe.gcodes[0]
         sampling_service.addData(printer, conduct)
 
+        if probe.moving and sys.platform != 'win32':
+            printer.cmd("M114")
+
         # Probe is ready to move
         if not probe.moving:
             # Absolute positioning

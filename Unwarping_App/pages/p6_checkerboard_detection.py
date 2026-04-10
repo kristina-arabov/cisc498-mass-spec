@@ -201,11 +201,20 @@ class CalibrationWorker(QThread):
     def _multi_capture(self, home_frame, corners, gray, K_rough):
         start_pos = device_service.get_printer_position_timeout(self.printer)
         if start_pos is None:
-            self.status_update.emit(
-                "Could not read printer position — using single-image calibration."
-            )
-            print("[CalibWorker] get_printer_position_timeout returned None — no 'Count' in printer.line within timeout.")
-            return [home_frame]
+            # Fall back to last known position if available so transformation.height is still set
+            last_known = self.printer.pos
+            if last_known and last_known != [0, 0, 0]:
+                start_pos = list(last_known)
+                self.status_update.emit(
+                    "Position response timed out — using last known position for calibration."
+                )
+                print(f"[CalibWorker] Timed out, falling back to printer.pos={start_pos}")
+            else:
+                self.status_update.emit(
+                    "Could not read printer position — using single-image calibration."
+                )
+                print("[CalibWorker] get_printer_position_timeout returned None — no 'Count' in printer.line within timeout.")
+                return [home_frame]
 
         start_x, start_y, start_z = start_pos
         self.transformation.chessboard_loc = start_pos
