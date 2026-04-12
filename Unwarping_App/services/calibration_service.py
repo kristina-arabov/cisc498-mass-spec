@@ -573,3 +573,45 @@ def unwarpPhoto(img, transformation):
     img = secondUnwarp(img, transformation.mtx2, transformation.dist2)
 
     return img
+
+
+def setIntrinsics(transformation, path):
+    valid = False
+
+    try:
+        # Parse transformatio. file
+        with open(path, 'r') as file:
+            data = json.load(file)
+
+        
+        # Set relevant values
+        transformation.mtx1 = np.array(data["unwarping"][0]["mtx1"])
+        transformation.dist1 = np.array(data["unwarping"][0]["dist1"])
+
+        transformation.mtx2 = np.array(data["unwarping"][0]["mtx2"])
+        transformation.dist2 = np.array(data["unwarping"][0]["dist2"])
+
+        transformation.height = data["unwarping"][0]["height"]
+
+        transformation.offset_x = None
+        transformation.offset_y = None
+
+        valid = True
+        file.close()
+    
+    except Exception as e:
+        print(e)
+        transformation.mtx1 = None
+        transformation.dist1 = None
+
+        transformation.mtx2 = None
+        transformation.dist2 = None
+
+        transformation.height = None
+
+        transformation.offset_x = None
+        transformation.offset_y = None
+
+        valid = False
+
+    return valid

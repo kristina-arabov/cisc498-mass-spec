@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 
 from PyQt5.QtWidgets import (
-    QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QWidget, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QFileDialog
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
 from PyQt5.QtGui import QMovie
@@ -346,6 +346,12 @@ class CheckerboardDetection(QWidget):
         label_title = QLabel("Checkerboard Detection", objectName="page_title")
         component_lightControl = LightingDropdown()
 
+        self.component_existingSelect = FileSelection()
+        self.component_existingSelect.setFixedWidth(
+            component_lightControl.sizeHint().width()
+        )
+        self.component_existingSelect.btn_select.clicked.connect(lambda: self.selectFile())
+
         self.component_checkerboardParams = CheckerboardParamsSection()
         self.component_checkerboardParams.setFixedWidth(
             component_lightControl.sizeHint().width()
@@ -360,9 +366,11 @@ class CheckerboardDetection(QWidget):
 
         layout_right.addStretch()
         layout_right.addWidget(label_title,                       alignment=Qt.AlignLeft | Qt.AlignTop)
-        layout_right.addWidget(component_lightControl,            alignment=Qt.AlignLeft | Qt.AlignTop)
+        # layout_right.addWidget(component_lightControl,            alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(self.component_checkerboardParams, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(self.label_status)
+        layout_right.addStretch()
+        layout_right.addWidget(self.component_existingSelect,     alignment=Qt.AlignLeft | Qt.AlignTop)
         layout_right.addWidget(button_next,                       alignment=Qt.AlignRight)
         layout_right.addStretch()
 
@@ -551,6 +559,19 @@ class CheckerboardDetection(QWidget):
         self.button_next.setEnabled(False)
         self.label_status.setText("Enter board dimensions to begin.")
 
+    
+    def selectFile(self):
+        path, _ = QFileDialog.getOpenFileName(caption="Select Transformation File", filter="JSON Files (*.json)")
+        self.component_existingSelect.path.setText(path)
+
+        # Update transformation vars
+        valid = calibration_service.setIntrinsics(self.transformation, path)
+    
+        if valid:
+            self.button_next.setEnabled(True)
+        else:
+            self.button_next.setEnabled(False)
+
 
 # ── Reusable sub-component ─────────────────────────────────────────────────────
 
@@ -590,3 +611,38 @@ class CheckerboardParamsSection(QWidget):
         """)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
+
+# File selection component
+class FileSelection(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        layout = QVBoxLayout(self)
+
+        container = QWidget(objectName="light_blue_box")
+        file_box_layout = QVBoxLayout(container)
+
+        title = QLabel("Use existing intrinsics", objectName="larger")
+
+        self.path = QLabel("", objectName="path_label")
+        self.btn_select = QPushButton("Select file", objectName="blue")
+
+        self.label_error = QLabel("", objectName="light_blue_box")
+        self.label_error.hide()
+
+        file_box_layout.addWidget(title)
+        file_box_layout.addWidget(self.path)
+        file_box_layout.addWidget(self.btn_select, alignment=Qt.AlignCenter)
+        file_box_layout.addWidget(self.label_error, alignment=Qt.AlignCenter)
+
+        layout.addWidget(container)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+
+        self.setStyleSheet("""
+            QLabel#larger{
+                font-weight: bold;
+                background-color: #C8D3F1;
+            }
+        """)
