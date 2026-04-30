@@ -381,7 +381,7 @@ class ModeSelection(QWidget):
 
         # If this is for the ROI
         if roi:
-            self.button_drag = QRadioButton("Drag")
+            self.button_drag = QRadioButton("Sweep")
             mode_group.addButton(self.button_drag, 2)
             layout_container.addWidget(self.button_drag)
         
